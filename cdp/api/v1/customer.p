@@ -19,9 +19,15 @@
 
 {include/i-prgvrs.i customer 2.00.00.000} /*** 010000 ***/
 
-{utp/ut-api-action.i pi-get GET /~*/~*}
-{utp/ut-api-action.i pi-getAll GET /~*}
+{utp/ut-api-action.i pi-get GET /~*}
+{utp/ut-api-action.i pi-getAll GET /~*/~*}
 {utp/ut-api-notfound.i}
+
+DEFINE TEMP-TABLE tt-erros
+    FIELD cod-erro  AS INTEGER
+    FIELD desc-erro AS CHARACTER FORMAT "x(256)"
+    FIELD desc-arq  AS CHARACTER.
+
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -89,6 +95,52 @@ PROCEDURE pi-get :
 ------------------------------------------------------------------------------*/
     DEFINE INPUT PARAMETER jsonInput   AS JsonObject NO-UNDO.
     DEFINE OUTPUT PARAMETER jsonOutput AS JsonObject NO-UNDO.
+
+    DEFINE VARIABLE jsonCustomersArray AS JsonArray   NO-UNDO.
+    DEFINE VARIABLE jsonAddressArray   AS JsonArray   NO-UNDO.
+    DEFINE VARIABLE jsonCondPayArray   AS JsonArray   NO-UNDO.
+
+
+    DEFINE VARIABLE jsonCustomerObj   AS JsonObject  NO-UNDO.
+    DEFINE VARIABLE jsonAddressObj    AS JsonObject  NO-UNDO.
+    DEFINE VARIABLE jsonCondPayObj    AS JsonObject  NO-UNDO.
+
+    DEFINE VARIABLE codEmitente AS INTEGER NO-UNDO.
+    DEFINE VARIABLE queryParams AS JsonObject  NO-UNDO.
+    
+    EMPTY TEMP-TABLE RowErrors.
+
+    RUN btb/btapi910ze.p   (INPUT "tcpasilva", /*USUARIO*/
+                            INPUT "",          /*SENHA*/
+                            INPUT "1",         /*EMPRESA*/
+                            OUTPUT TABLE tt-erros). /*RETORNO DE ERROSl*/
+
+
+    ASSIGN queryParams = jsonInput:GetJsonObject("queryParams")
+           codEmitente = INT(queryParams:GetJsonArray("codEmitente"):getCharacter(1)).
+    
+    FIND FIRST emitente NO-LOCK WHERE emitente.cod-emitente = codEmitente NO-ERROR.
+    
+    IF  AVAILABLE emitente THEN
+    DO:
+        RUN pi-load-customer-json IN THIS-PROCEDURE(OUTPUT jsonOutput).
+        ASSIGN jsonAddressArray   = NEW JsonArray().
+        FOR EACH loc-entr NO-LOCK
+           WHERE loc-entr.nome-abrev = emitente.nome-abrev:
+            /*-- carrega informcoes do endereco dos clientes --*/
+            RUN pi-load-address-json IN THIS-PROCEDURE(OUTPUT jsonAddressObj).     
+            jsonAddressArray:ADD(jsonAddressObj).                                      
+        END. 
+        /*-- cria o array de enderecos --*/
+        jsonCustomerObj:ADD("EnderecoList",jsonAddressArray).
+
+        jsonCustomersArray:ADD(jsonCustomerObj).
+
+    END.
+    ELSE
+        ASSIGN jsonOutput = NEW JsonObject().
+    
+    RUN createJsonResponse(INPUT jsonCustomersArray, INPUT TABLE RowErrors, INPUT FALSE, OUTPUT jsonOutput).
 
 END PROCEDURE.
 
