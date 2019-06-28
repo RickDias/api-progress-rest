@@ -344,12 +344,12 @@ lretOK = DATASET httPedidoCompra:READ-JSON("LONGCHAR", json_recebido, "empty") N
 
 IF lretOK = NO THEN DO:
     
-    CREATE ttError.
-    ASSIGN ttError.SessionId   = ""
-           ttError.referencia  = "TOTVS"
-           ttError.codigo      = "0"
-           ttError.desc-erro   = "N∆o foi poss°vel fazer o parse do arquivo. Integraá∆o Pedido de Compra.".
-    
+    CREATE tt-retorno-nok.
+    ASSIGN tt-retorno-nok.data        = NOW
+           tt-retorno-nok.cod-erro    = 0
+           tt-retorno-nok.desc-erro   = "N∆o foi poss°vel fazer o parse do arquivo. Integraá∆o Pedido de Compra."
+           tt-retorno-nok.sequencia   = 1
+           tt-retorno-nok.UniqueName  = "".
 END.
 ELSE
     // Validar os registros e processar 
@@ -358,9 +358,9 @@ ELSE
 // Retornar os dados da integracao
 //RUN pi-03-retorno.
 
-IF CAN-FIND (FIRST ttError NO-LOCK) THEN DO:
+IF CAN-FIND (FIRST tt-retorno-nok NO-LOCK) THEN DO:
     ASSIGN jsonRetorno = NEW JsonArray().
-           jsonRetorno:Read(TEMP-TABLE ttError:HANDLE).
+           jsonRetorno:Read(TEMP-TABLE tt-retorno-nok:HANDLE).
 END.
 ELSE DO:
     ASSIGN jsonRetorno = NEW JsonArray().
@@ -402,12 +402,12 @@ IF CAN-FIND (FIRST tt-imp-pedido-compr) THEN DO:
                     FIND FIRST pedido-compr NO-LOCK
                         WHERE pedido-compr.num-pedido = tt-imp-pedido-compr.num-pedido NO-ERROR.
                     IF AVAIL pedido-compr THEN DO:
-                        CREATE ttError.
-                        ASSIGN //ttError.SessionId   = p-session 
-                               ttError.referencia  = "TOTVS"
-                               ttError.codigo      = "1"
-                               ttError.desc-erro   = "Pedido de Compra j† existe com o n£mero " + STRING(tt-imp-pedido-compr.num-pedido)
-                               ttError.UniqueName  = pedido-compr.char-2.
+                        CREATE tt-retorno-nok.
+                        ASSIGN tt-retorno-nok.data        = NOW
+                               tt-retorno-nok.cod-erro    = 1
+                               tt-retorno-nok.desc-erro   = "Pedido de Compra j† existe com o n£mero " + STRING(tt-imp-pedido-compr.num-pedido)
+                               tt-retorno-nok.sequencia   = 1
+                               tt-retorno-nok.UniqueName  = pedido-compr.char-2. 
 
                     END.
                 END.
@@ -416,41 +416,39 @@ IF CAN-FIND (FIRST tt-imp-pedido-compr) THEN DO:
                 FIND FIRST pedido-compr NO-LOCK
                     WHERE pedido-compr.num-pedido = tt-imp-pedido-compr.num-pedido NO-ERROR.
                 IF NOT AVAIL pedido-compr THEN DO:
-                    CREATE ttError.
-                    ASSIGN //ttError.SessionId   = p-session 
-                           ttError.referencia  = "TOTVS"
-                           ttError.codigo      = "2"
-                           ttError.desc-erro   = "Pedido de Compra n∆o localizada com o n£mero " + STRING(tt-imp-pedido-compr.num-pedido)
-                           ttError.UniqueName  = pedido-compr.char-2.
-                    
+                    CREATE tt-retorno-nok.
+                    ASSIGN tt-retorno-nok.data        = NOW
+                           tt-retorno-nok.cod-erro    = 1
+                           tt-retorno-nok.desc-erro   = "Pedido de Compra n∆o localizado com o n£mero " + STRING(tt-imp-pedido-compr.num-pedido)
+                           tt-retorno-nok.sequencia   = 2
+                           tt-retorno-nok.UniqueName  = pedido-compr.char-2.                    
                 END.
             END.
             WHEN 3 THEN DO:
                 FIND FIRST pedido-compr NO-LOCK
                     WHERE pedido-compr.num-pedido = tt-imp-pedido-compr.num-pedido NO-ERROR.
                 IF NOT AVAIL pedido-compr THEN DO:
-                    CREATE ttError.
-                    ASSIGN //ttError.SessionId   = p-session 
-                           ttError.referencia  = "TOTVS"
-                           ttError.codigo      = "3"
-                           ttError.desc-erro   = "Ordem de Compra n∆o localizada com o n£mero " + STRING(tt-imp-pedido-compr.num-pedido)
-                           ttError.UniqueName  = pedido-compr.char-2.
+                    CREATE tt-retorno-nok.
+                    ASSIGN tt-retorno-nok.data        = NOW
+                           tt-retorno-nok.cod-erro    = 1
+                           tt-retorno-nok.desc-erro   = "Pedido de Compra n∆o localizado com o n£mero " + STRING(tt-imp-pedido-compr.num-pedido)
+                           tt-retorno-nok.sequencia   = 3
+                           tt-retorno-nok.UniqueName  = pedido-compr.char-2.
                     
                 END.
             END.
             OTHERWISE DO:
-                CREATE ttError.
-                ASSIGN //ttError.SessionId   = p-session 
-                       ttError.referencia  = "TOTVS"
-                       ttError.codigo      = "4"
-                       ttError.desc-erro   = "N∆o identificada a operaá∆o a ser realizada na TAG <ind-tipo-movto>."
-                       ttError.UniqueName  = pedido-compr.char-2.
-                
+                CREATE tt-retorno-nok.
+                ASSIGN tt-retorno-nok.data        = NOW
+                       tt-retorno-nok.cod-erro    = 1
+                       tt-retorno-nok.desc-erro   = "N∆o identificada a operaá∆o a ser realizada na TAG <ind-tipo-movto>."
+                       tt-retorno-nok.sequencia   = 4
+                       tt-retorno-nok.UniqueName  = pedido-compr.char-2.
             END.
         END CASE.
 
         // Caso n∆o localize os erros, processar a integraá∆o 
-        IF NOT CAN-FIND(FIRST ttError) THEN DO:
+        IF NOT CAN-FIND(FIRST tt-retorno-nok) THEN DO:
 
             RUN pi-02-processa.
 
@@ -460,13 +458,15 @@ IF CAN-FIND (FIRST tt-imp-pedido-compr) THEN DO:
 
 END.
 ELSE DO:
-    
-    CREATE ttError.
-    ASSIGN //ttError.SessionId   = p-session 
-           ttError.referencia  = "TOTVS"
-           ttError.codigo      = "5"
-           ttError.desc-erro   = "Dados invalidos no XML/JSON".
-    
+
+
+    CREATE tt-retorno-nok.
+    ASSIGN tt-retorno-nok.data       = NOW
+           tt-retorno-nok.cod-erro   = 1
+           tt-retorno-nok.desc-erro  = "Dados inv†lidos no XML/JSON"
+           tt-retorno-nok.sequencia  = 5
+           tt-retorno-nok.UniqueName = "".
+        
 END.
 END PROCEDURE.
 
@@ -523,31 +523,50 @@ DO TRANSACTION ON ERROR UNDO, RETURN ON STOP UNDO, RETURN:
                 ASSIGN cOrderSituation = {ininc/i02in274.i 4 ordem-compra.situacao}.
 
                 MESSAGE SUBSTITUTE("Ordem: &1 - Situaá∆o: &2", ordem-compra.numero-ordem,cOrderSituation).
-                
-                
 
-                CREATE tt-erros-geral.
-                ASSIGN tt-erros-geral.identif-msg        = "TOTVS"
-                       tt-erros-geral.num-sequencia-erro = iErrorCode
-                       tt-erros-geral.cod-erro           = 17006
-                       tt-erros-geral.des-erro           = SUBSTITUTE("Ordem &1 j† &2. Operaá∆o n∆o permitida",ordem-compra.numero-ordem,cOrderSituation).
-
+                CREATE tt-retorno-nok.
+                ASSIGN tt-retorno-nok.data       = NOW
+                       tt-retorno-nok.cod-erro   = 1
+                       tt-retorno-nok.desc-erro  = SUBSTITUTE("Ordem &1 j† &2. Operaá∆o n∆o permitida",ordem-compra.numero-ordem,cOrderSituation)
+                       tt-retorno-nok.sequencia  = iErrorCode
+                       tt-retorno-nok.UniqueName = pedido-compr.char-2.
 
 
             END.
-
-            IF NOT TEMP-TABLE tt-erros-geral:HAS-RECORDS THEN
+            
+            IF NOT TEMP-TABLE tt-retorno-nok:HAS-RECORDS THEN
             DO:
                 MESSAGE SUBSTITUTE("Ordem: &1 - Sem Erro. Gerando ttOrdem e ttPrazoCompra", ordem-compra.numero-ordem).
                 RUN pi-05-geraOrdemCompra.
 
-                FOR EACH prazo-compra WHERE
-                         prazo-compra.numero-ordem  = ordem-compra.numero-ordem  NO-LOCK:
+                FOR EACH prazo-compra WHERE prazo-compra.numero-ordem  = ordem-compra.numero-ordem  NO-LOCK:
 
-                    RUN pi-06-geraPrazoCompra.
+                    /*-- item recebimento fiscal --*/
+                    FOR FIRST item-doc-est USE-INDEX itmdctst-09 NO-LOCK
+                        WHERE item-doc-est.num-pedido   = pedido-compr.num-pedido
+                          AND item-doc-est.numero-ordem = ordem-compra.numero-ordem
+                          AND item-doc-est.parcela      = prazo-compra.parcela: 
+                    END.
+
+                    /*-- item recebimento fisico --*/
+                    FOR FIRST it-doc-fisico NO-LOCK
+                        WHERE it-doc-fisico.num-pedido   = pedido-compr.num-pedido
+                          AND it-doc-fisico.numero-ordem = ordem-compra.numero-ordem:
+                    END.
+
+                    IF AVAIL item-doc-est  OR 
+                       AVAIL it-doc-fisico THEN
+                    DO:
+                        CREATE tt-retorno-nok.
+                        ASSIGN tt-retorno-nok.data       = NOW
+                               tt-retorno-nok.cod-erro   = 1
+                               tt-retorno-nok.desc-erro  = SUBSTITUTE("Ordem &1 possui documento lanáado no RE1001. Operaá∆o n∆o permitida",ordem-compra.numero-ordem)
+                               tt-retorno-nok.sequencia  = iErrorCode
+                               tt-retorno-nok.UniqueName = pedido-compr.char-2.
+                    END.
+                    ELSE RUN pi-06-geraPrazoCompra.
 
                 END.
-
             END.
 
             //RUN pi-07-geraCotacaoItem.
