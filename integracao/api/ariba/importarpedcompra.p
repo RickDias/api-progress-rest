@@ -1168,3 +1168,24 @@ END PROCEDURE.
 
 &ENDIF
 
+&IF DEFINED(EXCLUDE-pi-11-criaItemFornecedor) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE pi-11-criaItemFornecedor Procedure 
+PROCEDURE pi-11-criaItemFornecedor :
+/*------------------------------------------------------------------------------
+  Purpose: Procedure para gera‡Æo do item fornecedor   
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+    //Chamada para rotina cria item fornecedor
+    //{integracao/api/ariba/itemFornecedor.p}
+
+     RETURN "OK":U.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
