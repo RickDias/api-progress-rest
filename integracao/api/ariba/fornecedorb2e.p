@@ -24,28 +24,33 @@
 
 {utp/ut-api.i}
 {utp/ut-api-utils.i}
+
+{include/i-prgvrs.i fornecedorb2e 2.00.00.000} /*** 010000 ***/
+
 {cdp/cdcfgmat.i}
 
 DEF TEMP-TABLE csvFornecedor NO-UNDO
-    FIELD sourceSystem        AS CHAR
-    FIELD erpVendorId         AS CHAR
-    FIELD IE                  AS CHAR
-    FIELD Street              AS CHAR
-    FIELD Number              AS CHAR
-    FIELD Complement          AS CHAR
-    FIELD ZipCode             AS CHAR
-    FIELD District            AS CHAR
-    FIELD Municipality        AS CHAR
-    FIELD State               AS CHAR
-    FIELD Country             AS CHAR
-    FIELD SINTEGRA            AS CHAR
-    FIELD CNPJAtivo           AS CHAR
-    FIELD Simples             AS CHAR
-    FIELD ScoreAceito         AS CHAR
-    FIELD CNAE                AS CHAR
-    FIELD Mensagem            AS CHAR
-    FIELD Parecer             AS CHAR
-    FIELD Motivo              AS CHAR.
+    FIELD sourceSystem        AS CHAR SERIALIZE-NAME "sourceSystem"
+    FIELD erpVendorId         AS CHAR SERIALIZE-NAME "erpVendorId" 
+    FIELD IE                  AS CHAR SERIALIZE-NAME "IE"          
+    FIELD Street              AS CHAR SERIALIZE-NAME "Street"      
+    FIELD Number              AS CHAR SERIALIZE-NAME "Number"      
+    FIELD Complement          AS CHAR SERIALIZE-NAME "Complement"  
+    FIELD ZipCode             AS CHAR SERIALIZE-NAME "ZipCode"     
+    FIELD District            AS CHAR SERIALIZE-NAME "District"    
+    FIELD Municipality        AS CHAR SERIALIZE-NAME "Municipality"
+    FIELD State               AS CHAR SERIALIZE-NAME "State"       
+    FIELD Country             AS CHAR SERIALIZE-NAME "Country"     
+    FIELD SINTEGRA            AS CHAR SERIALIZE-NAME "SINTEGRA"    
+    FIELD CNPJAtivo           AS CHAR SERIALIZE-NAME "CNPJAtivo"   
+    FIELD Simples             AS CHAR SERIALIZE-NAME "Simples"    
+    FIELD ScoreAceito         AS CHAR SERIALIZE-NAME "ScoreAceito" 
+    FIELD CNAE                AS CHAR SERIALIZE-NAME "CNAE"        
+    FIELD Mensagem            AS CHAR SERIALIZE-NAME "Mensagem"    
+    FIELD Parecer             AS CHAR SERIALIZE-NAME "Parecer"     
+    FIELD Motivo              AS CHAR SERIALIZE-NAME "Motivo"
+    INDEX emitente_id IS PRIMARY UNIQUE erpVendorId.
+
 
 DEF TEMP-TABLE tt-erros
     FIELD cod-erro  AS INTEGER
@@ -155,12 +160,20 @@ DEFINE VARIABLE h-boin274sd AS HANDLE NO-UNDO.
 
 /* ***************************  Main Block  *************************** */
 
-RUN btb/btapi910ze.p   (INPUT "tcpasilva", /*USUARIO*/
-                        INPUT "",          /*SENHA*/
-                        INPUT "1",         /*EMPRESA*/
-                        OUTPUT TABLE tt-erros). /*RETORNO DE ERROSl*/
+ FIND FIRST param-global NO-LOCK NO-ERROR.
 
-{utp/ut-api-action.i pi-00-get GET /~*}
+/*-- validar um novo usuario para colocar neste parametro --*/
+
+
+RUN btb/btapi910ze.p   (INPUT "tcpasilva",       /*USUARIO*/
+                        INPUT "",                /*SENHA*/
+                        INPUT "1",               /*EMPRESA*/
+                        OUTPUT TABLE tt-erros).  /*RETORNO DE ERROSl*/
+
+//{utp/ut-api-action.i pi-00-get GET /~*}
+
+
+{utp/ut-api-action.i pi-getAll GET /~*}
 {utp/ut-api-notfound.i}
 
 /* _UIB-CODE-BLOCK-END */
@@ -169,10 +182,10 @@ RUN btb/btapi910ze.p   (INPUT "tcpasilva", /*USUARIO*/
 
 /* **********************  Internal Procedures  *********************** */
 
-&IF DEFINED(EXCLUDE-pi-00-get) = 0 &THEN
+&IF DEFINED(EXCLUDE-pi-00-get-deprecated) = 0 &THEN
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE pi-00-get Procedure 
-PROCEDURE pi-00-get :
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE pi-00-get-deprecated Procedure 
+PROCEDURE pi-00-get-deprecated :
 DEFINE INPUT  PARAMETER jsonInput  AS JsonObject NO-UNDO.
 DEFINE OUTPUT PARAMETER jsonOutput AS JsonObject NO-UNDO.
 
@@ -195,10 +208,10 @@ END PROCEDURE.
 
 &ENDIF
 
-&IF DEFINED(EXCLUDE-pi-02-processa-fornecedor) = 0 &THEN
+&IF DEFINED(EXCLUDE-pi-02-processa-fornecedor-deprecated) = 0 &THEN
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE pi-02-processa-fornecedor Procedure 
-PROCEDURE pi-02-processa-fornecedor :
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE pi-02-processa-fornecedor-deprecated Procedure 
+PROCEDURE pi-02-processa-fornecedor-deprecated :
 /*------------------------------------------------------------------------------
   Purpose:     
   Parameters:  <none>
@@ -237,6 +250,92 @@ FOR EACH emitente WHERE
 
 END.
 
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-pi-getAll) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE pi-getAll Procedure 
+PROCEDURE pi-getAll :
+/*------------------------------------------------------------------------------
+  Purpose: retorna as informacoes dos fornecedores B2E    
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+    DEFINE INPUT  PARAMETER jsonInput   AS JsonObject NO-UNDO.
+    DEFINE OUTPUT PARAMETER jsonOutput  AS JsonObject NO-UNDO.
+
+    DEFINE VARIABLE jsonFornecedores AS JsonArray NO-UNDO.
+
+    EMPTY TEMP-TABLE csvFornecedor.
+    EMPTY TEMP-TABLE RowErrors.
+
+    //Rotina para carregar os fornecedores
+    RUN pi-load-providers.
+
+    ASSIGN jsonFornecedores = NEW JsonArray(). 
+           jsonFornecedores:READ(TEMP-TABLE csvFornecedor:HANDLE). 
+
+
+    jsonFornecedores:WriteFile(SUBSTITUTE("/totvs/erp/camil/teste-rosa/log_appserver/jsonFornecedores-BF-&1.json",STRING(TIME))).
+
+    RUN createJsonResponse(INPUT jsonFornecedores, INPUT TABLE RowErrors, INPUT FALSE, OUTPUT jsonOutput).
+
+    jsonFornecedores:WriteFile(SUBSTITUTE("/totvs/erp/camil/teste-rosa/log_appserver/jsonFornecedores-AF-&1.json",STRING(TIME))).
+
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-pi-load-providers) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE pi-load-providers Procedure 
+PROCEDURE pi-load-providers :
+/*------------------------------------------------------------------------------
+  Purpose: Carrega na ttcsvFornecedor os fornecedores cadastrados no ultimos
+           30 dias    
+  Notes:       
+------------------------------------------------------------------------------*/
+    DEFINE VARIABLE c-source-codepage AS CHARACTER INITIAL "utf-8"  NO-UNDO.
+    
+    FOR EACH emitente 
+       WHERE emitente.identific > 1 /*-- nÆo exportar cliente --*/
+         AND emitente.data-implant >= TODAY - 30 NO-LOCK:
+
+        FIND LAST es-fornecedor-ariba WHERE
+                  es-fornecedor-ariba.cod-emitente = emitente.cod-emitente NO-LOCK NO-ERROR.
+
+        CREATE csvFornecedor.
+        ASSIGN csvFornecedor.sourceSystem      = "SAP"
+               csvFornecedor.erpVendorId       = STRING(emitente.cod-emitente)
+               csvFornecedor.IE                = STRING(emitente.ins-estadual)
+               csvFornecedor.Street            = emitente.endereco
+               csvFornecedor.Number            = ""
+               csvFornecedor.Complement        = emitente.endereco2
+               csvFornecedor.ZipCode           = STRING(emitente.cep,param-global.formato-cep)
+               csvFornecedor.District          = emitente.bairro
+               csvFornecedor.Municipality      = emitente.cidade
+               csvFornecedor.State             = emitente.estado
+               csvFornecedor.Country           = emitente.pais
+               csvFornecedor.SINTEGRA          = STRING(es-fornecedor-ariba.sintegra)
+               csvFornecedor.CNPJAtivo         = STRING(es-fornecedor-ariba.CNPJAtivo)
+               csvFornecedor.Simples           = STRING(es-fornecedor-ariba.Simples-Nacional)
+               csvFornecedor.ScoreAceito       = STRING(es-fornecedor-ariba.ScoreAceito)
+               csvFornecedor.CNAE              = STRING(es-fornecedor-ariba.CNAE)
+               csvFornecedor.Mensagem          = CODEPAGE-CONVERT(es-fornecedor-ariba.mensagem,SESSION:CHARSET,c-source-codepage)
+               csvFornecedor.Parecer           = CODEPAGE-CONVERT(es-fornecedor-ariba.parecer,SESSION:CHARSET,c-source-codepage)
+               csvFornecedor.Motivo            = CODEPAGE-CONVERT(es-fornecedor-ariba.motivo,SESSION:CHARSET,c-source-codepage).
+
+    END.
 
 END PROCEDURE.
 
