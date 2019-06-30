@@ -27,17 +27,19 @@
 {cdp/cdcfgmat.i}
 
 DEF TEMP-TABLE SupplierLocationConsolidated NO-UNDO
-    FIELD vendorID               AS CHAR
-    FIELD NAME                   AS CHAR
-    FIELD City                   AS CHAR
-    FIELD Phone                  AS CHAR
-    FIELD Country                AS CHAR
-    FIELD PostalCode             AS CHAR
-    FIELD Region                 AS CHAR
-    FIELD EmailAddress           AS CHAR
-    FIELD ContactName            AS CHAR
-    FIELD Locale                 AS CHAR
-    FIELD Street                 AS CHAR.
+    FIELD vendorID                 AS CHAR
+    FIELD NAME                     AS CHAR
+    FIELD City                     AS CHAR
+    FIELD Phone                    AS CHAR
+    FIELD Country                  AS CHAR
+    FIELD PostalCode               AS CHAR
+    FIELD Region                   AS CHAR
+    FIELD EmailAddress             AS CHAR
+    FIELD ContactName              AS CHAR
+    FIELD Locale                   AS CHAR
+    FIELD Street                   AS CHAR
+    FIELD ContactID                AS CHAR
+    FIELD PreferredOrderingMethod  AS CHAR INITIAL "Print".
 
 
 DEF TEMP-TABLE tt-erros
@@ -209,6 +211,8 @@ PROCEDURE pi-02-processa :
   Parameters:  <none>
   Notes:       
 ------------------------------------------------------------------------------*/
+DEFINE VARIABLE cLocale AS CHARACTER INITIAL "pt_BR"   NO-UNDO.
+DEFINE VARIABLE cPais   AS CHARACTER INITIAL ""        NO-UNDO.
 
 EMPTY TEMP-TABLE SupplierLocationConsolidated.
 
@@ -220,32 +224,42 @@ IF NOT CAN-FIND (FIRST es-fornecedor-ariba WHERE
     ASSIGN tt-erros.cod-erro  = 1
            tt-erros.desc-erro = "NÆo existe itens para serem Integrados".
 
-
-
 END.
 
 
-FOR EACH es-fornecedor-ariba WHERE                      
-         es-fornecedor-ariba.cod-emitente <> 0    AND   
-         es-fornecedor-ariba.enviado-SupplierLocationConsolid = NO  EXCLUSIVE-LOCK:
+FOR EACH es-fornecedor-ariba EXCLUSIVE-LOCK
+   WHERE es-fornecedor-ariba.cod-emitente <> 0    
+     AND es-fornecedor-ariba.enviado-SupplierLocationConsolid = NO:
 
-    FIND FIRST emitente WHERE 
-               emitente.cod-emitente = es-fornecedor-ariba.cod-emitente NO-LOCK NO-ERROR.
+    FIND FIRST emitente NO-LOCK
+         WHERE emitente.cod-emitente = es-fornecedor-ariba.cod-emitente  NO-ERROR.
+    IF NOT AVAIL emitente THEN NEXT.
+
+    ASSIGN cPais = "".
+    FIND FIRST mguni.pais WHERE pais.nome-pais = emitente.pais NO-LOCK NO-ERROR.
+    IF AVAIL mguni.pais THEN
+        ASSIGN cPais = trim(substring(pais.char-1,23,02)).
+
+
+    IF cPais <> "BR" THEN
+        ASSIGN cLocale = "en_US".
+
 
     CREATE SupplierLocationConsolidated.
-    ASSIGN SupplierLocationConsolidated.vendorID   = STRING(emitente.cod-emitente)
-           SupplierLocationConsolidated.NAME       = emitente.nome-emit
-           SupplierLocationConsolidated.City       = emitente.cidade
-           SupplierLocationConsolidated.Country    = emitente.pais
-           SupplierLocationConsolidated.PostalCode = STRING(emitente.cep,"99999-999")
-           SupplierLocationConsolidated.Region     = ""
-           SupplierLocationConsolidated.Locale     = ""
-           SupplierLocationConsolidated.Street     = emitente.cidade.
+    ASSIGN SupplierLocationConsolidated.vendorID     = STRING(emitente.cod-emitente)
+           SupplierLocationConsolidated.NAME         = emitente.nome-emit
+           SupplierLocationConsolidated.City         = emitente.cidade
+           SupplierLocationConsolidated.Country      = cPais
+           SupplierLocationConsolidated.PostalCode   = STRING(emitente.cep,"99999-999")
+           SupplierLocationConsolidated.Region       = emitente.estado
+           SupplierLocationConsolidated.Locale       = cLocale
+           SupplierLocationConsolidated.Street       = emitente.endereco
+           SupplierLocationConsolidated.EmailAddress = emitente.e-mai.
 
     FIND FIRST cont-emit OF emitente NO-LOCK NO-ERROR.
     IF AVAIL cont-emit THEN
         ASSIGN SupplierLocationConsolidated.Phone        = cont-emit.telefone 
-               SupplierLocationConsolidated.EmailAddress = cont-emit.e-mail
+               SupplierLocationConsolidated.ContactID    = cont-emit.e-mail
                SupplierLocationConsolidated.ContactName  = cont-emit.nome.
 
 
@@ -253,6 +267,8 @@ FOR EACH es-fornecedor-ariba WHERE
 
     
 END.
+
+RELEASE es-fornecedor-ariba.
 
 END PROCEDURE.
 
