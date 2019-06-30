@@ -1,6 +1,6 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12
 &ANALYZE-RESUME
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure
 /*------------------------------------------------------------------------
     File        : importarpedcompra.p
     Purpose     : Integra‡ao - ARIBA x Pedido de Compra
@@ -25,7 +25,7 @@ DEFINE INPUT  PARAMETER p-cod-emitente  AS INT  NO-UNDO.
 
 DEF TEMP-TABLE fornecedor-ariba NO-UNDO SERIALIZE-NAME "Fornecedor_Ariba"
     FIELD InternalID                          AS CHAR
-    
+
     FIELD ID                                  AS c
     FIELD UUID                                AS c
     FIELD ID_1                                AS c
@@ -94,10 +94,10 @@ DEFINE VARIABLE json_retorno   AS LONGCHAR NO-UNDO.
 
 DEFINE VARIABLE h-boin295            AS HANDLE NO-UNDO.
 DEFINE VARIABLE h-boin274sd          AS HANDLE NO-UNDO.
-DEFINE VARIABLE h-esint002           AS HANDLE     NO-UNDO. 
+DEFINE VARIABLE h-esint002           AS HANDLE     NO-UNDO.
 DEFINE VARIABLE c-url                AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE c-token              AS CHARACTER  NO-UNDO.
-DEFINE VARIABLE v-longchar           AS LONGCHAR   NO-UNDO. 
+DEFINE VARIABLE v-longchar           AS LONGCHAR   NO-UNDO.
 DEFINE VARIABLE c-texto              AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE client               AS COM-HANDLE NO-UNDO.
 DEFINE VARIABLE l-retorno-fornecedor AS LOGICAL NO-UNDO.
@@ -106,7 +106,7 @@ DEFINE VARIABLE l-retorno-fornecedor AS LOGICAL NO-UNDO.
 &ANALYZE-RESUME
 
 
-&ANALYZE-SUSPEND _UIB-PREPROCESSOR-BLOCK 
+&ANALYZE-SUSPEND _UIB-PREPROCESSOR-BLOCK
 
 /* ********************  Preprocessor Definitions  ******************** */
 
@@ -125,7 +125,7 @@ DEFINE VARIABLE l-retorno-fornecedor AS LOGICAL NO-UNDO.
 &ANALYZE-SUSPEND _PROCEDURE-SETTINGS
 /* Settings for THIS-PROCEDURE
    Type: Procedure
-   Allow: 
+   Allow:
    Frames: 0
    Add Fields to: Neither
    Other Settings: CODE-ONLY COMPILE
@@ -135,7 +135,7 @@ DEFINE VARIABLE l-retorno-fornecedor AS LOGICAL NO-UNDO.
 /* *************************  Create Window  ************************** */
 
 &ANALYZE-SUSPEND _CREATE-WINDOW
-/* DESIGN Window definition (used by the UIB) 
+/* DESIGN Window definition (used by the UIB)
   CREATE WINDOW Procedure ASSIGN
          HEIGHT             = 15.29
          WIDTH              = 60.
@@ -143,10 +143,10 @@ DEFINE VARIABLE l-retorno-fornecedor AS LOGICAL NO-UNDO.
                                                                         */
 &ANALYZE-RESUME
 
- 
 
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK Procedure 
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK Procedure
 
 
 /* ***************************  Main Block  *************************** */
@@ -163,43 +163,43 @@ RUN pi-00-envia-cod-fornecedor.
 
 &IF DEFINED(EXCLUDE-pi-00-envia-cod-fornecedor) = 0 &THEN
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE pi-00-envia-cod-fornecedor Procedure 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE pi-00-envia-cod-fornecedor Procedure
 PROCEDURE pi-00-envia-cod-fornecedor :
 DEFINE VARIABLE pArquivoEnvio   AS LONGCHAR NO-UNDO.
     DEFINE VARIABLE pArquivoRetorno AS LONGCHAR NO-UNDO.
-    
-    FIND FIRST es-fornecedor-ariba 
-         WHERE es-fornecedor-ariba.cod-emitente = p-cod-emitente 
+
+    FIND FIRST es-fornecedor-ariba
+         WHERE es-fornecedor-ariba.cod-emitente = p-cod-emitente
            AND es-fornecedor-ariba.number       > ""
          NO-ERROR.
 
     MESSAGE PROGRAM-NAME(1) AVAIL es-fornecedor-ariba
         VIEW-AS ALERT-BOX INFO BUTTONS OK.
 
-    IF AVAIL es-fornecedor-ariba 
+    IF AVAIL es-fornecedor-ariba
     THEN DO:
-       FIND FIRST es-api-param NO-LOCK                               
+       FIND FIRST es-api-param NO-LOCK
             WHERE es-api-param.ind-tipo-trans = 2  /*---- Saida ----*/
               AND es-api-param.cd-tipo-integr = 27
             NO-ERROR.
-       IF AVAIL es-api-param 
+       IF AVAIL es-api-param
        THEN DO:
            MESSAGE PROGRAM-NAME(2)  1
                VIEW-AS ALERT-BOX INFO BUTTONS OK.
           CREATE api-export-ariba-codigo.
-          ASSIGN 
+          ASSIGN
              api-export-ariba-codigo.cd-tipo-integr = es-api-param.cd-tipo-integr
              api-export-ariba-codigo.id-movto       = NEXT-VALUE(seq-export)
              api-export-ariba-codigo.data-movto     = NOW
              api-export-ariba-codigo.c-json         = ?
-             api-export-ariba-codigo.Number         = es-fornecedor-ariba.Number     
+             api-export-ariba-codigo.Number         = es-fornecedor-ariba.Number
              api-export-ariba-codigo.dt-consulta    = es-fornecedor-ariba.dt-consulta
              .
           MESSAGE PROGRAM-NAME(2)  2
               VIEW-AS ALERT-BOX INFO BUTTONS OK.
 
           CREATE sfa-export.
-          ASSIGN 
+          ASSIGN
              sfa-export.ind-tipo-trans = es-api-param.ind-tipo-trans
              sfa-export.id-movto       = api-export-ariba-codigo.id-movto
              sfa-export.cd-tipo-integr = api-export-ariba-codigo.cd-tipo-integr
@@ -222,7 +222,7 @@ DEFINE VARIABLE pArquivoEnvio   AS LONGCHAR NO-UNDO.
 
        RUN pi-processa (es-api-param.ind-tipo-trans,
                         es-api-param.cd-tipo-integr
-                       ).  
+                       ).
        MESSAGE PROGRAM-NAME(2)  5
     VIEW-AS ALERT-BOX INFO BUTTONS OK.
 

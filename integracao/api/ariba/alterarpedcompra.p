@@ -1,6 +1,6 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12
 &ANALYZE-RESUME
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure
 /*------------------------------------------------------------------------
     File        : importarpedcompra.p
     Purpose     : Integraáao - ARIBA x Pedido de Compra
@@ -33,31 +33,31 @@
 {ccp/ccapi207.i}
 
 //{include/i-prgvrs.i paymentTerms 2.00.00.000} /*** 010000 ***/
-DEFINE TEMP-TABLE tt-versao-integr 
+DEFINE TEMP-TABLE tt-versao-integr
     FIELD cod-versao-integracaoo AS INTEGER
     FIELD ind-origem-msg         AS INTEGER.
 
 DEF TEMP-TABLE tt-imp-pedido-compr NO-UNDO SERIALIZE-NAME "Pedido_Compra"
     FIELD num-pedido            AS CHAR
-    FIELD num-pedido-totvs      AS INT      
+    FIELD num-pedido-totvs      AS INT
     FIELD num-pedido-ariba      AS CHAR
-    FIELD Cod-estabel           AS CHAR     
-    FIELD Cod-emitente          AS CHAR      
+    FIELD Cod-estabel           AS CHAR
+    FIELD Cod-emitente          AS CHAR
     FIELD Cod-cond-pag          AS CHAR
-    FIELD Natureza              AS INT      
-    FIELD data-pedido           AS DATE     
-    FIELD Situacao              AS INT      
+    FIELD Natureza              AS INT
+    FIELD data-pedido           AS DATE
+    FIELD Situacao              AS INT
     FIELD Frete                 AS CHAR
-    FIELD Cod-transp            AS INT      
-    FIELD Responsavel           AS CHAR     
-    FIELD Impr-pedido           AS LOGICAL  
-    FIELD Comentarios           AS CHAR     
-    FIELD Mot-elimina           AS CHAR     
-    FIELD Emergencial           AS LOGICAL  
-    FIELD Contr-forn            AS LOGICAL  
-    FIELD Compl-entrega         AS CHAR     
-    FIELD End-entrega           AS CHAR     
-    FIELD End-cobranca          AS CHAR     
+    FIELD Cod-transp            AS INT
+    FIELD Responsavel           AS CHAR
+    FIELD Impr-pedido           AS LOGICAL
+    FIELD Comentarios           AS CHAR
+    FIELD Mot-elimina           AS CHAR
+    FIELD Emergencial           AS LOGICAL
+    FIELD Contr-forn            AS LOGICAL
+    FIELD Compl-entrega         AS CHAR
+    FIELD End-entrega           AS CHAR
+    FIELD End-cobranca          AS CHAR
     FIELD Via-transp            AS INT
     FIELD data-pgto-1           AS DATE
     FIELD data-pgto-2           AS DATE
@@ -114,9 +114,9 @@ DEF TEMP-TABLE tt-imp-prazo-compra NO-UNDO SERIALIZE-NAME "Prazo_Compra"
     FIELD Data-entrega          AS DATE
     FIELD Natureza              AS INT
     FIELD un                    AS CHAR
-    //FIELD Parcela               AS INT   
-    FIELD it-codigo             AS CHAR   
-    FIELD Quantidade            AS DEC   
+    //FIELD Parcela               AS INT
+    FIELD it-codigo             AS CHAR
+    FIELD Quantidade            AS DEC
     FIELD Quant-saldo           AS DEC
     FIELD Quantid-orig          AS DEC
     FIELD qtd-sal-forn          AS DEC
@@ -158,9 +158,9 @@ DEF TEMP-TABLE tt-imp-cotacao NO-UNDO SERIALIZE-NAME "Cotacao_Item"
     FIELD ind-tipo-movto        AS INTEGER FORMAT "99".
 
 DEF TEMP-TABLE tt-imp-pedido-compr-retorno NO-UNDO SERIALIZE-NAME "Pedido_Compra_Retorno"
-    FIELD num-pedido            AS INT      
-    FIELD vl-pedido             AS DECIMAL     
-    FIELD qt-pedido             AS DECIMAL     
+    FIELD num-pedido            AS INT
+    FIELD vl-pedido             AS DECIMAL
+    FIELD qt-pedido             AS DECIMAL
     FIELD dt-inclusao           AS DATETIME
     FIELD NumberInCollection    AS CHAR
     FIELD SAPPOLineNumber       AS CHAR
@@ -169,22 +169,22 @@ DEF TEMP-TABLE tt-imp-pedido-compr-retorno NO-UNDO SERIALIZE-NAME "Pedido_Compra
 DEF TEMP-TABLE tt-retorno-nok NO-UNDO SERIALIZE-NAME "Retorno"
     FIELD data                  AS DATETIME
     FIELD cod-erro              AS INT
-    FIELD sequencia             AS INT     
+    FIELD sequencia             AS INT
     FIELD desc-erro             AS CHAR
     FIELD UniqueName            AS CHAR.
 
-DEFINE TEMP-TABLE tt-erros-geral 
-    FIELD identif-msg        AS CHARACTER 
+DEFINE TEMP-TABLE tt-erros-geral
+    FIELD identif-msg        AS CHARACTER
     FIELD num-sequencia-erro AS INTEGER
     FIELD cod-erro           AS INTEGER
     FIELD des-erro           AS CHARACTER FORMAT "X(200)"
-    FIELD cod-maq-origem     AS INTEGER 
+    FIELD cod-maq-origem     AS INTEGER
     FIELD num-processo       AS INTEGER.
 
 
 DEFINE DATASET httPedidoCompra SERIALIZE-HIDDEN  FOR tt-imp-pedido-compr, tt-imp-ordem-compra, tt-imp-prazo-compra
     DATA-RELATION dr-OrdemCompra FOR tt-imp-pedido-compr, tt-imp-ordem-compra
-       RELATION-FIELDS (num-pedido, num-pedido)  NESTED   
+       RELATION-FIELDS (num-pedido, num-pedido)  NESTED
     DATA-RELATION dr-PrazoCompra FOR tt-imp-ordem-compra, tt-imp-prazo-compra
        RELATION-FIELDS (it-codigo, it-codigo) NESTED .
 
@@ -264,7 +264,7 @@ DEF VAR c-pedido-ariba AS CHAR NO-UNDO.
 &ANALYZE-RESUME
 
 
-&ANALYZE-SUSPEND _UIB-PREPROCESSOR-BLOCK 
+&ANALYZE-SUSPEND _UIB-PREPROCESSOR-BLOCK
 
 /* ********************  Preprocessor Definitions  ******************** */
 
@@ -283,7 +283,7 @@ DEF VAR c-pedido-ariba AS CHAR NO-UNDO.
 &ANALYZE-SUSPEND _PROCEDURE-SETTINGS
 /* Settings for THIS-PROCEDURE
    Type: Procedure
-   Allow: 
+   Allow:
    Frames: 0
    Add Fields to: Neither
    Other Settings: CODE-ONLY COMPILE
@@ -293,7 +293,7 @@ DEF VAR c-pedido-ariba AS CHAR NO-UNDO.
 /* *************************  Create Window  ************************** */
 
 &ANALYZE-SUSPEND _CREATE-WINDOW
-/* DESIGN Window definition (used by the UIB) 
+/* DESIGN Window definition (used by the UIB)
   CREATE WINDOW Procedure ASSIGN
          HEIGHT             = 15.29
          WIDTH              = 60.
@@ -301,10 +301,10 @@ DEF VAR c-pedido-ariba AS CHAR NO-UNDO.
                                                                         */
 &ANALYZE-RESUME
 
- 
 
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK Procedure 
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK Procedure
 
 
 /* ***************************  Main Block  *************************** */
@@ -338,7 +338,7 @@ RUN btb/btapi910ze.p   (INPUT "tcpasilva", /*USUARIO*/
 
 &IF DEFINED(EXCLUDE-pi-00-get) = 0 &THEN
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE pi-00-get Procedure 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE pi-00-get Procedure
 PROCEDURE pi-00-get :
 DEFINE INPUT  PARAMETER jsonInput  AS JsonObject NO-UNDO.
 DEFINE OUTPUT PARAMETER jsonOutput AS JsonObject NO-UNDO.
@@ -347,7 +347,7 @@ DEFINE VARIABLE oRequestParser AS JsonAPIRequestParser NO-UNDO.
 DEFINE VARIABLE jsonRetorno AS JsonArray NO-UNDO.
 
 oRequestParser = NEW JsonAPIRequestParser(jsonInput).
- 
+
 ASSIGN json_recebido = oRequestParser:getPayloadLongChar().
 
 OUTPUT TO /totvs/erp/camil/teste-rosa/log_appserver/jsonalterapedido.json.
@@ -366,12 +366,12 @@ IF lretOK = NO THEN DO:
            tt-retorno-nok.desc-erro   = "N∆o foi poss°vel fazer o parse do arquivo. Integraá∆o Pedido de Compra."
            tt-retorno-nok.sequencia   = 1
            tt-retorno-nok.UniqueName  = "".
-    
+
 END.
 ELSE
-    // Validar os registros e processar 
+    // Validar os registros e processar
     RUN pi-01-valida.
-    
+
 // Retornar os dados da integracao
 //RUN pi-03-retorno.
 
@@ -395,12 +395,12 @@ END PROCEDURE.
 
 &IF DEFINED(EXCLUDE-pi-01-valida) = 0 &THEN
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE pi-01-valida Procedure 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE pi-01-valida Procedure
 PROCEDURE pi-01-valida :
 /*------------------------------------------------------------------------------
-  Purpose: Localizar dados da integraá∆o para validar as execuá‰es     
+  Purpose: Localizar dados da integraá∆o para validar as execuá‰es
   Parameters:  <none>
-  Notes:       
+  Notes:
 ------------------------------------------------------------------------------*/
 EMPTY TEMP-TABLE ttError.
 
@@ -417,7 +417,7 @@ IF CAN-FIND (FIRST tt-imp-pedido-compr) THEN DO:
         CASE tt-imp-pedido-compr.ind-tipo-movto:
             WHEN 1 THEN DO: // Inclusao de registro
 
-                // Verificar se o codigo do emitente j† existe cadastrado 
+                // Verificar se o codigo do emitente j† existe cadastrado
                 IF INT(tt-imp-pedido-compr.num-pedido) <> 0 THEN DO:
                     FIND FIRST pedido-compr NO-LOCK
                         WHERE pedido-compr.num-pedido = INT(tt-imp-pedido-compr.num-pedido) NO-ERROR.
@@ -444,7 +444,7 @@ IF CAN-FIND (FIRST tt-imp-pedido-compr) THEN DO:
                            tt-retorno-nok.desc-erro   = "Pedido de Compra n∆o localizada com o n£mero " + STRING(tt-imp-pedido-compr.num-pedido)
                            tt-retorno-nok.sequencia   = 1
                            tt-retorno-nok.UniqueName  = tt-imp-pedido-compr.num-pedido-ariba.
-                    
+
                 END.
             END.
             WHEN 3 THEN DO:
@@ -458,7 +458,7 @@ IF CAN-FIND (FIRST tt-imp-pedido-compr) THEN DO:
                            tt-retorno-nok.desc-erro   = "Pedido de Compra n∆o localizada com o n£mero " + STRING(tt-imp-pedido-compr.num-pedido)
                            tt-retorno-nok.sequencia   = 1
                            tt-retorno-nok.UniqueName  = tt-imp-pedido-compr.num-pedido-ariba.
-                    
+
                 END.
             END.
             OTHERWISE DO:
@@ -468,17 +468,17 @@ IF CAN-FIND (FIRST tt-imp-pedido-compr) THEN DO:
                        tt-retorno-nok.desc-erro   = "N∆o identificada a operaá∆o a ser realizada na TAG <ind-tipo-movto>."
                        tt-retorno-nok.sequencia   = 1
                        tt-retorno-nok.UniqueName  = tt-imp-pedido-compr.num-pedido-ariba.
-                
+
             END.
         END CASE.
 
-        // Caso n∆o localize os erros, processar a integraá∆o 
+        // Caso n∆o localize os erros, processar a integraá∆o
         IF NOT CAN-FIND(FIRST ttError) THEN DO:
 
             RUN pi-02-processa.
 
         END.
-            
+
     END.
 
 END.
@@ -490,7 +490,7 @@ ELSE DO:
            tt-retorno-nok.desc-erro   = "Dados invalidos no XML/JSON"
            tt-retorno-nok.sequencia   = 1
            tt-retorno-nok.UniqueName  = tt-imp-pedido-compr.num-pedido-ariba.
-    
+
 END.
 END PROCEDURE.
 
@@ -501,12 +501,12 @@ END PROCEDURE.
 
 &IF DEFINED(EXCLUDE-pi-02-processa) = 0 &THEN
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE pi-02-processa Procedure 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE pi-02-processa Procedure
 PROCEDURE pi-02-processa :
 /*------------------------------------------------------------------------------
-  Purpose:     
+  Purpose:
   Parameters:  <none>
-  Notes:       
+  Notes:
 ------------------------------------------------------------------------------*/
 DEF VAR d-total-pedido AS DECIMAL NO-UNDO.
 DEF VAR d-total-item   AS DECIMAL NO-UNDO.
@@ -525,7 +525,7 @@ DO TRANSACTION ON ERROR UNDO, RETURN ON STOP UNDO, RETURN:
         EMPTY TEMP-TABLE tt-pedido-compr.
         EMPTY TEMP-TABLE tt-prazo-compra.
         EMPTY TEMP-TABLE tt-ordem-compra.
-        EMPTY TEMP-TABLE tt-cotacao-item. 
+        EMPTY TEMP-TABLE tt-cotacao-item.
         RUN pi-04-geraPedidoCompra.
 
         FOR EACH tt-imp-ordem-compra EXCLUSIVE-LOCK:
@@ -537,14 +537,14 @@ DO TRANSACTION ON ERROR UNDO, RETURN ON STOP UNDO, RETURN:
             IF tt-imp-ordem-compra.ChangedState = 4 THEN DO: /*INCLUS«O*/
 
                 RUN pi-05-geraOrdemCompra.
-    
+
                 FOR EACH tt-imp-prazo-compra WHERE
                          tt-imp-prazo-compra.sequencia  = tt-imp-ordem-compra.sequencia  NO-LOCK:
-    
+
                     RUN pi-06-geraPrazoCompra.
-        
+
                 END.
-    
+
                 RUN pi-07-geraCotacaoItem.
 
             END.
@@ -552,14 +552,14 @@ DO TRANSACTION ON ERROR UNDO, RETURN ON STOP UNDO, RETURN:
                     AVAIL ordem-compra THEN DO: /*ALTERAÄ«O*/
 
                 RUN pi-05-alteraOrdemCompra.
-    
+
                 FOR EACH tt-imp-prazo-compra WHERE
                          tt-imp-prazo-compra.sequencia  = tt-imp-ordem-compra.sequencia  NO-LOCK:
-    
+
                     RUN pi-06-alteraPrazoCompra.
-        
+
                 END.
-    
+
                 RUN pi-07-alteraCotacaoItem.
 
 
@@ -568,27 +568,27 @@ DO TRANSACTION ON ERROR UNDO, RETURN ON STOP UNDO, RETURN:
                  AVAIL ordem-compra THEN DO: /*ELIMINAR*/
 
                 RUN pi-05-eliminaOrdemCompra.
-    
+
                 FOR EACH tt-imp-prazo-compra WHERE
                          tt-imp-prazo-compra.sequencia  = tt-imp-ordem-compra.sequencia  NO-LOCK:
-    
+
                     RUN pi-06-eliminaPrazoCompra.
-        
+
                 END.
 
                 RUN pi-07-eliminaCotacaoItem.
-                
+
             END.
             ELSE DO:
 
                 CREATE ttError.
-                ASSIGN //ttError.SessionId   = p-session 
+                ASSIGN //ttError.SessionId   = p-session
                        ttError.referencia  = "TOTVS"
                        ttError.codigo      = "5"
                        ttError.descricao   = "N∆o identificada a operaá∆o a ser realizada na TAG <ChangedState>.".
 
             END.
-            
+
         END.
 
         IF NOT CAN-FIND (FIRST ttError NO-LOCK) THEN DO:
@@ -613,7 +613,7 @@ DO TRANSACTION ON ERROR UNDO, RETURN ON STOP UNDO, RETURN:
                 RUN pi-10-calc-total-pedido (INPUT  tt-imp-pedido-compr.num-pedido-totvs,
                                              OUTPUT d-total-item,
                                              OUTPUT d-total-pedido).
-    
+
                 CREATE tt-imp-pedido-compr-retorno.
                 ASSIGN tt-imp-pedido-compr-retorno.num-pedido         = pedido-compr.num-pedido
                        tt-imp-pedido-compr-retorno.dt-inclusao        = NOW
@@ -625,8 +625,8 @@ DO TRANSACTION ON ERROR UNDO, RETURN ON STOP UNDO, RETURN:
 
                 IF NOT CAN-FIND(FIRST sfa-export WHERE sfa-export.cd-tipo-integr = 20
                                                    AND sfa-export.chave          = STRING(tt-imp-pedido-compr.num-pedido)
-                                                   AND sfa-export.ind-situacao   < 2) THEN DO: 
-        
+                                                   AND sfa-export.ind-situacao   < 2) THEN DO:
+
                     CREATE sfa-export-ped-ariba.
                     ASSIGN sfa-export-ped-ariba.cd-tipo-integr = 20
                            sfa-export-ped-ariba.id-movto       = NEXT-VALUE(seq-export)
@@ -634,7 +634,7 @@ DO TRANSACTION ON ERROR UNDO, RETURN ON STOP UNDO, RETURN:
                            sfa-export-ped-ariba.data-movto     = NOW
                            sfa-export-ped-ariba.tp-integracao  = 2
                            sfa-export-ped-ariba.c-json         = ?.
-            
+
                     CREATE sfa-export.
                     ASSIGN sfa-export.ind-tipo-trans = 2
                            sfa-export.id-movto       = sfa-export-ped-ariba.id-movto
@@ -645,15 +645,15 @@ DO TRANSACTION ON ERROR UNDO, RETURN ON STOP UNDO, RETURN:
                            sfa-export.data-inicio    = ?
                            sfa-export.data-movto     = NOW
                            sfa-export.ind-situacao   = 1       /*---- Pendente -----*/.
-        
+
                 END.
 
             END.
-            
+
         END.
-            
+
     END.
-    
+
 END.
 
 END PROCEDURE.
@@ -665,12 +665,12 @@ END PROCEDURE.
 
 &IF DEFINED(EXCLUDE-pi-03-retorno) = 0 &THEN
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE pi-03-retorno Procedure 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE pi-03-retorno Procedure
 PROCEDURE pi-03-retorno :
 /*------------------------------------------------------------------------------
-  Purpose:     
+  Purpose:
   Parameters:  <none>
-  Notes:       
+  Notes:
 ------------------------------------------------------------------------------*/
 
 IF CAN-FIND (FIRST ttError NO-LOCK) THEN
@@ -687,12 +687,12 @@ END PROCEDURE.
 
 &IF DEFINED(EXCLUDE-pi-04-geraPedidoCompra) = 0 &THEN
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE pi-04-geraPedidoCompra Procedure 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE pi-04-geraPedidoCompra Procedure
 PROCEDURE pi-04-geraPedidoCompra :
 /*------------------------------------------------------------------------------
-  Purpose:     
+  Purpose:
   Parameters:  <none>
-  Notes:       
+  Notes:
 ------------------------------------------------------------------------------*/
 
     IF NOT VALID-HANDLE(h-boin295) THEN
@@ -706,24 +706,24 @@ PROCEDURE pi-04-geraPedidoCompra :
     ASSIGN tt-pedido-compr.ind-tipo-movto =  2
            tt-pedido-compr.num-pedido     =  INT(tt-imp-pedido-compr.num-pedido)
            tt-pedido-compr.char-2         =  tt-imp-pedido-compr.num-pedido-ariba
-           tt-pedido-compr.cod-estabel    =  tt-imp-pedido-compr.cod-estabel  
+           tt-pedido-compr.cod-estabel    =  tt-imp-pedido-compr.cod-estabel
            tt-pedido-compr.cod-emitente   =  INT(tt-imp-pedido-compr.cod-emitente)
            tt-pedido-compr.cod-emit-terc  =  INT(tt-imp-pedido-compr.cod-emitente)
            tt-pedido-compr.cod-cond-pag   =  INT(tt-imp-pedido-compr.cod-cond-pag)
-           tt-pedido-compr.natureza       =  tt-imp-pedido-compr.natureza     
-           tt-pedido-compr.data-pedido    =  tt-imp-pedido-compr.data-pedido  
+           tt-pedido-compr.natureza       =  tt-imp-pedido-compr.natureza
+           tt-pedido-compr.data-pedido    =  tt-imp-pedido-compr.data-pedido
            tt-pedido-compr.situacao       =  2                                        /*FIXO*/
-           //tt-pedido-compr.frete          =  tt-imp-pedido-compr.frete        
+           //tt-pedido-compr.frete          =  tt-imp-pedido-compr.frete
            //tt-pedido-compr.cod-transp     =  emitente.cod-transp
-           tt-pedido-compr.responsavel    =  tt-imp-pedido-compr.responsavel  
+           tt-pedido-compr.responsavel    =  tt-imp-pedido-compr.responsavel
            tt-pedido-compr.impr-pedido    =  YES
-           tt-pedido-compr.comentarios    =  tt-imp-pedido-compr.comentarios  
-           tt-pedido-compr.mot-elimina    =  tt-imp-pedido-compr.mot-elimina  
+           tt-pedido-compr.comentarios    =  tt-imp-pedido-compr.comentarios
+           tt-pedido-compr.mot-elimina    =  tt-imp-pedido-compr.mot-elimina
            tt-pedido-compr.emergencial    =  YES
-           tt-pedido-compr.contr-forn     =  tt-imp-pedido-compr.contr-forn   
+           tt-pedido-compr.contr-forn     =  tt-imp-pedido-compr.contr-forn
            tt-pedido-compr.compl-entrega  =  tt-imp-pedido-compr.compl-entrega
-           tt-pedido-compr.end-entrega    =  tt-imp-pedido-compr.end-entrega  
-           tt-pedido-compr.end-cobranca   =  tt-imp-pedido-compr.end-cobranca 
+           tt-pedido-compr.end-entrega    =  tt-imp-pedido-compr.end-entrega
+           tt-pedido-compr.end-cobranca   =  tt-imp-pedido-compr.end-cobranca
            //tt-pedido-compr.via-transp     =  tt-imp-pedido-compr.via-transp
            tt-pedido-compr.cod-mensagem   =  100.                         /*VERIFICA*/
 
@@ -739,18 +739,18 @@ PROCEDURE pi-04-geraPedidoCompra :
 
     FOR FIRST emitente WHERE
               emitente.cod-emitente = INT(tt-imp-pedido-compr.cod-emitente) NO-LOCK:
-    
+
         ASSIGN tt-pedido-compr.cod-transp     = emitente.cod-transp
                tt-imp-pedido-compr.cod-transp = emitente.cod-transp.
 
         MESSAGE "CLF TRANSP " tt-imp-pedido-compr.cod-transp SKIP
                 emitente.cod-transp.
-        
+
         FIND FIRST transporte WHERE
                    transporte.cod-transp = emitente.cod-transp NO-LOCK NO-ERROR.
         IF AVAIL transporte THEN
             ASSIGN tt-pedido-compr.via-transp = transporte.via-transp.
-    
+
     END.
 
     ASSIGN tt-imp-pedido-compr.num-pedido-totvs = INT(tt-imp-pedido-compr.num-pedido).
@@ -769,62 +769,62 @@ END PROCEDURE.
 
 &IF DEFINED(EXCLUDE-pi-05-alteraOrdemCompra) = 0 &THEN
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE pi-05-alteraOrdemCompra Procedure 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE pi-05-alteraOrdemCompra Procedure
 PROCEDURE pi-05-alteraOrdemCompra :
 /*------------------------------------------------------------------------------
-  Purpose:     
+  Purpose:
   Parameters:  <none>
-  Notes:       
+  Notes:
 ------------------------------------------------------------------------------*/
 
     CREATE tt-ordem-compra.
     ASSIGN tt-ordem-compra.num-pedido     = INT(ordem-compra.num-pedido)
            tt-ordem-compra.numero-ordem   = ordem-compra.numero-ordem
            tt-ordem-compra.ind-tipo-movto = 2
-           tt-ordem-compra.cod-estabel    = tt-imp-ordem-compra.cod-estabel 
+           tt-ordem-compra.cod-estabel    = tt-imp-ordem-compra.cod-estabel
            tt-ordem-compra.cod-emitente   = INT(tt-imp-ordem-compra.cod-emitente)
-           tt-ordem-compra.it-codigo      = tt-imp-ordem-compra.it-codigo   
+           tt-ordem-compra.it-codigo      = tt-imp-ordem-compra.it-codigo
            tt-ordem-compra.cod-comprado   = tt-imp-ordem-compra.requisitante
-           tt-ordem-compra.dep-almoxar    = tt-imp-ordem-compra.dep-almoxar 
+           tt-ordem-compra.dep-almoxar    = tt-imp-ordem-compra.dep-almoxar
            tt-ordem-compra.situacao       = 2                                       /*FIXO*/
            tt-ordem-compra.preco-fornec   = tt-imp-ordem-compra.preco-fornec
-           tt-ordem-compra.qt-solic       = tt-imp-ordem-compra.qt-solic    
+           tt-ordem-compra.qt-solic       = tt-imp-ordem-compra.qt-solic
            tt-ordem-compra.ct-codigo      = STRING(tt-imp-ordem-compra.ct-codigo)
            tt-ordem-compra.cod-transp     = tt-imp-pedido-compr.cod-transp
            tt-ordem-compra.sc-codigo      = STRING(tt-imp-ordem-compra.sc-codigo)
            tt-ordem-compra.data-emissao   = tt-imp-ordem-compra.data-emissao
            tt-ordem-compra.ordem-servic   = tt-imp-ordem-compra.ordem-servic
-           tt-ordem-compra.natureza       = tt-imp-ordem-compra.natureza    
-           tt-ordem-compra.num-ord-inv    = tt-imp-ordem-compra.num-ord-inv 
+           tt-ordem-compra.natureza       = tt-imp-ordem-compra.natureza
+           tt-ordem-compra.num-ord-inv    = tt-imp-ordem-compra.num-ord-inv
            tt-ordem-compra.pre-unit-for   = tt-imp-ordem-compra.pre-unit-for
            tt-ordem-compra.preco-unit     = tt-imp-ordem-compra.preco-fornec
            tt-ordem-compra.preco-orig     = tt-imp-ordem-compra.preco-fornec
            tt-ordem-compra.mo-codigo      = INT(tt-imp-ordem-compra.mo-codigo)
-           tt-ordem-compra.Codigo-ipi     = tt-imp-ordem-compra.Codigo-ipi  
+           tt-ordem-compra.Codigo-ipi     = tt-imp-ordem-compra.Codigo-ipi
            tt-ordem-compra.Aliquota-ipi   = tt-imp-ordem-compra.Aliquota-ipi
-           tt-ordem-compra.Codigo-icm     = tt-imp-ordem-compra.Codigo-icm  
+           tt-ordem-compra.Codigo-icm     = tt-imp-ordem-compra.Codigo-icm
            tt-ordem-compra.Aliquota-icm   = tt-imp-ordem-compra.Aliquota-icm
-           tt-ordem-compra.Valor-frete    = tt-imp-ordem-compra.Valor-frete 
+           tt-ordem-compra.Valor-frete    = tt-imp-ordem-compra.Valor-frete
            tt-ordem-compra.cod-cond-pag   = INT(tt-imp-ordem-compra.cod-cond-pag)
            tt-ordem-compra.requisitante   = tt-imp-ordem-compra.requisitante
            tt-ordem-compra.Usuario        = tt-imp-ordem-compra.Usuario.
-           
+
     FIND FIRST item-uni-estab WHERE
-               item-uni-estab.it-codigo   = tt-imp-ordem-compra.it-codigo   AND 
+               item-uni-estab.it-codigo   = tt-imp-ordem-compra.it-codigo   AND
                item-uni-estab.cod-estabel = tt-imp-pedido-compr.cod-estabel NO-LOCK NO-ERROR.
     IF AVAIL item-uni-estab THEN DO:
 
         ASSIGN tt-ordem-compra.tp-despesa       = item-uni-estab.tp-desp-padrao
                tt-ordem-compra.dep-almoxar      = item-uni-estab.deposito-pad .
 
-        
+
         IF SUBSTRING(item-uni-estab.char-1,133,1) = "7" THEN
             ASSIGN tt-ordem-compra.codigo-icm     = 1
                    tt-imp-ordem-compra.codigo-icm = 1.
         ELSE
             ASSIGN tt-ordem-compra.codigo-icm     = 2
                    tt-imp-ordem-compra.codigo-icm = 2.
-        
+
 
     END.
     ELSE DO:
@@ -849,14 +849,14 @@ PROCEDURE pi-05-alteraOrdemCompra :
         IF AVAIL ITEM THEN
             ASSIGN tt-ordem-compra.aliquota-iss     = ITEM.aliquota-iss
                    tt-imp-ordem-compra.aliquota-iss = ITEM.aliquota-iss.
-                                    
+
     END.
 
     IF NOT VALID-HANDLE(h-boin274sd) THEN
         RUN inbo/boin274sd.p PERSISTENT SET h-boin274sd.
 
-    RUN geraNumeroOrdemPedEmerg in h-boin274sd (OUTPUT i-num-ordem, 
-                                                OUTPUT TABLE RowErrors). 
+    RUN geraNumeroOrdemPedEmerg in h-boin274sd (OUTPUT i-num-ordem,
+                                                OUTPUT TABLE RowErrors).
 
     IF VALID-HANDLE(h-boin274sd) THEN DO:
         DELETE PROCEDURE h-boin274sd.
@@ -865,7 +865,7 @@ PROCEDURE pi-05-alteraOrdemCompra :
 
     ASSIGN tt-ordem-compra.numero-ordem     = ordem-compra.numero-ordem
            tt-imp-ordem-compra.numero-ordem = ordem-compra.numero-ordem.
-    
+
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -875,12 +875,12 @@ END PROCEDURE.
 
 &IF DEFINED(EXCLUDE-pi-05-eliminaOrdemCompra) = 0 &THEN
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE pi-05-eliminaOrdemCompra Procedure 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE pi-05-eliminaOrdemCompra Procedure
 PROCEDURE pi-05-eliminaOrdemCompra :
 /*------------------------------------------------------------------------------
-  Purpose:     
+  Purpose:
   Parameters:  <none>
-  Notes:       
+  Notes:
 ------------------------------------------------------------------------------*/
 
     CREATE tt-ordem-compra.
@@ -888,48 +888,48 @@ PROCEDURE pi-05-eliminaOrdemCompra :
            tt-ordem-compra.numero-ordem   = ordem-compra.numero-ordem
            tt-ordem-compra.ind-tipo-movto = 2
            tt-ordem-compra.situacao       = 4                                       /*FIXO*/
-           tt-ordem-compra.cod-estabel   = tt-imp-ordem-compra.cod-estabel 
+           tt-ordem-compra.cod-estabel   = tt-imp-ordem-compra.cod-estabel
            tt-ordem-compra.cod-emitente  = INT(tt-imp-ordem-compra.cod-emitente)
-           tt-ordem-compra.it-codigo     = tt-imp-ordem-compra.it-codigo   
+           tt-ordem-compra.it-codigo     = tt-imp-ordem-compra.it-codigo
            tt-ordem-compra.cod-comprado  = tt-imp-ordem-compra.requisitante
-           tt-ordem-compra.dep-almoxar   = tt-imp-ordem-compra.dep-almoxar 
+           tt-ordem-compra.dep-almoxar   = tt-imp-ordem-compra.dep-almoxar
            tt-ordem-compra.preco-fornec  = tt-imp-ordem-compra.preco-fornec
-           tt-ordem-compra.qt-solic      = tt-imp-ordem-compra.qt-solic    
+           tt-ordem-compra.qt-solic      = tt-imp-ordem-compra.qt-solic
            tt-ordem-compra.ct-codigo     = STRING(tt-imp-ordem-compra.ct-codigo)
            tt-ordem-compra.cod-transp    = tt-imp-pedido-compr.cod-transp
            tt-ordem-compra.sc-codigo     = STRING(tt-imp-ordem-compra.sc-codigo)
            tt-ordem-compra.data-emissao  = tt-imp-ordem-compra.data-emissao
            tt-ordem-compra.ordem-servic  = tt-imp-ordem-compra.ordem-servic
-           tt-ordem-compra.natureza      = tt-imp-ordem-compra.natureza    
-           tt-ordem-compra.num-ord-inv   = tt-imp-ordem-compra.num-ord-inv 
+           tt-ordem-compra.natureza      = tt-imp-ordem-compra.natureza
+           tt-ordem-compra.num-ord-inv   = tt-imp-ordem-compra.num-ord-inv
            tt-ordem-compra.pre-unit-for  = tt-imp-ordem-compra.pre-unit-for
            tt-ordem-compra.mo-codigo     = INT(tt-imp-ordem-compra.mo-codigo)
-           tt-ordem-compra.Codigo-ipi    = tt-imp-ordem-compra.Codigo-ipi  
+           tt-ordem-compra.Codigo-ipi    = tt-imp-ordem-compra.Codigo-ipi
            tt-ordem-compra.Aliquota-ipi  = tt-imp-ordem-compra.Aliquota-ipi
-           tt-ordem-compra.Codigo-icm    = tt-imp-ordem-compra.Codigo-icm  
+           tt-ordem-compra.Codigo-icm    = tt-imp-ordem-compra.Codigo-icm
            tt-ordem-compra.Aliquota-icm  = tt-imp-ordem-compra.Aliquota-icm
            tt-ordem-compra.Aliquota-iss  = tt-imp-ordem-compra.Aliquota-iss
-           tt-ordem-compra.Valor-frete   = tt-imp-ordem-compra.Valor-frete 
+           tt-ordem-compra.Valor-frete   = tt-imp-ordem-compra.Valor-frete
            tt-ordem-compra.cod-cond-pag  = INT(tt-imp-ordem-compra.cod-cond-pag)
            tt-ordem-compra.requisitante  = tt-imp-ordem-compra.requisitante
            tt-ordem-compra.Usuario       = tt-imp-ordem-compra.Usuario.
-           
+
     FIND FIRST item-uni-estab WHERE
-               item-uni-estab.it-codigo   = tt-imp-ordem-compra.it-codigo   AND 
+               item-uni-estab.it-codigo   = tt-imp-ordem-compra.it-codigo   AND
                item-uni-estab.cod-estabel = tt-imp-pedido-compr.cod-estabel NO-LOCK NO-ERROR.
     IF AVAIL item-uni-estab THEN DO:
 
         ASSIGN tt-ordem-compra.tp-despesa       = item-uni-estab.tp-desp-padrao
                tt-ordem-compra.dep-almoxar      = item-uni-estab.deposito-pad .
 
-        
+
         IF SUBSTRING(item-uni-estab.char-1,133,1) = "7" THEN
             ASSIGN tt-ordem-compra.codigo-icm     = 1
                    tt-imp-ordem-compra.codigo-icm = 1.
         ELSE
             ASSIGN tt-ordem-compra.codigo-icm     = 2
                    tt-imp-ordem-compra.codigo-icm = 2.
-        
+
 
     END.
     ELSE DO:
@@ -954,7 +954,7 @@ PROCEDURE pi-05-eliminaOrdemCompra :
         IF AVAIL ITEM THEN
             ASSIGN tt-ordem-compra.aliquota-iss     = ITEM.aliquota-iss
                    tt-imp-ordem-compra.aliquota-iss = ITEM.aliquota-iss.
-                                    
+
     END.
 
     IF NOT VALID-HANDLE(h-boin274sd) THEN
@@ -967,7 +967,7 @@ PROCEDURE pi-05-eliminaOrdemCompra :
 
     ASSIGN tt-ordem-compra.numero-ordem     = ordem-compra.numero-ordem
            tt-imp-ordem-compra.numero-ordem = ordem-compra.numero-ordem.
-    
+
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -977,65 +977,65 @@ END PROCEDURE.
 
 &IF DEFINED(EXCLUDE-pi-05-geraOrdemCompra) = 0 &THEN
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE pi-05-geraOrdemCompra Procedure 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE pi-05-geraOrdemCompra Procedure
 PROCEDURE pi-05-geraOrdemCompra :
 /*------------------------------------------------------------------------------
-  Purpose:     
+  Purpose:
   Parameters:  <none>
-  Notes:       
+  Notes:
 ------------------------------------------------------------------------------*/
 
     DEF BUFFER b-tt-ordem-compra FOR tt-ordem-compra.
-    
+
     //ASSIGN lLoop = TRUE.
-    
+
     CREATE tt-ordem-compra.
     ASSIGN tt-ordem-compra.num-pedido    = tt-imp-pedido-compr.num-pedido-totvs
-           tt-ordem-compra.cod-estabel   = tt-imp-ordem-compra.cod-estabel 
+           tt-ordem-compra.cod-estabel   = tt-imp-ordem-compra.cod-estabel
            tt-ordem-compra.ep-codigo     = "1"
            tt-ordem-compra.cod-emitente  = INT(tt-imp-pedido-compr.cod-emitente)
-           tt-ordem-compra.it-codigo     = tt-imp-ordem-compra.it-codigo   
+           tt-ordem-compra.it-codigo     = tt-imp-ordem-compra.it-codigo
            tt-ordem-compra.cod-comprado  = tt-imp-ordem-compra.requisitante
-           tt-ordem-compra.dep-almoxar   = tt-imp-ordem-compra.dep-almoxar 
+           tt-ordem-compra.dep-almoxar   = tt-imp-ordem-compra.dep-almoxar
            tt-ordem-compra.situacao      = 2                                       /*FIXO*/
            tt-ordem-compra.preco-fornec  = tt-imp-ordem-compra.preco-fornec
-           tt-ordem-compra.qt-solic      = tt-imp-ordem-compra.qt-solic    
+           tt-ordem-compra.qt-solic      = tt-imp-ordem-compra.qt-solic
            tt-ordem-compra.ct-codigo     = STRING(tt-imp-ordem-compra.ct-codigo)
            tt-ordem-compra.cod-transp    = tt-imp-pedido-compr.cod-transp
            tt-ordem-compra.sc-codigo     = STRING(tt-imp-ordem-compra.sc-codigo)
            tt-ordem-compra.data-emissao  = tt-imp-ordem-compra.data-emissao
            tt-ordem-compra.ordem-servic  = tt-imp-ordem-compra.ordem-servic
-           tt-ordem-compra.natureza      = tt-imp-ordem-compra.natureza    
-           tt-ordem-compra.num-ord-inv   = tt-imp-ordem-compra.num-ord-inv 
+           tt-ordem-compra.natureza      = tt-imp-ordem-compra.natureza
+           tt-ordem-compra.num-ord-inv   = tt-imp-ordem-compra.num-ord-inv
            tt-ordem-compra.pre-unit-for  = tt-imp-ordem-compra.pre-unit-for
            tt-ordem-compra.preco-unit     = tt-imp-ordem-compra.preco-fornec
            tt-ordem-compra.preco-orig     = tt-imp-ordem-compra.preco-fornec
            tt-ordem-compra.mo-codigo     = INT(tt-imp-ordem-compra.mo-codigo)
-           tt-ordem-compra.Codigo-ipi    = tt-imp-ordem-compra.Codigo-ipi  
+           tt-ordem-compra.Codigo-ipi    = tt-imp-ordem-compra.Codigo-ipi
            tt-ordem-compra.aliquota-ipi  = tt-imp-ordem-compra.Aliquota-ipi
-           tt-ordem-compra.Codigo-icm    = tt-imp-ordem-compra.Codigo-icm  
+           tt-ordem-compra.Codigo-icm    = tt-imp-ordem-compra.Codigo-icm
            tt-ordem-compra.aliquota-icm  = tt-imp-ordem-compra.Aliquota-icm
-           tt-ordem-compra.valor-frete   = tt-imp-ordem-compra.Valor-frete 
+           tt-ordem-compra.valor-frete   = tt-imp-ordem-compra.Valor-frete
            tt-ordem-compra.cod-cond-pag  = INT(tt-imp-ordem-compra.cod-cond-pag)
            tt-ordem-compra.requisitante  = tt-imp-ordem-compra.requisitante
            tt-ordem-compra.usuario       = tt-imp-ordem-compra.usuario.
 
     FIND FIRST item-uni-estab WHERE
-               item-uni-estab.it-codigo   = tt-imp-ordem-compra.it-codigo   AND 
+               item-uni-estab.it-codigo   = tt-imp-ordem-compra.it-codigo   AND
                item-uni-estab.cod-estabel = tt-imp-pedido-compr.cod-estabel NO-LOCK NO-ERROR.
     IF AVAIL item-uni-estab THEN DO:
 
         ASSIGN tt-ordem-compra.tp-despesa       = item-uni-estab.tp-desp-padrao
                tt-ordem-compra.dep-almoxar      = item-uni-estab.deposito-pad .
 
-        
+
         IF SUBSTRING(item-uni-estab.char-1,133,1) = "7" THEN
             ASSIGN tt-ordem-compra.codigo-icm     = 1
                    tt-imp-ordem-compra.codigo-icm = 1.
         ELSE
             ASSIGN tt-ordem-compra.codigo-icm     = 2
                    tt-imp-ordem-compra.codigo-icm = 2.
-        
+
 
     END.
     ELSE DO:
@@ -1060,7 +1060,7 @@ PROCEDURE pi-05-geraOrdemCompra :
         IF AVAIL ITEM THEN
             ASSIGN tt-ordem-compra.aliquota-iss     = ITEM.aliquota-iss
                    tt-imp-ordem-compra.aliquota-iss = ITEM.aliquota-iss.
-                                    
+
     END.
 
     IF NOT VALID-HANDLE(h-boin274sd) THEN
@@ -1070,12 +1070,12 @@ PROCEDURE pi-05-geraOrdemCompra :
 
         FIND LAST b-tt-ordem-compra NO-LOCK NO-ERROR.
         IF AVAIL  b-tt-ordem-compra THEN
-            ASSIGN i-num-ordem = b-tt-ordem-compra.numero-ordem + 1. 
+            ASSIGN i-num-ordem = b-tt-ordem-compra.numero-ordem + 1.
 
     END.
     ELSE
-        RUN geraNumeroOrdemPedEmerg in h-boin274sd (OUTPUT i-num-ordem, 
-                                                    OUTPUT TABLE RowErrors). 
+        RUN geraNumeroOrdemPedEmerg in h-boin274sd (OUTPUT i-num-ordem,
+                                                    OUTPUT TABLE RowErrors).
 
         MESSAGE "i-num-ordem " i-num-ordem.
 
@@ -1089,7 +1089,7 @@ PROCEDURE pi-05-geraOrdemCompra :
         DELETE PROCEDURE h-boin274sd.
         ASSIGN h-boin274sd = ?.
     END.
-    
+
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -1099,12 +1099,12 @@ END PROCEDURE.
 
 &IF DEFINED(EXCLUDE-pi-06-alteraPrazoCompra) = 0 &THEN
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE pi-06-alteraPrazoCompra Procedure 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE pi-06-alteraPrazoCompra Procedure
 PROCEDURE pi-06-alteraPrazoCompra :
 /*------------------------------------------------------------------------------
-  Purpose:     
+  Purpose:
   Parameters:  <none>
-  Notes:       
+  Notes:
 ------------------------------------------------------------------------------*/
 
     FIND FIRST tt-ordem-compra WHERE
@@ -1113,14 +1113,14 @@ PROCEDURE pi-06-alteraPrazoCompra :
     CREATE tt-prazo-compra.
     ASSIGN tt-prazo-compra.numero-ordem   = ordem-compra.numero-ordem
            tt-prazo-compra.ind-tipo-movto = 2
-           tt-prazo-compra.Data-entrega  = tt-imp-prazo-compra.Data-entrega 
-           tt-prazo-compra.Natureza      = tt-imp-prazo-compra.Natureza     
-           tt-prazo-compra.un            = tt-imp-prazo-compra.un           
+           tt-prazo-compra.Data-entrega  = tt-imp-prazo-compra.Data-entrega
+           tt-prazo-compra.Natureza      = tt-imp-prazo-compra.Natureza
+           tt-prazo-compra.un            = tt-imp-prazo-compra.un
            tt-prazo-compra.Parcela       = 1
-           tt-prazo-compra.it-codigo     = tt-imp-prazo-compra.it-codigo    
-           tt-prazo-compra.quantidade    = tt-imp-prazo-compra.quantidade   
-           tt-prazo-compra.quant-saldo   = tt-imp-prazo-compra.quantidade  
-           tt-prazo-compra.quantid-orig  = tt-imp-prazo-compra.quantidade 
+           tt-prazo-compra.it-codigo     = tt-imp-prazo-compra.it-codigo
+           tt-prazo-compra.quantidade    = tt-imp-prazo-compra.quantidade
+           tt-prazo-compra.quant-saldo   = tt-imp-prazo-compra.quantidade
+           tt-prazo-compra.quantid-orig  = tt-imp-prazo-compra.quantidade
            tt-prazo-compra.qtd-sal-forn  = tt-imp-prazo-compra.quantidade
            //tt-prazo-compra.qtd-do-forn   = tt-imp-prazo-compra.quantidade
            tt-prazo-compra.situacao      = 2.
@@ -1134,12 +1134,12 @@ END PROCEDURE.
 
 &IF DEFINED(EXCLUDE-pi-06-eliminaPrazoCompra) = 0 &THEN
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE pi-06-eliminaPrazoCompra Procedure 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE pi-06-eliminaPrazoCompra Procedure
 PROCEDURE pi-06-eliminaPrazoCompra :
 /*------------------------------------------------------------------------------
-  Purpose:     
+  Purpose:
   Parameters:  <none>
-  Notes:       
+  Notes:
 ------------------------------------------------------------------------------*/
 
     FIND FIRST tt-ordem-compra WHERE
@@ -1149,14 +1149,14 @@ PROCEDURE pi-06-eliminaPrazoCompra :
     ASSIGN tt-prazo-compra.numero-ordem   = ordem-compra.numero-ordem
            tt-prazo-compra.ind-tipo-movto = 2
            tt-prazo-compra.situacao       = 3
-           tt-prazo-compra.Data-entrega   = tt-imp-prazo-compra.Data-entrega 
-           tt-prazo-compra.Natureza       = tt-imp-prazo-compra.Natureza     
-           tt-prazo-compra.un             = tt-imp-prazo-compra.un           
+           tt-prazo-compra.Data-entrega   = tt-imp-prazo-compra.Data-entrega
+           tt-prazo-compra.Natureza       = tt-imp-prazo-compra.Natureza
+           tt-prazo-compra.un             = tt-imp-prazo-compra.un
            tt-prazo-compra.Parcela        = 1
-           tt-prazo-compra.it-codigo      = tt-imp-prazo-compra.it-codigo    
-           tt-prazo-compra.quantidade     = tt-imp-prazo-compra.quantidade   
-           tt-prazo-compra.quant-saldo    = tt-imp-prazo-compra.quantidade  
-           tt-prazo-compra.quantid-orig   = tt-imp-prazo-compra.quantidade 
+           tt-prazo-compra.it-codigo      = tt-imp-prazo-compra.it-codigo
+           tt-prazo-compra.quantidade     = tt-imp-prazo-compra.quantidade
+           tt-prazo-compra.quant-saldo    = tt-imp-prazo-compra.quantidade
+           tt-prazo-compra.quantid-orig   = tt-imp-prazo-compra.quantidade
            tt-prazo-compra.qtd-sal-forn   = tt-imp-prazo-compra.quantidade.
 
 END PROCEDURE.
@@ -1168,12 +1168,12 @@ END PROCEDURE.
 
 &IF DEFINED(EXCLUDE-pi-06-geraPrazoCompra) = 0 &THEN
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE pi-06-geraPrazoCompra Procedure 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE pi-06-geraPrazoCompra Procedure
 PROCEDURE pi-06-geraPrazoCompra :
 /*------------------------------------------------------------------------------
-  Purpose:     
+  Purpose:
   Parameters:  <none>
-  Notes:       
+  Notes:
 ------------------------------------------------------------------------------*/
 
     FIND FIRST tt-ordem-compra WHERE
@@ -1181,14 +1181,14 @@ PROCEDURE pi-06-geraPrazoCompra :
 
     CREATE tt-prazo-compra.
     ASSIGN tt-prazo-compra.Numero-ordem  = tt-ordem-compra.numero-ordem
-           tt-prazo-compra.Data-entrega  = tt-imp-prazo-compra.Data-entrega 
-           tt-prazo-compra.Natureza      = tt-imp-prazo-compra.Natureza     
-           tt-prazo-compra.un            = tt-imp-prazo-compra.un           
+           tt-prazo-compra.Data-entrega  = tt-imp-prazo-compra.Data-entrega
+           tt-prazo-compra.Natureza      = tt-imp-prazo-compra.Natureza
+           tt-prazo-compra.un            = tt-imp-prazo-compra.un
            tt-prazo-compra.Parcela       = 1
-           tt-prazo-compra.it-codigo     = tt-imp-prazo-compra.it-codigo    
-           tt-prazo-compra.quantidade    = tt-imp-prazo-compra.quantidade   
-           tt-prazo-compra.quant-saldo   = tt-imp-prazo-compra.quantidade  
-           tt-prazo-compra.quantid-orig  = tt-imp-prazo-compra.quantidade 
+           tt-prazo-compra.it-codigo     = tt-imp-prazo-compra.it-codigo
+           tt-prazo-compra.quantidade    = tt-imp-prazo-compra.quantidade
+           tt-prazo-compra.quant-saldo   = tt-imp-prazo-compra.quantidade
+           tt-prazo-compra.quantid-orig  = tt-imp-prazo-compra.quantidade
            tt-prazo-compra.qtd-sal-forn  = tt-imp-prazo-compra.quantidade
            //tt-prazo-compra.qtd-do-forn   = tt-imp-prazo-compra.quantidade
            tt-prazo-compra.situacao      = 2.
@@ -1202,12 +1202,12 @@ END PROCEDURE.
 
 &IF DEFINED(EXCLUDE-pi-07-alteraCotacaoItem) = 0 &THEN
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE pi-07-alteraCotacaoItem Procedure 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE pi-07-alteraCotacaoItem Procedure
 PROCEDURE pi-07-alteraCotacaoItem :
 /*------------------------------------------------------------------------------
-  Purpose:     
+  Purpose:
   Parameters:  <none>
-  Notes:       
+  Notes:
 ------------------------------------------------------------------------------*/
 
 FIND FIRST tt-ordem-compra WHERE
@@ -1221,19 +1221,19 @@ FIND FIRST tt-prazo-compra WHERE
            tt-prazo-compra.ind-tipo-movto = 2
            tt-cotacao-item.cod-emitente   = INT(tt-imp-ordem-compra.cod-emitente)
            tt-cotacao-item.un             = tt-prazo-compra.un
-           tt-cotacao-item.it-codigo      = tt-imp-ordem-compra.it-codigo   
+           tt-cotacao-item.it-codigo      = tt-imp-ordem-compra.it-codigo
            tt-cotacao-item.cod-transp     = tt-imp-pedido-compr.cod-transp
            tt-cotacao-item.preco-fornec   = tt-imp-ordem-compra.preco-fornec
            tt-cotacao-item.mo-codigo      = INT(tt-imp-ordem-compra.mo-codigo)
            tt-cotacao-item.data-cotacao   = TODAY
-           tt-cotacao-item.preco-unit     = tt-imp-ordem-compra.pre-unit-for  
+           tt-cotacao-item.preco-unit     = tt-imp-ordem-compra.pre-unit-for
            tt-cotacao-item.pre-unit-for   = tt-imp-ordem-compra.pre-unit-for
-           tt-cotacao-item.codigo-ipi     = tt-imp-ordem-compra.codigo-ipi  
+           tt-cotacao-item.codigo-ipi     = tt-imp-ordem-compra.codigo-ipi
            tt-cotacao-item.aliquota-ipi   = tt-imp-ordem-compra.aliquota-ipi
-           tt-cotacao-item.codigo-icm     = tt-imp-ordem-compra.codigo-icm  
+           tt-cotacao-item.codigo-icm     = tt-imp-ordem-compra.codigo-icm
            tt-cotacao-item.aliquota-icm   = tt-imp-ordem-compra.aliquota-icm
            tt-cotacao-item.aliquota-iss   = tt-imp-ordem-compra.aliquota-iss
-           tt-cotacao-item.valor-frete    = tt-imp-ordem-compra.valor-frete 
+           tt-cotacao-item.valor-frete    = tt-imp-ordem-compra.valor-frete
            tt-cotacao-item.cod-cond-pag   = INT(tt-imp-pedido-compr.cod-cond-pag)
            tt-cotacao-item.contato        = "IMPORTADO ARIBA"
            tt-cotacao-item.cod-comprado   = tt-imp-ordem-compra.requisitante
@@ -1241,8 +1241,8 @@ FIND FIRST tt-prazo-compra WHERE
 
     IF tt-cotacao-item.Valor-frete > 0 THEN
         ASSIGN tt-cotacao-item.Frete = YES.
-    
-    
+
+
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -1252,12 +1252,12 @@ END PROCEDURE.
 
 &IF DEFINED(EXCLUDE-pi-07-eliminaCotacaoItem) = 0 &THEN
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE pi-07-eliminaCotacaoItem Procedure 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE pi-07-eliminaCotacaoItem Procedure
 PROCEDURE pi-07-eliminaCotacaoItem :
 /*------------------------------------------------------------------------------
-  Purpose:     
+  Purpose:
   Parameters:  <none>
-  Notes:       
+  Notes:
 ------------------------------------------------------------------------------*/
 
 FIND FIRST tt-ordem-compra WHERE
@@ -1267,19 +1267,19 @@ FIND FIRST tt-ordem-compra WHERE
     ASSIGN tt-cotacao-item.numero-ordem   = ordem-compra.numero-ordem
            tt-prazo-compra.ind-tipo-movto = 2
            tt-cotacao-item.cod-emitente   = INT(tt-imp-ordem-compra.cod-emitente)
-           tt-cotacao-item.it-codigo      = tt-imp-ordem-compra.it-codigo   
+           tt-cotacao-item.it-codigo      = tt-imp-ordem-compra.it-codigo
            tt-cotacao-item.cod-transp     = tt-imp-pedido-compr.cod-transp
            tt-cotacao-item.preco-fornec   = tt-imp-ordem-compra.preco-fornec
            tt-cotacao-item.mo-codigo      = INT(tt-imp-ordem-compra.mo-codigo)
            tt-cotacao-item.data-cotacao   = TODAY
-           tt-cotacao-item.preco-unit     = tt-imp-ordem-compra.pre-unit-for  
+           tt-cotacao-item.preco-unit     = tt-imp-ordem-compra.pre-unit-for
            tt-cotacao-item.pre-unit-for   = tt-imp-ordem-compra.pre-unit-for
-           tt-cotacao-item.codigo-ipi     = tt-imp-ordem-compra.codigo-ipi  
+           tt-cotacao-item.codigo-ipi     = tt-imp-ordem-compra.codigo-ipi
            tt-cotacao-item.aliquota-ipi   = tt-imp-ordem-compra.aliquota-ipi
-           tt-cotacao-item.codigo-icm     = tt-imp-ordem-compra.codigo-icm  
+           tt-cotacao-item.codigo-icm     = tt-imp-ordem-compra.codigo-icm
            tt-cotacao-item.aliquota-icm   = tt-imp-ordem-compra.aliquota-icm
            tt-cotacao-item.aliquota-iss   = tt-imp-ordem-compra.aliquota-iss
-           tt-cotacao-item.valor-frete    = tt-imp-ordem-compra.valor-frete 
+           tt-cotacao-item.valor-frete    = tt-imp-ordem-compra.valor-frete
            tt-cotacao-item.cod-cond-pag   = INT(tt-imp-pedido-compr.cod-cond-pag)
            tt-cotacao-item.contato      = "IMPORTADO ARIBA"
            tt-cotacao-item.cod-comprado   = tt-imp-ordem-compra.requisitante
@@ -1287,8 +1287,8 @@ FIND FIRST tt-ordem-compra WHERE
 
     IF tt-cotacao-item.Valor-frete > 0 THEN
         ASSIGN tt-cotacao-item.Frete = YES.
-    
-    
+
+
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -1298,12 +1298,12 @@ END PROCEDURE.
 
 &IF DEFINED(EXCLUDE-pi-07-geraCotacaoItem) = 0 &THEN
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE pi-07-geraCotacaoItem Procedure 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE pi-07-geraCotacaoItem Procedure
 PROCEDURE pi-07-geraCotacaoItem :
 /*------------------------------------------------------------------------------
-  Purpose:     
+  Purpose:
   Parameters:  <none>
-  Notes:       
+  Notes:
 ------------------------------------------------------------------------------*/
 
 FIND FIRST tt-ordem-compra WHERE
@@ -1316,19 +1316,19 @@ FIND FIRST tt-prazo-compra WHERE
     ASSIGN tt-cotacao-item.numero-ordem = tt-ordem-compra.numero-ordem
            tt-cotacao-item.cod-emitente = INT(tt-imp-ordem-compra.cod-emitente)
            tt-cotacao-item.un           = tt-prazo-compra.un
-           tt-cotacao-item.it-codigo    = tt-imp-ordem-compra.it-codigo   
+           tt-cotacao-item.it-codigo    = tt-imp-ordem-compra.it-codigo
            tt-cotacao-item.cod-transp   = tt-imp-pedido-compr.cod-transp
            tt-cotacao-item.preco-fornec = tt-imp-ordem-compra.preco-fornec
            tt-cotacao-item.mo-codigo    = INT(tt-imp-ordem-compra.mo-codigo)
            tt-cotacao-item.data-cotacao = TODAY
-           tt-cotacao-item.preco-unit   = tt-imp-ordem-compra.pre-unit-for  
+           tt-cotacao-item.preco-unit   = tt-imp-ordem-compra.pre-unit-for
            tt-cotacao-item.pre-unit-for = tt-imp-ordem-compra.pre-unit-for
-           tt-cotacao-item.codigo-ipi   = tt-imp-ordem-compra.codigo-ipi  
+           tt-cotacao-item.codigo-ipi   = tt-imp-ordem-compra.codigo-ipi
            tt-cotacao-item.aliquota-ipi = tt-imp-ordem-compra.aliquota-ipi
-           tt-cotacao-item.codigo-icm   = tt-imp-ordem-compra.codigo-icm  
+           tt-cotacao-item.codigo-icm   = tt-imp-ordem-compra.codigo-icm
            tt-cotacao-item.aliquota-icm = tt-imp-ordem-compra.aliquota-icm
            tt-cotacao-item.aliquota-iss = tt-imp-ordem-compra.aliquota-iss
-           tt-cotacao-item.valor-frete  = tt-imp-ordem-compra.valor-frete 
+           tt-cotacao-item.valor-frete  = tt-imp-ordem-compra.valor-frete
            tt-cotacao-item.cod-cond-pag = INT(tt-imp-pedido-compr.cod-cond-pag)
            tt-cotacao-item.contato      = "IMPORTADO ARIBA"
            tt-cotacao-item.cod-comprado = tt-imp-pedido-compr.responsavel
@@ -1337,8 +1337,8 @@ FIND FIRST tt-prazo-compra WHERE
 
     IF tt-cotacao-item.Valor-frete > 0 THEN
         ASSIGN tt-cotacao-item.Frete = YES.
-    
-    
+
+
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -1348,12 +1348,12 @@ END PROCEDURE.
 
 &IF DEFINED(EXCLUDE-pi-08-log-erros) = 0 &THEN
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE pi-08-log-erros Procedure 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE pi-08-log-erros Procedure
 PROCEDURE pi-08-log-erros :
 /*------------------------------------------------------------------------------
-  Purpose:     
+  Purpose:
   Parameters:  <none>
-  Notes:       
+  Notes:
 ------------------------------------------------------------------------------*/
 
 FOR EACH tt-erros-geral NO-LOCK.
@@ -1366,7 +1366,7 @@ FOR EACH tt-erros-geral NO-LOCK.
            tt-retorno-nok.desc-erro   = tt-erros-geral.des-erro
            tt-retorno-nok.sequencia   = 1
            tt-retorno-nok.UniqueName  = STRING(pedido-compr.char-2).
-    
+
 END.
 
 END PROCEDURE.
@@ -1378,12 +1378,12 @@ END PROCEDURE.
 
 &IF DEFINED(EXCLUDE-pi-10-calc-total-pedido) = 0 &THEN
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE pi-10-calc-total-pedido Procedure 
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE pi-10-calc-total-pedido Procedure
 PROCEDURE pi-10-calc-total-pedido :
 /*------------------------------------------------------------------------------
-  Purpose:     
+  Purpose:
   Parameters:  <none>
-  Notes:       
+  Notes:
 ------------------------------------------------------------------------------*/
 
 DEFINE INPUT  PARAMETER p-num-pedido   AS INT  NO-UNDO.
