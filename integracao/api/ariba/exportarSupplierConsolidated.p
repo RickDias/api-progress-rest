@@ -242,6 +242,10 @@ PROCEDURE pi-02-processa :
   Parameters:  <none>
   Notes:       
 ------------------------------------------------------------------------------*/
+DEFINE VARIABLE cLocale AS CHARACTER INITIAL "pt_BR"   NO-UNDO.
+DEFINE VARIABLE cPais   AS CHARACTER INITIAL ""        NO-UNDO.
+
+
 
 EMPTY TEMP-TABLE SupplierConsolidated.
 EMPTY TEMP-TABLE SupplierConsolidated.
@@ -259,15 +263,26 @@ IF NOT CAN-FIND (FIRST es-fornecedor-ariba WHERE
 END.
 
 
-FOR EACH es-fornecedor-ariba WHERE                      
-         es-fornecedor-ariba.cod-emitente <> 0    AND   
-         es-fornecedor-ariba.enviado-SupplierConsolidated = NO  EXCLUSIVE-LOCK:
+FOR EACH es-fornecedor-ariba NO-LOCK
+   WHERE es-fornecedor-ariba.cod-emitente <> 0    
+     AND es-fornecedor-ariba.enviado-SupplierConsolidated = NO :
 
-    FIND FIRST emitente WHERE 
-               emitente.cod-emitente = es-fornecedor-ariba.cod-emitente NO-LOCK NO-ERROR.
+
+    FIND FIRST emitente NO-LOCK
+         WHERE emitente.cod-emitente = es-fornecedor-ariba.cod-emitente  NO-ERROR.
+    IF NOT AVAIL emitente THEN NEXT.
+
+    ASSIGN cPais = "".
+    FIND FIRST mguni.pais WHERE pais.nome-pais = emitente.pais NO-LOCK NO-ERROR.
+    IF AVAIL mguni.pais THEN
+        ASSIGN cPais = trim(substring(pais.char-1,23,02)).
+
+
+    IF cPais <> "BR" THEN
+        ASSIGN cLocale = "en_US".
 
     CREATE SupplierConsolidated.
-    ASSIGN SupplierConsolidated.country       = emitente.pais
+    ASSIGN SupplierConsolidated.country       = cPais
            SupplierConsolidated.NAME          = emitente.nome-emit
            SupplierConsolidated.PostalCode    = STRING(emitente.cep,"99999-999")
            SupplierConsolidated.City          = emitente.cidade
@@ -292,6 +307,7 @@ FOR EACH es-fornecedor-ariba WHERE
                SupplierConsolidated.CorporateEmailAddress = cont-emit.e-mail.
 
 END.
+
 
 END PROCEDURE.
 
