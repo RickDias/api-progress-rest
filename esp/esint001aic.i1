@@ -1,0 +1,27 @@
+FOR EACH tt-erros:
+    CREATE tt-erros-integracao.
+    ASSIGN tt-erros-integracao.erro  = string(tt-erros.cod-erro)
+           tt-erros-integracao.descricao = tt-erros.desc-erro.    
+END.
+
+run cdp/cdapi366b.r persistent set execute_evoluida_2.
+
+RUN execute_evoluida_2 in execute_evoluida_2(INPUT        TABLE tt_emitente_integr_old_2,
+                                             INPUT        TABLE tt_cont_emit_integr_new,
+                                             INPUT-OUTPUT TABLE tt_retorno_clien_fornec,
+                                             INPUT        0,
+                                             INPUT-OUTPUT c-arquivo-saida) .
+                                                                                     
+
+DELETE PROCEDURE execute_evoluida_2.
+
+ASSIGN execute_evoluida_2 = ?.
+
+FOR EACH tt_retorno_clien_fornec:
+    
+    CREATE tt-erros-integracao.
+    ASSIGN tt-erros-integracao.erro      = tt_retorno_clien_fornec.ttv_des_mensagem
+           tt-erros-integracao.descricao = tt_retorno_clien_fornec.ttv_des_ajuda.
+    RELEASE tt-erros-integracao.
+END.
+

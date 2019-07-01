@@ -1,0 +1,82 @@
+/*
+MESSAGE "**** piSendB2E "          SKIP 
+        {&Tabela}.number SKIP 
+        {&Tabela}.cnpj   SKIP
+        {&Tabela}.ie
+    VIEW-AS ALERT-BOX INFO BUTTONS OK.
+*/
+
+/*
+   OUTPUT TO c:\temp\cargafornec.lst.
+   PUT
+      {&Tabela}.number SKIP
+      {&Tabela}.cnpj   SKIP.
+   OUTPUT CLOSE.
+*/
+IF {&Tabela}.cnpj > ""
+THEN DO:
+   FIND FIRST es-api-param NO-LOCK                               
+        WHERE es-api-param.ind-tipo-trans = 2  /*---- Saida ----*/
+          AND es-api-param.cd-tipo-integr = 13 /*---- Integra‡Æo B2E pj ------*/ 
+        NO-ERROR.
+   IF AVAIL es-api-param 
+   THEN DO:
+      CREATE api-export-b2e-pj.
+      ASSIGN 
+         api-export-b2e-pj.cd-tipo-integr = es-api-param.cd-tipo-integr
+         api-export-b2e-pj.id-movto       = NEXT-VALUE(seq-export)
+         api-export-b2e-pj.cgc            = {&Tabela}.cnpj
+         api-export-b2e-pj.data-movto     = NOW
+         api-export-b2e-pj.c-json         = ?.
+      CREATE sfa-export.
+      ASSIGN 
+         sfa-export.ind-tipo-trans = es-api-param.ind-tipo-trans
+         sfa-export.id-movto       = api-export-b2e-pj.id-movto
+         sfa-export.cd-tipo-integr = api-export-b2e-pj.cd-tipo-integr
+         sfa-export.chave          = STRING(api-export-b2e-pj.id-movto)
+         sfa-export.cod-status     = 0      /* ---- sem status ----*/
+         sfa-export.data-fim       = ?
+         sfa-export.data-inicio    = ?
+         sfa-export.data-movto     = NOW
+         sfa-export.ind-situacao   = 1      /* ---- Pendente   ----*/.
+      ASSIGN
+         {&Tabela}.chave            = STRING(api-export-b2e-pj.id-movto)
+         {&Tabela}.cod-proposta-b2e = STRING(api-export-b2e-pj.id-movto).
+   END.
+END.
+IF {&Tabela}.cpf > ""
+THEN DO:
+   FIND FIRST es-api-param NO-LOCK                               
+        WHERE es-api-param.ind-tipo-trans = 2  /*---- Saida ----*/
+          AND es-api-param.cd-tipo-integr = 12 /*---- Integra‡Æo B2E PJ ------*/ 
+        NO-ERROR.
+   IF AVAIL es-api-param 
+   THEN DO:
+      CREATE api-export-b2e-pf.
+      ASSIGN api-export-b2e-pf.cd-tipo-integr = es-api-param.cd-tipo-integr
+             api-export-b2e-pf.id-movto       = NEXT-VALUE(seq-export)
+             api-export-b2e-pf.cpf            = STRING(api-export-b2e-pf.id-movto)
+             api-export-b2e-pf.data-movto     = NOW
+             api-export-b2e-pf.c-json         = ?.
+      CREATE sfa-export.
+      ASSIGN sfa-export.ind-tipo-trans = es-api-param.ind-tipo-trans
+             sfa-export.id-movto       = api-export-b2e-pf.id-movto
+             sfa-export.cd-tipo-integr = api-export-b2e-pf.cd-tipo-integr
+             sfa-export.chave          = STRING(api-export-b2e-pf.id-movto)
+             sfa-export.cod-status     = 0      /* ---- sem status ----*/
+             sfa-export.data-fim       = ?
+             sfa-export.data-inicio    = ?
+             sfa-export.data-movto     = NOW
+             sfa-export.ind-situacao   = 1      /*---- Pendente -----*/.
+      ASSIGN
+         {&Tabela}.chave            = STRING(api-export-b2e-pf.id-movto)
+         {&Tabela}.cod-proposta-b2e = STRING(api-export-b2e-pf.id-movto).
+   END.
+END.
+ASSIGN
+   {&Tabela}.enviado-b2e = YES.
+
+RUN pi-processa (es-api-param.ind-tipo-trans,
+                 es-api-param.cd-tipo-integr
+                 ).  
+
