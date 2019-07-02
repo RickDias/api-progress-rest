@@ -2,8 +2,8 @@
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
 /*------------------------------------------------------------------------
-    File        : ESAR003RP.p
-    Purpose     : Carga Inicial para o ARIBA
+    File        : ESAR005RP.p
+    Purpose     : Exporta PO Network ARIBA
 
     Syntax      :
 
@@ -141,7 +141,7 @@ RUN utp/ut-acomp.p PERSISTENT SET h-prog.
 
 find first tt-param no-lock no-error.
 
-RUN pi-inicializar IN h-prog (INPUT "Integrando Item Ariba").
+RUN pi-inicializar IN h-prog (INPUT "Integrando PO Network").
 
 RUN integracao\api\ariba\exportarpedcompra.p.
 
