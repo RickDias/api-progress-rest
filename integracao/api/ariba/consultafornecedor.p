@@ -2,8 +2,8 @@
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
 /*------------------------------------------------------------------------
-    File        : importarpedcompra.p
-    Purpose     : Integra‡ao - ARIBA x Pedido de Compra
+    File        : consultaFornecedor.p
+    Purpose     : Programa Consulta Forncedor TOTVS X ARIBA
 
     Syntax      :
 
@@ -136,18 +136,23 @@ RUN pi-00-consulta-fornecedor.
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE pi-00-consulta-fornecedor Procedure 
 PROCEDURE pi-00-consulta-fornecedor :
-FIND FIRST es-api-param NO-LOCK                               
+
+    LOG-MANAGER:WRITE-MESSAGE(SUBSTITUTE("##### PROCEDURE DE CONSUTA DE FORNECEDOR")) NO-ERROR.
+
+
+    FIND FIRST es-api-param NO-LOCK                               
          WHERE es-api-param.ind-tipo-trans = 2  /*---- Saida ----*/
            AND es-api-param.cd-tipo-integr = 25 /*---- Integra‡Æo B2E pj ------*/ 
-         NO-ERROR.
-    IF AVAIL es-api-param 
-    THEN DO:
+      NO-ERROR.
+
+    IF AVAIL es-api-param THEN DO:
        CREATE api-import-for.
        ASSIGN
           api-import-for.cd-tipo-integr     = es-api-param.cd-tipo-integr
           api-import-for.id-movto           = NEXT-VALUE(seq-export)
           api-import-for.data-movto         = TODAY
           api-import-for.c-json             = ?.
+
        CREATE sfa-export.
        ASSIGN 
           sfa-export.ind-tipo-trans          = es-api-param.ind-tipo-trans
@@ -160,10 +165,28 @@ FIND FIRST es-api-param NO-LOCK
           sfa-export.data-movto              = NOW
           sfa-export.ind-situacao            = 1      /*---- Pendente -----*/.
 
+
+       LOG-MANAGER:WRITE-MESSAGE(SUBSTITUTE("##### INFO PASSADAS NA ES-API-PARAM: TIPO-TRANS &1, TIPO-INTEGR &2",
+                                         es-api-param.ind-tipo-trans,es-api-param.cd-tipo-integr)).
+
+       
+       /*--CHAMA ROTINA DE PROCESSAMENTO CADASTRADO NO ESIN004 --*/
+       RUN pi-processa (es-api-param.ind-tipo-trans,
+                        es-api-param.cd-tipo-integr).  
+
     END.
-    RUN pi-processa (es-api-param.ind-tipo-trans,
-                     es-api-param.cd-tipo-integr
-                    ).  
+    ELSE
+    DO:
+        LOG-MANAGER:WRITE-MESSAGE(SUBSTITUTE("#### NAO ENCONTRADO PARAMETRO NO ESINT004")) NO-ERROR.
+
+    END.
+
+
+    
+    
+
+
+
     
     
 

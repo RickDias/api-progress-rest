@@ -11,6 +11,10 @@ PROCEDURE pi-processa:
     FOR FIRST es-api-param NO-LOCK WHERE es-api-param.ind-tipo-trans  = p_transacao
                                      AND es-api-param.cd-tipo-integr  = p_cd_integr
                                      AND es-api-param.ativo:
+
+
+        LOG-MANAGER:WRITE(SUBSTITUTE(SUBSTITUTE("####-TIPO TRANS &1",es-api-param.ind-tipo-trans)) NO-ERROR.
+
         IF es-api-param.ind-tipo-trans = 2 THEN DO:
             /* ------ Verifica se existe agENDa de integra‡Æo v lida ----*/
             /*IF fncAgendaAtiva(es-api-param.cd-tipo-integr) THEN NEXT.*/
@@ -18,6 +22,11 @@ PROCEDURE pi-processa:
             IF SEARCH(es-api-param.programa-integr ) = ? THEN NEXT.
             IF AVAIL sfa-export AND sfa-export.ind-situacao = 1 THEN DO:
                 ASSIGN sfa-export.data-inicio  = NOW.
+
+                LOG-MANAGER:WRITE-MESSAGE(SUBSTITUTE("####-PROG INTEGRACAO &1",
+                                                     es-api-param.programa-integr)) NO-ERROR.
+
+
                 /* ------ Executa progama espec¡fico para o tipo de integra‡Æo ------ */
                 RUN VALUE( es-api-param.programa-integr ) (INPUT ROWID(sfa-export),
                                                            OUTPUT c-erro) NO-ERROR. 
@@ -109,6 +118,9 @@ PROCEDURE pi-gera-status:
 
     DEFINE VARIABLE i-nr-seq AS INTEGER NO-UNDO.
 
+    LOG-MANAGER:WRITE-MESSAGE("####-GERA STATUS TRANS: &1 - ERRO: &2,
+                              p_transacao, c-erro)) NO-ERROR.
+
     IF p_transacao = 2 THEN DO:
         
         FIND LAST sfa-export-log NO-LOCK OF sfa-export NO-ERROR.
@@ -123,6 +135,11 @@ PROCEDURE pi-gera-status:
                sfa-export-log.data-log       = NOW
                sfa-export-log.des-log        = IF c-erro = "" THEN "Registro integrado com sucesso" ELSE c-erro
                sfa-export-log.nr-seq         = i-nr-seq.
+
+        LOG-MANAGER:WRITE-MESSAGE(substitute("####-1 TIPO TRANS &1 - TIPO INTEG &2 - ID MOVTO &3,
+                                  sfa-export.ind-tipo-trans,sfa-export.cd-tipo-integr,sfa-export.id-movto)) NO-ERROR. 
+
+
     END.
     ELSE DO:
         FIND LAST sfa-import-log NO-LOCK OF sfa-import NO-ERROR.
@@ -138,6 +155,8 @@ PROCEDURE pi-gera-status:
                sfa-import-log.des-log        = IF c-erro = "" THEN "Registro integrado com sucesso" ELSE c-erro
                sfa-import-log.nr-seq         = i-nr-seq.
 
+         LOG-MANAGER:WRITE-MESSAGE(substitute("####-2 TIPO TRANS &1 - TIPO INTEG &2 - ID MOVTO &3,
+                                   sfa-export.ind-tipo-trans,sfa-export.cd-tipo-integr,sfa-export.id-movto)) NO-ERROR. 
     END.
     
 END PROCEDURE.

@@ -539,11 +539,11 @@ IF AVAIL es-api-param THEN DO:
     client:SetRequestHeader ("Authorization", "Bearer " + c-token).
     client:Send(pArquivoEntrada).
 
-    MESSAGE 'ResponseText  '    client:ResponseText   SKIP
-            'Responsexml   '    client:Responsexml    SKIP
-            'responseStream'    client:responseStream SKIP
-            'STATUS        '    client:STATUS         SKIP
-            VIEW-AS ALERT-BOX TITLE "retorno".
+   // MESSAGE 'ResponseText  '    client:ResponseText   SKIP
+   //         'Responsexml   '    client:Responsexml    SKIP
+   //         'responseStream'    client:responseStream SKIP
+   //         'STATUS        '    client:STATUS         SKIP
+   //         VIEW-AS ALERT-BOX TITLE "retorno".
 
     IF client:STATUS = "201" THEN
         ASSIGN p-retorno   = YES.
