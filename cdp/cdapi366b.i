@@ -78,8 +78,8 @@ def temp-table tt_emitente_integr_OLD NO-UNDO
     field port_prefer                  as integer   format ">>>>9" 
     field mod_prefer                   as integer   format "9" 
     &IF "{&mguni_version}" >= "2.07A" &THEN
-    field ep_codigo                    LIKE empresa.ep-codigo
-    field ep_codigo_principal          LIKE empresa.ep-codigo
+    field ep_codigo                    LIKE mgcad.empresa.ep-codigo
+    field ep_codigo_principal          LIKE mgcad.empresa.ep-codigo
     &ELSE
     field ep_codigo                    as integer   format ">>9" 
     field ep_codigo_principal          as integer   format ">>9" 
@@ -187,8 +187,8 @@ def temp-table tt_emitente_integr_new_old no-undo
     field port_prefer               as integer   format ">>>>9"
     field mod_prefer                as integer   format "9"
     &IF "{&mguni_version}" >= "2.07A" &THEN
-    field ep_codigo                 LIKE empresa.ep-codigo
-    field ep_codigo_principal       LIKE empresa.ep-codigo
+    field ep_codigo                 LIKE mgcad.empresa.ep-codigo
+    field ep_codigo_principal       LIKE mgcad.empresa.ep-codigo
     &ELSE
     field ep_codigo                 as integer   format ">>9" 
     field ep_codigo_principal       as integer   format ">>9" 
@@ -288,8 +288,8 @@ def temp-table tt_emitente_integr_new no-undo
     field port_prefer               as integer   format ">>>>9"
     field mod_prefer                as integer   format "9"
     &IF "{&mguni_version}" >= "2.07A" &THEN
-    field ep_codigo                 LIKE empresa.ep-codigo
-    field ep_codigo_principal       LIKE empresa.ep-codigo
+    field ep_codigo                 LIKE mgcad.empresa.ep-codigo
+    field ep_codigo_principal       LIKE mgcad.empresa.ep-codigo
     &ELSE
     field ep_codigo                 as integer   format ">>9"
     field ep_codigo_principal       as integer   format ">>9"
@@ -342,7 +342,7 @@ def temp-table tt_cont_emit_integr no-undo
     field e_mail                       as character format "x(25)"
     field observacao                   as character format "x(2000)"
     &IF "{&mguni_version}" >= "2.07A" &THEN
-    field ep_codigo_principal          LIKE empresa.ep-codigo
+    field ep_codigo_principal          LIKE mgcad.empresa.ep-codigo
     &ELSE
     field ep_codigo_principal          as integer   format ">>9"
     &ENDIF
