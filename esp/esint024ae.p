@@ -24,8 +24,8 @@ USING Progress.Lang.*.
 USING Progress.Json.ObjectModel.*. 
 
 
-MESSAGE PROGRAM-NAME(1)
-    VIEW-AS ALERT-BOX INFO BUTTONS OK.
+//MESSAGE PROGRAM-NAME(1)
+//    VIEW-AS ALERT-BOX INFO BUTTONS OK.
 
 {include/i-prgvrs.i ESINT020BE 1.00.00.000} 
 
@@ -294,8 +294,8 @@ PROCEDURE piPostJsonObj:
         oJsonObject = NEW JsonObject(). 
 
 
-        MESSAGE PROGRAM-NAME(1) 0 oResponse:StatusCode
-                    VIEW-AS ALERT-BOX INFO BUTTONS OK.
+        //MESSAGE PROGRAM-NAME(1) 0 oResponse:StatusCode
+        //            VIEW-AS ALERT-BOX INFO BUTTONS OK.
 
         IF oResponse:StatusCode < 200 OR oResponse:StatusCode > 299 THEN DO:
             RUN piErro IN h-esint002 ("Ocorreram erros no envio do Json - " + 
@@ -309,13 +309,13 @@ PROCEDURE piPostJsonObj:
                 oJsonEntity = CAST(oResponse:Entity, JsonArray).                
                 oJsonObject:ADD("retorno",oJsonEntity).
                 JsonString = string(oJsonObject:getJsonText()).
-                MESSAGE PROGRAM-NAME(1) 1
-                    VIEW-AS ALERT-BOX INFO BUTTONS OK.
+                //MESSAGE PROGRAM-NAME(1) 1
+                //    VIEW-AS ALERT-BOX INFO BUTTONS OK.
             END.
             IF TYPE-OF(oResponse:Entity, JsonObject) 
             THEN DO:
-                MESSAGE PROGRAM-NAME(1) 2
-                    VIEW-AS ALERT-BOX INFO BUTTONS OK.
+                //MESSAGE PROGRAM-NAME(1) 2
+                //    VIEW-AS ALERT-BOX INFO BUTTONS OK.
                 oJsonObject = CAST(oResponse:Entity, JsonObject). 
                 ASSIGN
                    oOutputData = oJsonObject.
@@ -336,18 +336,18 @@ PROCEDURE piPostJsonObj:
                 
             END.
             ELSE DO:
-                MESSAGE PROGRAM-NAME(1) 3
-                    VIEW-AS ALERT-BOX INFO BUTTONS OK.
+                //MESSAGE PROGRAM-NAME(1) 3
+                //    VIEW-AS ALERT-BOX INFO BUTTONS OK.
                 IF TYPE-OF(oResponse:Entity, String) 
                 THEN JsonString = CAST(oResponse:Entity, String):Value.
                 ELSE JsonString = oResponse:ToString().
-                MESSAGE PROGRAM-NAME(1) 3.1 TYPE-OF(oResponse:Entity, String)  SKIP(3)
-                    STRING(JsonString)
-                    VIEW-AS ALERT-BOX INFO BUTTONS OK.
+                //MESSAGE PROGRAM-NAME(1) 3.1 TYPE-OF(oResponse:Entity, String)  SKIP(3)
+                //    STRING(JsonString)
+                //    VIEW-AS ALERT-BOX INFO BUTTONS OK.
 
             END.
-            MESSAGE PROGRAM-NAME(1) 4
-                    VIEW-AS ALERT-BOX INFO BUTTONS OK.
+            //MESSAGE PROGRAM-NAME(1) 4
+            //        VIEW-AS ALERT-BOX INFO BUTTONS OK.
             IF index(JsonString,'"Status":false') > 0 THEN DO:
                 IF LOOKUP("Description",JsonString,'"') > 0 THEN 
                     RUN piErro (ENTRY(LOOKUP("Description",JsonString,'"') + 2,JsonString,'"'),"").

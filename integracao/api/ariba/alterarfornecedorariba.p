@@ -1,9 +1,9 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12
 &ANALYZE-RESUME
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
 /*------------------------------------------------------------------------
-    File        : importarpedcompra.p
-    Purpose     : Integra‡ao - ARIBA x Pedido de Compra
+    File        : alterarfornecedorariba.p
+    Purpose     : Integra‡ao - Altera Fornecedor ARIBA
 
     Syntax      :
 
@@ -17,7 +17,7 @@
 /*----------------------------------------------------------------------*/
 
 /* ***************************  Definitions  ************************** */
-DEFINE INPUT  PARAMETER p-cod-emitente  AS INT  NO-UNDO.
+//DEFINE INPUT  PARAMETER p-cod-emitente  AS INT  NO-UNDO.
 
 
 // O campo ind-tipo-movto trata qual movimento esta realizando
@@ -106,7 +106,7 @@ DEFINE VARIABLE l-retorno-fornecedor AS LOGICAL NO-UNDO.
 &ANALYZE-RESUME
 
 
-&ANALYZE-SUSPEND _UIB-PREPROCESSOR-BLOCK
+&ANALYZE-SUSPEND _UIB-PREPROCESSOR-BLOCK 
 
 /* ********************  Preprocessor Definitions  ******************** */
 
@@ -125,7 +125,7 @@ DEFINE VARIABLE l-retorno-fornecedor AS LOGICAL NO-UNDO.
 &ANALYZE-SUSPEND _PROCEDURE-SETTINGS
 /* Settings for THIS-PROCEDURE
    Type: Procedure
-   Allow:
+   Allow: 
    Frames: 0
    Add Fields to: Neither
    Other Settings: CODE-ONLY COMPILE
@@ -135,7 +135,7 @@ DEFINE VARIABLE l-retorno-fornecedor AS LOGICAL NO-UNDO.
 /* *************************  Create Window  ************************** */
 
 &ANALYZE-SUSPEND _CREATE-WINDOW
-/* DESIGN Window definition (used by the UIB)
+/* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW Procedure ASSIGN
          HEIGHT             = 15.29
          WIDTH              = 60.
@@ -143,10 +143,10 @@ DEFINE VARIABLE l-retorno-fornecedor AS LOGICAL NO-UNDO.
                                                                         */
 &ANALYZE-RESUME
 
+ 
 
 
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK Procedure
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK Procedure 
 
 
 /* ***************************  Main Block  *************************** */
@@ -163,18 +163,18 @@ RUN pi-00-envia-cod-fornecedor.
 
 &IF DEFINED(EXCLUDE-pi-00-envia-cod-fornecedor) = 0 &THEN
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE pi-00-envia-cod-fornecedor Procedure
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE pi-00-envia-cod-fornecedor Procedure 
 PROCEDURE pi-00-envia-cod-fornecedor :
 DEFINE VARIABLE pArquivoEnvio   AS LONGCHAR NO-UNDO.
     DEFINE VARIABLE pArquivoRetorno AS LONGCHAR NO-UNDO.
 
     FIND FIRST es-fornecedor-ariba
-         WHERE es-fornecedor-ariba.cod-emitente = p-cod-emitente
-           AND es-fornecedor-ariba.number       > ""
+         WHERE /*es-fornecedor-ariba.cod-emitente = p-cod-emitente
+           AND*/ es-fornecedor-ariba.number       > ""
          NO-ERROR.
 
-    MESSAGE PROGRAM-NAME(1) AVAIL es-fornecedor-ariba
-        VIEW-AS ALERT-BOX INFO BUTTONS OK.
+   // MESSAGE PROGRAM-NAME(1) AVAIL es-fornecedor-ariba
+   //     VIEW-AS ALERT-BOX INFO BUTTONS OK.
 
     IF AVAIL es-fornecedor-ariba
     THEN DO:
@@ -184,8 +184,8 @@ DEFINE VARIABLE pArquivoEnvio   AS LONGCHAR NO-UNDO.
             NO-ERROR.
        IF AVAIL es-api-param
        THEN DO:
-           MESSAGE PROGRAM-NAME(2)  1
-               VIEW-AS ALERT-BOX INFO BUTTONS OK.
+           //MESSAGE PROGRAM-NAME(2)  1
+           //    VIEW-AS ALERT-BOX INFO BUTTONS OK.
           CREATE api-export-ariba-codigo.
           ASSIGN
              api-export-ariba-codigo.cd-tipo-integr = es-api-param.cd-tipo-integr
@@ -195,9 +195,9 @@ DEFINE VARIABLE pArquivoEnvio   AS LONGCHAR NO-UNDO.
              api-export-ariba-codigo.Number         = es-fornecedor-ariba.Number
              api-export-ariba-codigo.dt-consulta    = es-fornecedor-ariba.dt-consulta
              .
-          MESSAGE PROGRAM-NAME(2)  2
-              VIEW-AS ALERT-BOX INFO BUTTONS OK.
-
+          //MESSAGE PROGRAM-NAME(2)  2
+          //    VIEW-AS ALERT-BOX INFO BUTTONS OK.
+          //
           CREATE sfa-export.
           ASSIGN
              sfa-export.ind-tipo-trans = es-api-param.ind-tipo-trans
@@ -209,22 +209,22 @@ DEFINE VARIABLE pArquivoEnvio   AS LONGCHAR NO-UNDO.
              sfa-export.data-inicio    = ?
              sfa-export.data-movto     = NOW
              sfa-export.ind-situacao   = 1      /*---- Pendente -----*/.
-          MESSAGE PROGRAM-NAME(2)  3
-              VIEW-AS ALERT-BOX INFO BUTTONS OK.
+         // MESSAGE PROGRAM-NAME(2)  3
+         //     VIEW-AS ALERT-BOX INFO BUTTONS OK.
 
 
-          MESSAGE PROGRAM-NAME(2)  4
-    VIEW-AS ALERT-BOX INFO BUTTONS OK.
+         // MESSAGE PROGRAM-NAME(2)  4
+         //  VIEW-AS ALERT-BOX INFO BUTTONS OK.
 
        END.
-       MESSAGE PROGRAM-NAME(2)  5
-    VIEW-AS ALERT-BOX INFO BUTTONS OK.
-
+       //MESSAGE PROGRAM-NAME(2)  5
+       //VIEW-AS ALERT-BOX INFO BUTTONS OK.
+       //
        RUN pi-processa (es-api-param.ind-tipo-trans,
                         es-api-param.cd-tipo-integr
                        ).
-       MESSAGE PROGRAM-NAME(2)  5
-    VIEW-AS ALERT-BOX INFO BUTTONS OK.
+      // MESSAGE PROGRAM-NAME(2)  5
+      //- VIEW-AS ALERT-BOX INFO BUTTONS OK.
 
     END.
 

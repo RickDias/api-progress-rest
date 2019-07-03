@@ -7,12 +7,14 @@
 -----------------------------------------------------------------------------------------------*/
 
 {utp\ut-glob.i}
+{include/i_dbvers.i}
 {cdp/cdapi366b.i}
+{esp/esint0020.i}
 
 /*603833*/
 DEF VAR l-debug AS LOG INIT NO NO-UNDO.
 
-FUNCTION fnc-proximo-emit RETURNS INTEGER() FORWARD.
+//FUNCTION fnc-proximo-emit RETURNS INTEGER() FORWARD.
 
 DEF TEMP-TABLE ttx-emitente NO-UNDO 
           LIKE emitente.
@@ -119,7 +121,7 @@ DO TRANS:
       THEN ASSIGN
          l-ambos  = YES.
       
-      find first dist-emitente EXCLUSIVE-LOCK
+      find first mguni.dist-emitente EXCLUSIVE-LOCK
            where dist-emitente.cod-emitente = emitente.cod-emitente 
            no-error. 
 
@@ -150,7 +152,7 @@ DO TRANS:
             dist-emitente.dat-vigenc-final    = 12/31/9999.
       END.
 
-      FIND CURRENT disp-emitente NO-LOCK NO-ERROR.
+      FIND CURRENT dist-emitente NO-LOCK NO-ERROR.
 
    END.
 
@@ -381,7 +383,7 @@ DO TRANS:
       NO-ERROR.
    
    
-   /*
+   
    CREATE tt_cont_emit_integr.
    ASSIGN tt_cont_emit_integr.cod_emitente          = emitente.cod-emitente
           tt_cont_emit_integr.sequencia	            = 1
@@ -391,43 +393,43 @@ DO TRANS:
           tt_cont_emit_integr.telefone		        = emitente.telefone[1]
           tt_cont_emit_integr.ramal                 = emitente.ramal[1]
           tt_cont_emit_integr.e_mail                = emitente.e-mail
-          overlay(tt_cont_emit_integr.char-2,1,20)  = emitente.cgc
+         // overlay(tt_cont_emit_integr.char-2,1,20)  = emitente.cgc
           tt_cont_emit_integr.cod_versao_integracao = 1
           tt_cont_emit_integr.num_tip_operac        = 1 NO-ERROR.
-   */
+   
    
    /**/
 
 
-   IF l-debug THEN MESSAGE 
-      "***** tt_emitente_integr_new.nome_emit " tt_emitente_integr_new.nome_emit  SKIP
-      VIEW-AS ALERT-BOX INFO BUTTONS OK.
-   IF l-debug THEN MESSAGE 
-      "***** tt_emitente_integr_new.nome_abrev" tt_emitente_integr_new.nome_abrev SKIP
-      VIEW-AS ALERT-BOX INFO BUTTONS OK.
-   IF l-debug THEN MESSAGE 
-      "***** tt_emitente_integr_new.cgc       " tt_emitente_integr_new.cgc        SKIP
-      VIEW-AS ALERT-BOX INFO BUTTONS OK.
-   IF l-debug THEN MESSAGE 
-      "***** tt_emitente_integr_new.natureza  " tt_emitente_integr_new.natureza   SKIP
-      VIEW-AS ALERT-BOX INFO BUTTONS OK.
-   IF l-debug THEN MESSAGE 
-      "***** tt_emitente_integr_new.endereco  " tt_emitente_integr_new.endereco   SKIP
-      VIEW-AS ALERT-BOX INFO BUTTONS OK.
-   IF l-debug THEN MESSAGE 
-      "***** portador  " STRING(tt_emitente_integr_new.cod_portador)
-             + " - " 
-             + STRING(tt_emitente_integr_new.modalidade)  SKIP
-      VIEW-AS ALERT-BOX INFO BUTTONS OK.
-   IF l-debug 
-   THEN DO:
-      IF AVAIL emitente
-      THEN MESSAGE 
-      "***** portador emitente " STRING(emitente.portador)
-             + " - " 
-             + STRING(emitente.modalidade)  SKIP
-      VIEW-AS ALERT-BOX INFO BUTTONS OK.
-   END.
+   //IF l-debug THEN MESSAGE 
+   //   "***** tt_emitente_integr_new.nome_emit " tt_emitente_integr_new.nome_emit  SKIP
+   //   VIEW-AS ALERT-BOX INFO BUTTONS OK.
+   //IF l-debug THEN MESSAGE 
+   //   "***** tt_emitente_integr_new.nome_abrev" tt_emitente_integr_new.nome_abrev SKIP
+   //   VIEW-AS ALERT-BOX INFO BUTTONS OK.
+   //IF l-debug THEN MESSAGE 
+   //   "***** tt_emitente_integr_new.cgc       " tt_emitente_integr_new.cgc        SKIP
+   //   VIEW-AS ALERT-BOX INFO BUTTONS OK.
+   //IF l-debug THEN MESSAGE 
+   //   "***** tt_emitente_integr_new.natureza  " tt_emitente_integr_new.natureza   SKIP
+   //   VIEW-AS ALERT-BOX INFO BUTTONS OK.
+   //IF l-debug THEN MESSAGE 
+   //   "***** tt_emitente_integr_new.endereco  " tt_emitente_integr_new.endereco   SKIP
+   //   VIEW-AS ALERT-BOX INFO BUTTONS OK.
+   //IF l-debug THEN MESSAGE 
+   //   "***** portador  " STRING(tt_emitente_integr_new.cod_portador)
+   //          + " - " 
+   //          + STRING(tt_emitente_integr_new.modalidade)  SKIP
+   //   VIEW-AS ALERT-BOX INFO BUTTONS OK.
+   //IF l-debug 
+   //THEN DO:
+   //   IF AVAIL emitente
+   //   THEN MESSAGE 
+   //   "***** portador emitente " STRING(emitente.portador)
+   //          + " - " 
+   //          + STRING(emitente.modalidade)  SKIP
+   //   VIEW-AS ALERT-BOX INFO BUTTONS OK.
+   //END.
 
 
    RUN execute_evoluida_3 in hApi  (INPUT        TABLE tt_emitente_integr_new,
@@ -462,9 +464,13 @@ DO TRANS:
              + STRING(tt_emitente_integr_new.cod_portador)
              + " - " 
              + STRING(tt_emitente_integr_new.modalidade).
-   */
+   
 
-   DO:
+   DO:*/
+
+      FIND CURRENT es-fornecedor-ariba NO-LOCK NO-ERROR.
+      IF AVAIL es-fornecedor-ariba THEN
+
       ASSIGN
           es-fornecedor-ariba.cod-emitente       = iNumEmit
           es-fornecedor-ariba.ind-atualizado-ems = 1.
@@ -474,7 +480,6 @@ DO TRANS:
            NO-ERROR.
       IF AVAIL emitente 
       THEN DO:
-          
 
           /* Atualiza EMS5 */
           IF l-debug THEN MESSAGE "***** Atualizando EMS5 " es-fornecedor-ariba.cod-emitente VIEW-AS ALERT-BOX.
@@ -517,7 +522,7 @@ DO TRANS:
       ELSE ASSIGN
          c-erro = c-erro
                 + "Fornecedor nÆo foi criado. Atualiza‡Æo no EMS5 nÆo ‚ poss¡vel./".
-   END.
+   //END.
    
    IF c-erro > ""
    THEN DO: 

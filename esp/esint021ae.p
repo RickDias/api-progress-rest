@@ -27,7 +27,7 @@ USING Progress.Json.ObjectModel.*.
 MESSAGE PROGRAM-NAME(1)
     VIEW-AS ALERT-BOX INFO BUTTONS OK.
  */
-{include/i-prgvrs.i ESINT020BE 1.00.00.000} 
+{include/i-prgvrs.i ESINT021ae 1.00.00.000} 
 
 /* ------- Defini‡Æo de Parƒmetros ----- */
 DEFINE INPUT  PARAMETER r-table AS ROWID     NO-UNDO.
@@ -78,9 +78,9 @@ DEFINE TEMP-TABLE RowErrors NO-UNDO
     FIELD ErrorSubType     AS CHARACTER.
 
 /*------------------------------ Main Begin ----------------------------*/
+LOG-MANAGER:WRITE-MESSAGE("---Main Begin --") NO-ERROR.
 
-ASSIGN 
-   c-erro = "".
+ASSIGN c-erro = "".
 
 /* ---- Chama o programa persistent ----- */
 RUN esp/esint002.p PERSISTENT SET h-esint002 NO-ERROR.
@@ -105,16 +105,32 @@ THEN DO:
            AND es-api-param.cd-tipo-integr = sfa-export.cd-tipo-integr 
          NO-ERROR. 
 
-    FIND FIRST api-import-for 
-            OF sfa-export 
-         NO-ERROR.
-    IF AVAIL api-import-for 
-    THEN DO:
+    FIND FIRST api-import-for OF sfa-export EXCLUSIVE-LOCK NO-ERROR.
+    IF AVAIL api-import-for THEN DO:
+        /**********************************************************
+         alterado ponto para corrigir erro que a tabela nÆo estava
+         mais disponivel
+        ***********************************************************/
+
+        LOG-MANAGER:WRITE-MESSAGE(SUBSTITUTE("TIPO &1 ID-MOVTO &2 DATA &3",api-import-for.cd-tipo-integr,api-import-for.id-movto,api-import-for.data-movto)) NO-ERROR.
+
+        
+        //MESSAGE "##1-es-ariba-b2e-param" AVAIL es-ariba-b2e-param
+        //    VIEW-AS ALERT-BOX INFORMATION BUTTONS OK.
+        
+        FIND FIRST es-ariba-b2e-param EXCLUSIVE-LOCK NO-ERROR.        
+        IF NOT AVAIL es-ariba-b2e-param  THEN                         
+            CREATE es-ariba-b2e-param.                                
+        IF es-ariba-b2e-param.dt-ult-consulta = ? THEN                
+            ASSIGN es-ariba-b2e-param.dt-ult-consulta = NOW.
+
+        //MESSAGE "##2-es-ariba-b2e-param" AVAIL es-ariba-b2e-param    
+        //    VIEW-AS ALERT-BOX INFORMATION BUTTONS OK.                
+
         RUN piGravaTTFornecedor (OUTPUT c-json,
                                  OUTPUT c-erro).
 
-        ASSIGN 
-            api-import-for.c-json = c-Json.
+        ASSIGN api-import-for.c-json = c-Json.
         
         /* ------------ Envia Objeto Json --------- */
         RUN piPostJsonObj /*IN h-esint002*/ 
@@ -125,6 +141,9 @@ THEN DO:
                            OUTPUT c-retorno,
                            OUTPUT ojsonRet
                           ).
+
+        LOG-MANAGER:WRITE-MESSAGE("---IMPRIMINDO ARQUIVO JSON --") NO-ERROR.
+        oJsonRet:writeFile("\\fenix\ERP\camil\teste-rosa\log_appserver\json\retornojson.json").
                                    
         IF TEMP-TABLE rowErrors:HAS-RECORDS 
         THEN DO:
@@ -158,12 +177,11 @@ PROCEDURE piGravaTTFornecedor:
     DEFINE OUTPUT PARAMETER pErro          AS CHARACTER NO-UNDO.
     DEF VAR h-temp AS HANDLE NO-UNDO.
 
-    FIND FIRST es-ariba-b2e-param NO-ERROR.
-    IF NOT AVAIL es-ariba-b2e-param
-    THEN CREATE es-ariba-b2e-param.
-    IF es-ariba-b2e-param.dt-ult-consulta = ?
-    THEN ASSIGN
-       es-ariba-b2e-param.dt-ult-consulta = NOW.
+    /* FIND FIRST es-ariba-b2e-param EXCLUSIVE-LOCK NO-ERROR.         */
+    /* IF NOT AVAIL es-ariba-b2e-param  THEN                          */
+    /*     CREATE es-ariba-b2e-param.                                 */
+    /* IF es-ariba-b2e-param.dt-ult-consulta = ? THEN                 */
+    /*     ASSIGN es-ariba-b2e-param.dt-ult-consulta = NOW.           */
 
     CREATE consulta-fornecedor.
     ASSIGN //CreationDateTime    = STRING(YEAR(daDtConsulta)) + "-" + STRING(MONTH(daDtConsulta),"99") + "-" + STRING(DAY(daDtConsulta),"99") + "T00:00:00Z"
@@ -171,8 +189,7 @@ PROCEDURE piGravaTTFornecedor:
            consulta-fornecedor.PollingMessage        = es-ariba-b2e-param.PollingMessage
            consulta-fornecedor.InboundServiceName    = "BusinessPartnerSUITEBulkReplicateRequest_In".
 
-    ASSIGN
-       es-ariba-b2e-param.dt-ult-consulta = NOW.
+    ASSIGN es-ariba-b2e-param.dt-ult-consulta = NOW.
 
 
     h-temp = BUFFER consulta-fornecedor:HANDLE.
@@ -635,92 +652,84 @@ PROCEDURE piAtualizaFornecedor:
    DEF VAR lSendB2E          AS l NO-UNDO.
    DEF VAR lSendBOFornecedor AS l NO-UNDO.
 
+   IF NOT AVAIL es-ariba-b2e-param THEN                       
+       FIND FIRST es-ariba-b2e-param EXCLUSIVE-LOCK NO-ERROR. 
+
+
    FOR EACH cadastro-fornecedor NO-LOCK:
 
 //       IF cadastro-fornecedor.CNPJ + cadastro-fornecedor.CPF + cadastro-fornecedor.IE = ""
 //       THEN NEXT.
 
-       IF cadastro-fornecedor.PollingMessage = ""
-       THEN NEXT.
-
-       MESSAGE 
-           PROGRAM-NAME(1) SKIP
-           cadastro-fornecedor.CNPJ SKIP              
-           cadastro-fornecedor.CPF                
-           VIEW-AS ALERT-BOX INFO BUTTONS OK.
+       IF cadastro-fornecedor.PollingMessage = "" THEN NEXT.
 
        FIND FIRST es-fornecedor-ariba EXCLUSIVE-LOCK
             WHERE es-fornecedor-ariba.Number      = cadastro-fornecedor.Number
               AND es-fornecedor-ariba.dt-consulta = daDtConsulta
             NO-ERROR.
 
-       IF NOT AVAIL es-fornecedor-ariba 
-       THEN DO:
+       IF NOT AVAIL es-fornecedor-ariba THEN 
+       DO:
           CREATE es-fornecedor-ariba.
-          ASSIGN 
-             es-fornecedor-ariba.Number             = cadastro-fornecedor.Number            
-             es-fornecedor-ariba.dt-consulta        = daDtConsulta.
+          ASSIGN es-fornecedor-ariba.Number             = cadastro-fornecedor.Number            
+                 es-fornecedor-ariba.dt-consulta        = daDtConsulta.
        END.
 
 //       IF es-fornecedor-ariba.ind-inativado = 9
 //       THEN NEXT.
 
-       ASSIGN
-          es-fornecedor-ariba.Corporate-Name         = cadastro-fornecedor.Corporate-Name    
-          es-fornecedor-ariba.Trading-name           = cadastro-fornecedor.Trading-name      
-          es-fornecedor-ariba.CNPJ                   = cadastro-fornecedor.CNPJ              
-          es-fornecedor-ariba.CPF                    = cadastro-fornecedor.CPF               
-          es-fornecedor-ariba.PIS-Number             = cadastro-fornecedor.PIS-Number
-          es-fornecedor-ariba.NIS-Number             = cadastro-fornecedor.NIS-Number
-          es-fornecedor-ariba.IE                     = cadastro-fornecedor.IE                
-          es-fornecedor-ariba.State                  = cadastro-fornecedor.State             
-          es-fornecedor-ariba.Street                 = cadastro-fornecedor.Street            
-          es-fornecedor-ariba.Complement             = cadastro-fornecedor.Complement        
-          es-fornecedor-ariba.District               = cadastro-fornecedor.District          
-          es-fornecedor-ariba.Zip-Code               = cadastro-fornecedor.Zip-Code          
-          es-fornecedor-ariba.Country                = cadastro-fornecedor.Country           
-          es-fornecedor-ariba.Pais                   = cadastro-fornecedor.Pais              
-          es-fornecedor-ariba.CNAE-principal         = cadastro-fornecedor.CNAE-principal
-          es-fornecedor-ariba.E-mail                 = cadastro-fornecedor.E-mail            
-          es-fornecedor-ariba.Municipality           = cadastro-fornecedor.Municipality      
-          es-fornecedor-ariba.Nome-Responsavel       = cadastro-fornecedor.Nome-Responsavel  
-          es-fornecedor-ariba.Date-Birth             = DATE(cadastro-fornecedor.Date-Birth)
-          es-fornecedor-ariba.Codigo-Pais            = cadastro-fornecedor.Codigo-Pais       
-          es-fornecedor-ariba.Codigo-area            = cadastro-fornecedor.Codigo-area
-          es-fornecedor-ariba.Numero-Telefone        = cadastro-fornecedor.Numero-Telefone   
-          es-fornecedor-ariba.Banco                  = cadastro-fornecedor.Banco
-          es-fornecedor-ariba.Agencia                = cadastro-fornecedor.Agencia
-          es-fornecedor-ariba.Dig-Agencia            = cadastro-fornecedor.Dig-Agencia
-          es-fornecedor-ariba.Conta-corrente         = cadastro-fornecedor.Conta-corrente
-          es-fornecedor-ariba.Dig-conta-corrente     = cadastro-fornecedor.Dig-conta-corrente
-           
-          es-fornecedor-ariba.ID                     = cadastro-fornecedor.ID                     
-          es-fornecedor-ariba.ID_1                   = cadastro-fornecedor.ID_1                   
-          es-fornecedor-ariba.UUID                   = cadastro-fornecedor.UUID                   
-          es-fornecedor-ariba.UUID_1                 = cadastro-fornecedor.UUID_1                 
-          es-fornecedor-ariba.UUID_2                 = cadastro-fornecedor.UUID_2                 
-          es-fornecedor-ariba.ReceiverUUID           = cadastro-fornecedor.ReceiverUUID           
-          es-fornecedor-ariba.ReceiverInternalID     = cadastro-fornecedor.ReceiverInternalID     
-          es-fornecedor-ariba.DeletedIndicator       = cadastro-fornecedor.DeletedIndicator       
-          es-fornecedor-ariba.BlockedIndicator       = cadastro-fornecedor.BlockedIndicator       
-          es-fornecedor-ariba.BuildingID             = cadastro-fornecedor.BuildingID             
-          es-fornecedor-ariba.POBoxDeviatingCityName = cadastro-fornecedor.POBoxDeviatingCityName 
+       ASSIGN es-fornecedor-ariba.Corporate-Name         = cadastro-fornecedor.Corporate-Name    
+              es-fornecedor-ariba.Trading-name           = cadastro-fornecedor.Trading-name      
+              es-fornecedor-ariba.CNPJ                   = cadastro-fornecedor.CNPJ              
+              es-fornecedor-ariba.CPF                    = cadastro-fornecedor.CPF               
+              es-fornecedor-ariba.PIS-Number             = cadastro-fornecedor.PIS-Number
+              es-fornecedor-ariba.NIS-Number             = cadastro-fornecedor.NIS-Number
+              es-fornecedor-ariba.IE                     = cadastro-fornecedor.IE                
+              es-fornecedor-ariba.State                  = cadastro-fornecedor.State             
+              es-fornecedor-ariba.Street                 = cadastro-fornecedor.Street            
+              es-fornecedor-ariba.Complement             = cadastro-fornecedor.Complement        
+              es-fornecedor-ariba.District               = cadastro-fornecedor.District          
+              es-fornecedor-ariba.Zip-Code               = cadastro-fornecedor.Zip-Code          
+              es-fornecedor-ariba.Country                = cadastro-fornecedor.Country           
+              es-fornecedor-ariba.Pais                   = cadastro-fornecedor.Pais              
+              es-fornecedor-ariba.CNAE-principal         = cadastro-fornecedor.CNAE-principal
+              es-fornecedor-ariba.E-mail                 = cadastro-fornecedor.E-mail            
+              es-fornecedor-ariba.Municipality           = cadastro-fornecedor.Municipality      
+              es-fornecedor-ariba.Nome-Responsavel       = cadastro-fornecedor.Nome-Responsavel  
+              es-fornecedor-ariba.Date-Birth             = DATE(cadastro-fornecedor.Date-Birth)
+              es-fornecedor-ariba.Codigo-Pais            = cadastro-fornecedor.Codigo-Pais       
+              es-fornecedor-ariba.Codigo-area            = cadastro-fornecedor.Codigo-area
+              es-fornecedor-ariba.Numero-Telefone        = cadastro-fornecedor.Numero-Telefone   
+              es-fornecedor-ariba.Banco                  = cadastro-fornecedor.Banco
+              es-fornecedor-ariba.Agencia                = cadastro-fornecedor.Agencia
+              es-fornecedor-ariba.Dig-Agencia            = cadastro-fornecedor.Dig-Agencia
+              es-fornecedor-ariba.Conta-corrente         = cadastro-fornecedor.Conta-corrente
+              es-fornecedor-ariba.Dig-conta-corrente     = cadastro-fornecedor.Dig-conta-corrente
+              es-fornecedor-ariba.ID                     = cadastro-fornecedor.ID                     
+              es-fornecedor-ariba.ID_1                   = cadastro-fornecedor.ID_1                   
+              es-fornecedor-ariba.UUID                   = cadastro-fornecedor.UUID                   
+              es-fornecedor-ariba.UUID_1                 = cadastro-fornecedor.UUID_1                 
+              es-fornecedor-ariba.UUID_2                 = cadastro-fornecedor.UUID_2                 
+              es-fornecedor-ariba.ReceiverUUID           = cadastro-fornecedor.ReceiverUUID           
+              es-fornecedor-ariba.ReceiverInternalID     = cadastro-fornecedor.ReceiverInternalID     
+              es-fornecedor-ariba.DeletedIndicator       = cadastro-fornecedor.DeletedIndicator       
+              es-fornecedor-ariba.BlockedIndicator       = cadastro-fornecedor.BlockedIndicator       
+              es-fornecedor-ariba.BuildingID             = cadastro-fornecedor.BuildingID             
+              es-fornecedor-ariba.POBoxDeviatingCityName = cadastro-fornecedor.POBoxDeviatingCityName 
           //es-fornecedor-ariba.TaxGroupCode           = cadastro-fornecedor.TaxGroupCode           
           //es-fornecedor-ariba.PollingMessage         = cadastro-fornecedor.PollingMessage
           .
+       
+       
+       ASSIGN es-ariba-b2e-param.PollingMessage = MAX(es-ariba-b2e-param.PollingMessage,INT64(cadastro-fornecedor.PollingMessage)).
 
-       ASSIGN
-          es-ariba-b2e-param.PollingMessage = MAX(es-ariba-b2e-param.PollingMessage,INT64(cadastro-fornecedor.PollingMessage)).
+      // MESSAGE 
+      //     "es-ariba-b2e-param.PollingMessage" es-ariba-b2e-param.PollingMessage SKIP
+      //     VIEW-AS ALERT-BOX INFO BUTTONS OK.
 
-       MESSAGE 
-           "es-ariba-b2e-param.PollingMessage" es-ariba-b2e-param.PollingMessage SKIP
-           VIEW-AS ALERT-BOX INFO BUTTONS OK.
-
-       IF cadastro-fornecedor.Simples-Nacional = "yes" 
-       THEN ASSIGN
-          es-fornecedor-ariba.Simples-Nacional = YES.
-       ELSE ASSIGN
-          es-fornecedor-ariba.Simples-Nacional = NO.
+       IF cadastro-fornecedor.Simples-Nacional = "yes" THEN 
+           ASSIGN es-fornecedor-ariba.Simples-Nacional = YES.
+       ELSE ASSIGN es-fornecedor-ariba.Simples-Nacional = NO.
 
        FIND  LAST bf-fornecedor-ariba NO-LOCK
             WHERE bf-fornecedor-ariba.number        = es-fornecedor-ariba.number
@@ -787,10 +796,8 @@ PROCEDURE piAtualizaFornecedor:
        /*     THEN RUN piBOFornecedor.                                                                        */
        /*                                                                                                     */
        /* END.                                                                                                */
-       IF AVAIL es-fornecedor-ariba
-       THEN RELEASE es-fornecedor-ariba.
-       IF AVAIL es-ariba-b2e-param
-       THEN RELEASE es-ariba-b2e-param.
+       IF AVAIL es-fornecedor-ariba THEN RELEASE es-fornecedor-ariba.
+       IF AVAIL es-ariba-b2e-param  THEN RELEASE es-ariba-b2e-param.
    END.
 END.
 

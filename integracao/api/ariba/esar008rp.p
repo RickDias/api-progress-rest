@@ -2,8 +2,8 @@
 &ANALYZE-RESUME
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
 /*------------------------------------------------------------------------
-    File        : ESAR003RP.p
-    Purpose     : Carga Inicial para o ARIBA
+    File        : ESAR008RP.p
+    Purpose     : Altera Fornecedor ARIBA
 
     Syntax      :
 
