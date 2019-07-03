@@ -112,7 +112,8 @@ THEN DO:
          mais disponivel
         ***********************************************************/
 
-        LOG-MANAGER:WRITE-MESSAGE(SUBSTITUTE("TIPO &1 ID-MOVTO &2 DATA &3",api-import-for.cd-tipo-integr,api-import-for.id-movto,api-import-for.data-movto)) NO-ERROR.
+        MESSAGE "###4-lendo a api-import-for".
+        MESSAGE "###5-imprimindo info json" STRING(api-import-for.c-json).
 
         
         //MESSAGE "##1-es-ariba-b2e-param" AVAIL es-ariba-b2e-param
@@ -134,7 +135,7 @@ THEN DO:
         
         /* ------------ Envia Objeto Json --------- */
         RUN piPostJsonObj /*IN h-esint002*/ 
-                          (INPUT oJsonObjMain,
+                          (INPUT c-Json, //oJsonObjMain,
                            INPUT rowid(es-api-param),
                            OUTPUT lResp,
                            OUTPUT TABLE RowErrors,
@@ -143,7 +144,7 @@ THEN DO:
                           ).
 
         LOG-MANAGER:WRITE-MESSAGE("---IMPRIMINDO ARQUIVO JSON --") NO-ERROR.
-        oJsonRet:writeFile("\\fenix\ERP\camil\teste-rosa\log_appserver\json\retornojson.json").
+        oJsonRet:writeFile("C:/temp/json/retornojson.json").
                                    
         IF TEMP-TABLE rowErrors:HAS-RECORDS 
         THEN DO:
@@ -264,9 +265,7 @@ PROCEDURE piPostJsonObj:
         JsonString = STRING(oJsonObject:getJsonText()).
 
 /**/
-       OUTPUT TO \\fenix\ERP\camil\teste-rosa\log_appserver\json\jsonconsultafornecedor1.json.
-       EXPORT JsonString.
-       OUTPUT CLOSE.
+        JsonString:writeJson("C:/temp/jsonconsultafornecedor1.json").
 /**/                
 
 
@@ -313,9 +312,9 @@ PROCEDURE piPostJsonObj:
                     RETURN "NOK".
                 END.
 /**/
-                OUTPUT TO \\fenix\ERP\camil\teste-rosa\log_appserver\json\jsonforn1.json.
-                EXPORT c-json.
-                OUTPUT CLOSE.
+                c-json:writeJson("C:/temp/c-json.json").
+                
+                
 /**/                
                 COPY-LOB c-json TO sfa-export.clob-retorno.
                 
@@ -813,4 +812,4 @@ PROCEDURE piBOFornecedor:
 END.
 
 
-{esp\esint001rp.i}
+{esp/esint001rp.i}
