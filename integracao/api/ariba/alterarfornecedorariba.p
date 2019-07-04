@@ -17,7 +17,7 @@
 /*----------------------------------------------------------------------*/
 
 /* ***************************  Definitions  ************************** */
-//DEFINE INPUT  PARAMETER p-cod-emitente  AS INT  NO-UNDO.
+DEFINE INPUT  PARAMETER p-cod-emitente  AS INT  NO-UNDO.
 
 
 // O campo ind-tipo-movto trata qual movimento esta realizando
@@ -150,7 +150,6 @@ DEFINE VARIABLE l-retorno-fornecedor AS LOGICAL NO-UNDO.
 
 
 /* ***************************  Main Block  *************************** */
-
 RUN pi-00-envia-cod-fornecedor.
 
 {esp\esint001rp.i}
@@ -165,12 +164,13 @@ RUN pi-00-envia-cod-fornecedor.
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE pi-00-envia-cod-fornecedor Procedure 
 PROCEDURE pi-00-envia-cod-fornecedor :
-DEFINE VARIABLE pArquivoEnvio   AS LONGCHAR NO-UNDO.
+
+    DEFINE VARIABLE pArquivoEnvio   AS LONGCHAR NO-UNDO.
     DEFINE VARIABLE pArquivoRetorno AS LONGCHAR NO-UNDO.
 
     FIND FIRST es-fornecedor-ariba
-         WHERE /*es-fornecedor-ariba.cod-emitente = p-cod-emitente
-           AND*/ es-fornecedor-ariba.number       > ""
+         WHERE es-fornecedor-ariba.cod-emitente = p-cod-emitente
+           AND es-fornecedor-ariba.number       > ""
          NO-ERROR.
 
    // MESSAGE PROGRAM-NAME(1) AVAIL es-fornecedor-ariba

@@ -38,14 +38,14 @@ DEFINE TEMP-TABLE tt-versao-integr
     FIELD ind-origem-msg         AS INTEGER.
 
 DEF TEMP-TABLE tt-imp-pedido-compr NO-UNDO SERIALIZE-NAME "Pedido_Compra"
-    FIELD num-pedido            AS CHAR
-    FIELD num-pedido-totvs      AS INT      
-    FIELD Cod-estabel           AS CHAR     
-    FIELD Cod-emitente          AS CHAR      
-    FIELD Cod-cond-pag          AS CHAR
-    FIELD Natureza              AS INT      
-    FIELD data-pedido           AS DATE     
-    FIELD Situacao              AS INT      
+    FIELD num-pedido            AS CHAR                                                 //n£mero do Pedido de Compras                                            
+    FIELD num-pedido-totvs      AS INT                                                  //N£mero do Pedido de Compras Totvs 
+    FIELD Cod-estabel           AS CHAR                                                 //C¢digo do Estabelecimento 
+    FIELD Cod-emitente          AS CHAR                                                 //C¢digo de Emitente 
+    FIELD Cod-cond-pag          AS CHAR                                                 //C¢digo da Candi‡Æo de Pagamento 
+    FIELD Natureza              AS INT                                                  //Natureza de opera‡Æo 
+    FIELD data-pedido           AS DATE                                                 //Data de implanta‡Æo do Pedido
+    FIELD Situacao              AS INT                                                  //Situa‡Æo do Pedido - 
     FIELD Frete                 AS CHAR
     FIELD Cod-transp            AS INT      
     FIELD Responsavel           AS CHAR     
@@ -858,17 +858,18 @@ PROCEDURE pi-05-geraOrdemCompra :
            /** comentado a pedido do CPAS - 25.06
            tt-ordem-compra.pre-unit-for   = tt-imp-ordem-compra.pre-unit-for
            **/
-           tt-ordem-compra.pre-unit-for   =  tt-imp-ordem-compra.preco-fornec   // 25-06 Leandro Policarpo
+           tt-ordem-compra.pre-unit-for   =  tt-imp-ordem-compra.preco-fornec                                                     //25-06 Leandro Policarpo
            tt-ordem-compra.mo-codigo      = INT(tt-imp-ordem-compra.mo-codigo)
            tt-ordem-compra.Codigo-ipi     = tt-imp-ordem-compra.Codigo-ipi  
-           tt-ordem-compra.aliquota-ipi   = tt-imp-ordem-compra.Aliquota-ipi
+           tt-ordem-compra.aliquota-ipi   = IF tt-imp-ordem-compra.Aliquota-ipi = ? THEN 0 ELSE tt-imp-ordem-compra.Aliquota-ipi  //27-06 Leandro Policarpo 
            tt-ordem-compra.Codigo-icm     = tt-imp-ordem-compra.Codigo-icm  
-           tt-ordem-compra.aliquota-icm   = tt-imp-ordem-compra.Aliquota-icm
+           tt-ordem-compra.aliquota-icm   = IF tt-imp-ordem-compra.Aliquota-icm = ? THEN 0 ELSE tt-imp-ordem-compra.Aliquota-ipi  //27-6 Leandro Policarpo 
            //tt-ordem-compra.Aliquota-iss   = tt-imp-ordem-compra.Aliquota-iss
            tt-ordem-compra.valor-frete    = tt-imp-ordem-compra.Valor-frete 
            tt-ordem-compra.cod-cond-pag   = INT(tt-imp-ordem-compra.cod-cond-pag)
            tt-ordem-compra.requisitante   = tt-imp-ordem-compra.requisitante
-           tt-ordem-compra.usuario        = tt-imp-ordem-compra.usuario.
+           tt-ordem-compra.usuario        = tt-imp-ordem-compra.usuario
+           tt-ordem-compra.narrativa      = tt-imp-ordem-compra.narrativa.
 
     FIND FIRST item-uni-estab WHERE
                item-uni-estab.it-codigo   = tt-imp-ordem-compra.it-codigo   AND 
@@ -905,6 +906,9 @@ PROCEDURE pi-05-geraOrdemCompra :
 
     END.
 
+    ASSIGN tt-ordem-compra.codigo-ipi     = NO        /* 03/07 - BCC */
+           tt-imp-ordem-compra.codigo-ipi = NO.   /* 03/07 - BCC */
+    
     IF tt-imp-ordem-compra.Aliquota-ipi > 0 THEN
         ASSIGN tt-ordem-compra.codigo-ipi     = YES
                tt-imp-ordem-compra.codigo-ipi = YES.
@@ -1040,7 +1044,8 @@ ASSIGN tt-cotacao-item.numero-ordem = tt-imp-ordem-compra.numero-ordem
        tt-cotacao-item.aliquota-iss = tt-imp-ordem-compra.aliquota-iss
        tt-cotacao-item.valor-frete  = IF tt-imp-ordem-compra.valor-frete = ? THEN 0 ELSE tt-imp-ordem-compra.valor-frete
        tt-cotacao-item.cod-cond-pag = INT(tt-imp-pedido-compr.cod-cond-pag)
-       tt-cotacao-item.contato      = "IMPORTADO ARIBA"
+       tt-cotacao-item.contato      = "IMPORTADO ARIBA" 
+       tt-cotacao-item.valor-taxa   = 0   /**aqui taxa **/
        tt-cotacao-item.cod-comprado = tt-imp-pedido-compr.responsavel
        tt-cotacao-item.hora-atualiz = STRING(TIME,'HH:MM')
        tt-cotacao-item.cot-aprovada = YES.
@@ -1160,27 +1165,6 @@ FOR EACH ordem-compra WHERE
 END.
 
 
-
-END PROCEDURE.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-&ENDIF
-
-&IF DEFINED(EXCLUDE-pi-11-criaItemFornecedor) = 0 &THEN
-
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE pi-11-criaItemFornecedor Procedure 
-PROCEDURE pi-11-criaItemFornecedor :
-/*------------------------------------------------------------------------------
-  Purpose: Procedure para gera‡Æo do item fornecedor   
-  Parameters:  <none>
-  Notes:       
-------------------------------------------------------------------------------*/
-    //Chamada para rotina cria item fornecedor
-    //{integracao/api/ariba/itemFornecedor.p}
-
-     RETURN "OK":U.
 
 END PROCEDURE.
 
