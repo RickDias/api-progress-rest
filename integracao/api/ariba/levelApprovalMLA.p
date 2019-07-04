@@ -1,209 +1,245 @@
+&ANALYZE-SUSPEND _VERSION-NUMBER AB_v10r12
+&ANALYZE-RESUME
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Procedure 
 /*------------------------------------------------------------------------
-    File        : levelApprovalMLA.p
-    Purpose     : API REST para exportar n¡vei de aprova‡Æo
+    File        : aribalevelapprovalmla.p
+    Purpose     : API REST para exportar n¡vel de aprova‡Æo mla
     Syntax      :
-    Description : Niveis de Hierarquia de Aprova‡Æo
-    Author(s)   : Cleberson Silva
+    Description : Clientes
+    Author(s)   : Cleberson Silva - TOTVS Private - FSW
     Created     : 02/07/2019
     Notes       :
   ----------------------------------------------------------------------*/
+/*          This .W file was created with the Progress AppBuilder.      */
+/*----------------------------------------------------------------------*/
 
 /* ***************************  Definitions  ************************** */
 {utp/ut-api.i}
 {utp/ut-api-utils.i}
 
-{include/i-prgvrs.i levelApprovalMLA 2.00.00.000} /*** 010000 ***/
+{include/i-prgvrs.i aribalevelapprovalmla 2.00.00.000} /*** 010000 ***/
 
-&IF "{&EMSFND_VERSION}" >= "1.00" &THEN
-    {include/i-license-manager.i levelApprovalMLA MCC}
-&ENDIF
-
-
-{utp/ut-api-action.i pi-getAll GET /~*}
-//{utp/ut-api-action.i pi-get    GET /~*}
+//{utp/ut-api-action.i pi-get GET /~*}
+{utp/ut-api-action.i pi-getAll GET /~**}
 {utp/ut-api-notfound.i}
 
-/* ------- Defini‡Æo Temp-tables ------ */   
-DEF TEMP-TABLE tt-erros
+DEFINE TEMP-TABLE tt-erros
     FIELD cod-erro  AS INTEGER
     FIELD desc-erro AS CHARACTER FORMAT "x(256)"
     FIELD desc-arq  AS CHARACTER.
 
-DEF TEMP-TABLE ttRetorno 
-    FIELD codigocliente   AS CHARACTER
-    FIELD situacao        AS LOGICAL 
-    FIELD descricao   AS CHAR FORMAT "x(200)".
+
+DEFINE TEMP-TABLE ttCSV NO-UNDO SERIALIZE-NAME "MLAList"
+    FIELD conteudo AS CHAR SERIALIZE-NAME "conteudo".
+
 
 DEF TEMP-TABLE de-para-tipo NO-UNDO
     FIELD doc-totvs         AS INT
     FIELD tp-ariba          AS CHAR.
 
-
-DEFINE TEMP-TABLE tt_csv NO-UNDO
-    field conteudo AS CHARACTER serialize-name "conteudo".  
-
-
-/* ------- Defini‡Æo Vari veis ------ */
-DEFINE VARIABLE i-seq-erro AS INTEGER     NO-UNDO.
-DEFINE VARIABLE h-esint002 AS HANDLE      NO-UNDO.
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
 
 
+&ANALYZE-SUSPEND _UIB-PREPROCESSOR-BLOCK 
 
+/* ********************  Preprocessor Definitions  ******************** */
 
-
-PROCEDURE pi-getAll:
-    DEFINE INPUT  PARAM jsonInput AS JsonObject NO-UNDO.
-    DEFINE OUTPUT PARAM jsonOutput AS JsonObject NO-UNDO.
-
-    DEFINE VARIABLE jsonRetorno      AS JsonArray            NO-UNDO.
-    DEFINE VARIABLE json_recebido    AS LONGCHAR             NO-UNDO.
-    DEFINE VARIABLE oRequestParser   AS JsonAPIRequestParser NO-UNDO.
-    DEFINE VARIABLE CodigoCliente    AS CHARACTER INITIAL ?  NO-UNDO.
-    DEFINE VARIABLE c-erro           AS CHARACTER            NO-UNDO.
-    DEFINE VARIABLE iCountMain       AS INTEGER              NO-UNDO.
-    DEFINE VARIABLE oJsonObjectMain  AS JsonObject           NO-UNDO.
-    DEFINE VARIABLE oJsonArrayMain   AS JsonArray            NO-UNDO.
-    DEFINE VARIABLE oJsonObjMain     AS JsonObject           NO-UNDO.
-    DEFINE VARIABLE h-temp           AS HANDLE               NO-UNDO.
-    DEFINE VARIABLE oJsonObjIni       AS jsonObject NO-UNDO.
-    DEFINE VARIABLE ojsonArrayIni     AS JsonArray  NO-UNDO.
-
-    EMPTY TEMP-TABLE tt-Erros.
-    EMPTY TEMP-TABLE ttRetorno.
-
-
-    /* ---- Chama o programa persistent ----- */
-    RUN esp/esint002.p PERSISTENT SET h-esint002 NO-ERROR.
-    IF ERROR-STATUS:ERROR THEN DO:
-        ASSIGN c-erro = ERROR-STATUS:GET-MESSAGE(1).
-        RETURN "NOK".
-    END.
-    
-    /* --------- Cria Objeto ------------------*/
-    RUN piGeraObjJson IN h-esint002 (OUTPUT oJsonObjMain) NO-ERROR.
-    IF ERROR-STATUS:ERROR THEN DO:
-        ASSIGN c-erro = ERROR-STATUS:GET-MESSAGE(1).
-        RETURN "NOK".
-    END.
+&Scoped-define PROCEDURE-TYPE Procedure
+&Scoped-define DB-AWARE no
 
 
 
-    CREATE  sfa-import-mla.                                                             
-    ASSIGN  sfa-import-mla.cd-tipo-integr  = 29 /*--- import ---*/                       
-            sfa-import-mla.Id-movto        = NEXT-VALUE(seq-import)                     
-            sfa-import-mla.data-movto      = TODAY                                      
-            sfa-import-mla.c-json          = "".                             
-                                                                                        
-    CREATE  sfa-import.                                                                 
-    ASSIGN  sfa-import.ind-tipo-trans   = 1 /*--- import ---*/                          
-            sfa-import.cd-tipo-integr   = sfa-import-mla.cd-tipo-integr                 
-            sfa-import.id-movto         = sfa-import-mla.Id-movto                       
-            sfa-import.chave            = STRING(INT(TODAY) + TIME)                                    
-            sfa-import.data-movto       = NOW                                           
-            sfa-import.data-inicio      = NOW                                           
-            sfa-import.data-fim         = ?                                             
-            sfa-import.ind-situacao     = 1 /*--- Pendente ---*/                        
-            sfa-import.cod-status       = 0 /*--- sem status ---*/  .   
-
-
-    RUN piGravaTTCSV (OUTPUT h-temp,                           
-                      OUTPUT c-erro).                          
-                                                               
-    IF valid-handle(h-temp) THEN DO:                           
-                                                               
-        RUN piCriaObj IN h-esint002 (INPUT h-temp,             
-                                     OUTPUT ojsonObjIni,       
-                                     OUTPUT ojsonArrayIni,     
-                                     INPUT NO) NO-ERROR.       
-        IF ERROR-STATUS:ERROR THEN DO:                         
-            ASSIGN c-erro = ERROR-STATUS:GET-MESSAGE(1).       
-            DELETE OBJECT h-temp.                              
-            RETURN "NOK".                                      
-        END.                                                   
-        DELETE OBJECT h-temp.                                  
-    END.                                                       
-                                                               
-    oJsonArrayMain = NEW JsonArray().                          
-    oJsonArrayMain:ADD(ojsonObjIni).                           
-                                                               
-    /* ----- Cria Json Principal ------- */                    
-    /*jsonRetorno = NEW JsonObject().                           
-    jsonRetorno:ADD("req",oJsonArrayMain).  */
-                                                             
-    RUN createJsonResponse(INPUT oJsonArrayMain,                
-                           INPUT TABLE RowErrors,            
-                           INPUT FALSE,                      
-                           OUTPUT jsonOutput).               
+/* _UIB-PREPROCESSOR-BLOCK-END */
+&ANALYZE-RESUME
 
 
 
-END PROCEDURE.
+/* *********************** Procedure Settings ************************ */
+
+&ANALYZE-SUSPEND _PROCEDURE-SETTINGS
+/* Settings for THIS-PROCEDURE
+   Type: Procedure
+   Allow: 
+   Frames: 0
+   Add Fields to: Neither
+   Other Settings: CODE-ONLY
+ */
+&ANALYZE-RESUME _END-PROCEDURE-SETTINGS
+
+/* *************************  Create Window  ************************** */
+
+&ANALYZE-SUSPEND _CREATE-WINDOW
+/* DESIGN Window definition (used by the UIB) 
+  CREATE WINDOW Procedure ASSIGN
+         HEIGHT             = 15
+         WIDTH              = 60.
+/* END WINDOW DEFINITION */
+                                                                        */
+&ANALYZE-RESUME
+
+ 
 
 
-PROCEDURE piGravaTTCSV:
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _MAIN-BLOCK Procedure 
 
-    DEFINE OUTPUT PARAMETER pTemp AS HANDLE    NO-UNDO.
-    DEFINE OUTPUT PARAMETER pErro AS CHARACTER NO-UNDO.
 
-    DEFINE VARIABLE c_conteudo AS CHARACTER  NO-UNDO.
+/* ***************************  Main Block  *************************** */
 
-    /*-- cria tabela de-para --*/
-    RUN piDeParaDocto.
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
 
-    EMPTY TEMP-TABLE tt_csv.
 
-    ASSIGN c_conteudo = "".
+/* **********************  Internal Procedures  *********************** */
+
+&IF DEFINED(EXCLUDE-pi-getAll) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE pi-getAll Procedure 
+PROCEDURE pi-getAll :
+/*------------------------------------------------------------------------------
+  Purpose:  Retorna a lista de clientes   
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+    DEFINE INPUT  PARAMETER jsonInput   AS JsonObject NO-UNDO.
+    DEFINE OUTPUT PARAMETER jsonOutput  AS JsonObject NO-UNDO.
+
+    DEFINE VARIABLE jsonNivelAprov AS JsonArray   NO-UNDO.
+
+    DEFINE VARIABLE cConteudo AS CHARACTER   NO-UNDO.
+
+    EMPTY TEMP-TABLE RowErrors.
+
+    RUN pi-load-depara-docto.
+
     FOR EACH mla-hierarquia-faixa NO-LOCK:
 
-        IF NOT CAN-FIND (FIRST de-para-tipo 
-                         WHERE de-para-tipo.doc-totvs = mla-hierarquia-faixa.cod-tip-doc) THEN NEXT.
-
+        IF NOT CAN-FIND(FIRST de-para-tipo 
+                        WHERE de-para-tipo.doc-totvs = mla-hierarquia-faixa.cod-tip-doc) THEN NEXT.
 
         FOR EACH de-para-tipo NO-LOCK
            WHERE de-para-tipo.doc-totvs = mla-hierarquia-faixa.cod-tip-doc:
 
             FIND FIRST mla-faixa-aprov OF mla-hierarquia-faixa NO-LOCK NO-ERROR.
 
-            IF c_conteudo = "" THEN
-                ASSIGN conteudo = SUBSTITUTE("&1,&2,&3,&4,&5,&6,&7,&8",
-                                  mla-hierarquia-faixa.cod-usuar,
-                                  STRING(mla-hierarquia-faixa.seq-aprov),  
-                                  de-para-tipo.tp-ariba,                   
-                                  STRING(mla-hierarquia-faixa.cod-lotacao),
-                                  mla-hierarquia-faixa.cod-estabel,        
-                                  STRING(mla-hierarquia-faixa.ep-codigo),  
-                                  STRING(mla-hierarquia-faixa.num-faixa),
-                                  REPLACE(STRING(mla-faixa-aprov.limite-ini),",","")
-                                  + "-" + REPLACE(STRING(mla-faixa-aprov.limite-fim),",","")).
-            ELSE 
+            ASSIGN cConteudo = SUBSTITUTE("&1,&2,&3,&4,&5,&6,&7,&8",                        
+                              mla-hierarquia-faixa.cod-usuar,                              
+                              STRING(mla-hierarquia-faixa.seq-aprov),                      
+                              de-para-tipo.tp-ariba,                                       
+                              STRING(mla-hierarquia-faixa.cod-lotacao),                    
+                              mla-hierarquia-faixa.cod-estabel,                            
+                              STRING(mla-hierarquia-faixa.ep-codigo),                      
+                              STRING(mla-hierarquia-faixa.num-faixa),                      
+                              REPLACE(STRING(mla-faixa-aprov.limite-ini),",","")           
+                              + "-" + REPLACE(STRING(mla-faixa-aprov.limite-fim),",","")).
 
-                ASSIGN conteudo = conteudo + "," + 
-                                  SUBSTITUTE("&1,&2,&3,&4,&5,&6,&7,&8",                         
-                                  mla-hierarquia-faixa.cod-usuar,                               
-                                  STRING(mla-hierarquia-faixa.seq-aprov),                       
-                                  de-para-tipo.tp-ariba,                                        
-                                  STRING(mla-hierarquia-faixa.cod-lotacao),                     
-                                  mla-hierarquia-faixa.cod-estabel,                             
-                                  STRING(mla-hierarquia-faixa.ep-codigo),                       
-                                  STRING(mla-hierarquia-faixa.num-faixa),                       
-                                  REPLACE(STRING(mla-faixa-aprov.limite-ini),",","")            
-                                  + "-" + REPLACE(STRING(mla-faixa-aprov.limite-fim),",","")).  
 
+            CREATE ttCsv.
+            ASSIGN ttCsv.conteudo = cConteudo.
         END.
     END.
 
-    CREATE tt_csv.
-    ASSIGN tt_csv.conteudo = c_conteudo.
+    ASSIGN jsonNivelAprov = NEW JsonArray().
+           jsonNivelAprov:Read(TEMP-TABLE ttCSV:HANDLE).
 
-    IF TEMP-TABLE tt_csv:HAS-RECORDS THEN
-        ASSIGN pTemp = BUFFER tt_csv:HANDLE.
+
+    RUN createJsonResponse(INPUT jsonNivelAprov, INPUT TABLE RowErrors, INPUT FALSE, OUTPUT jsonOutput).
+
 
 END PROCEDURE.
 
-PROCEDURE piDeParaDocto:
-/*----------------------------------------------------------------
-   Purpose: Cria de-para de documento
-------------------------------------------------------------------*/
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-pi-load-cond-payments-json) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE pi-load-cond-payments-json Procedure 
+PROCEDURE pi-load-cond-payments-json :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+    DEFINE OUTPUT PARAMETER jsonCondPayment AS JsonObject NO-UNDO.
+    
+    ASSIGN jsonCondPayment = NEW JsonObject().
+    
+    jsonCondPayment:Add("CodigoCondicao", cond-pagto.cod-cond-pag).
+    jsonCondPayment:Add("DescricaoCondicao", cond-pagto.descricao).
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-pi-load-customer-json) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE pi-load-customer-json Procedure 
+PROCEDURE pi-load-customer-json :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+    DEFINE OUTPUT PARAMETER jsonCustomer AS JsonObject NO-UNDO.
+
+    ASSIGN jsonCustomer = NEW JsonObject().
+    jsonCustomer:Add("RazaoSocial",emitente.nome-emit).
+    jsonCustomer:Add("Cnpj",emitente.cgc).        
+    jsonCustomer:Add("IE",emitente.ins-estadual).
+    jsonCustomer:Add("Email",emitente.e-mail).     
+    jsonCustomer:Add("Telefone",emitente.telefone[1]).
+    jsonCustomer:Add("CodigoCliente",emitente.cod-emitente).
+    jsonCustomer:Add("TipoClienteCanal","").
+    jsonCustomer:Add("GrupoEconomico",emitente.cod-gr-cli). 
+    jsonCustomer:Add("EmailXml",emitente.e-mail).       
+    jsonCustomer:Add("EmailFinanceiro",emitente.e-mail). 
+    jsonCustomer:Add("TelefoneFinanceiro",emitente.telefone[1]). 
+    jsonCustomer:Add("Contribuinteicms", emitente.contrib-icms). 
+    jsonCustomer:Add("Suframa",emitente.cod-suframa). 
+    jsonCustomer:Add("NomeAbreviado",emitente.nome-abrev). 
+    jsonCustomer:Add("LimiteCredito",emitente.lim-credito). 
+    jsonCustomer:Add("AvaliacaoCredito", "").
+    jsonCustomer:Add("TipoCredito", ""). 
+    jsonCustomer:Add("DataLimiteCredito", emitente.dt-lim-cred).
+    jsonCustomer:Add("SaldoCredito", 0). 
+    jsonCustomer:Add("Banco",STRING(emitente.cod-banco,"999")).      
+    jsonCustomer:Add("Agencia",emitente.agencia).             
+    jsonCustomer:Add("Conta",emitente.conta-corren).       
+    jsonCustomer:Add("IM",emitente.ins-municipal).   
+    jsonCustomer:Add("NaturezaCliente",""). 
+    jsonCustomer:Add("Matriz",emitente.nome-matriz).      
+    jsonCustomer:Add("Representante",emitente.cod-rep).  
+    jsonCustomer:Add("Microregiao",emitente.nome-mic-reg).  
+    jsonCustomer:Add("ClienteExigeLTDAUnico", NO).  
+    jsonCustomer:Add("ExigeCertifAnalise", NO). 
+    jsonCustomer:Add("NaoRecebeLtdaProxVencto",NO).
+    jsonCustomer:Add("RamoAtividade",emitente.atividade).  
+    jsonCustomer:Add("Portador",emitente.portador).  
+    jsonCustomer:Add("PortadorPreferencial",emitente.port-prefer).   
+    jsonCustomer:Add("ClienteCobranca",emitente.end-cobranca). 
+
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-pi-load-depara-docto) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE pi-load-depara-docto Procedure 
+PROCEDURE pi-load-depara-docto :
+/*------------------------------------------------------------------------------
+  Purpose:  carrega depara dos documentos ariba   
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
     CREATE de-para-tipo.
     ASSIGN de-para-tipo.doc-totvs = 7           
            de-para-tipo.tp-ariba  = "CUS_REQ_01".
@@ -241,4 +277,9 @@ PROCEDURE piDeParaDocto:
     ASSIGN de-para-tipo.doc-totvs = 2           
            de-para-tipo.tp-ariba  = "*".
 END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
 
