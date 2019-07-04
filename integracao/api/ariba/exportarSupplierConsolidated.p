@@ -288,7 +288,7 @@ FOR EACH es-fornecedor-ariba NO-LOCK
            SupplierConsolidated.City          = emitente.cidade
            SupplierConsolidated.SystemID      = STRING(emitente.cod-emitente)
            SupplierConsolidated.State         = emitente.estado
-           SupplierConsolidated.Street        = emitente.endereco
+           SupplierConsolidated.Street        = replace(emitente.endereco,","," ")
            SupplierConsolidated.VendorID      = STRING(emitente.cod-emitente).
 
     IF emitente.pais = "Brasil" THEN

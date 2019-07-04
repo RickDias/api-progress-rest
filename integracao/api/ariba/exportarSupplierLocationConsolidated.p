@@ -253,7 +253,7 @@ FOR EACH es-fornecedor-ariba EXCLUSIVE-LOCK
            SupplierLocationConsolidated.PostalCode   = STRING(emitente.cep,"99999-999")
            SupplierLocationConsolidated.Region       = emitente.estado
            SupplierLocationConsolidated.Locale       = cLocale
-           SupplierLocationConsolidated.Street       = emitente.endereco
+           SupplierLocationConsolidated.Street       = REPLACE(emitente.endereco,","," ")
            SupplierLocationConsolidated.EmailAddress = emitente.e-mai.
 
     FIND FIRST cont-emit OF emitente NO-LOCK NO-ERROR.
