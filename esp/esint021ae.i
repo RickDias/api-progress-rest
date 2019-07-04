@@ -1,6 +1,6 @@
 DEF TEMP-TABLE consulta-fornecedor NO-UNDO SERIALIZE-NAME "Consulta_Fornecedor"
-//    FIELD CreationDateTime                    AS CHAR SERIALIZE-NAME "CreationDateTime"
-//    FIELD PollingRequestDetails               AS CHAR SERIALIZE-NAME "PollingRequestDetails timestamp"
+    //FIELD CreationDateTime                    AS CHAR SERIALIZE-NAME "CreationDateTime"
+    //FIELD PollingRequestDetails               AS CHAR SERIALIZE-NAME "PollingRequestDetails timestamp"
     FIELD PollingMessage                      AS INT64 SERIALIZE-NAME "PollingRequestDetails timestamp"
     FIELD InboundServiceName                  AS CHAR SERIALIZE-NAME "InboundServiceName".
 
@@ -34,12 +34,10 @@ DEF TEMP-TABLE cadastro-fornecedor NO-UNDO SERIALIZE-NAME "Cadastro_Fornecedor"
     FIELD Dig-Agencia                         AS CHAR
     FIELD Conta-corrente                      AS CHAR
     FIELD Dig-conta-corrente                  AS CHAR
-
     FIELD DeletedIndicator                    AS CHAR
     FIELD BlockedIndicator                    AS CHAR
     FIELD BuildingID                          AS CHAR
     FIELD POBoxDeviatingCityName              AS CHAR
-
     FIELD ID                                  AS CHAR
     FIELD UUID                                AS CHAR
     FIELD ID_1                                AS CHAR
@@ -48,6 +46,5 @@ DEF TEMP-TABLE cadastro-fornecedor NO-UNDO SERIALIZE-NAME "Cadastro_Fornecedor"
     FIELD ReceiverUUID                        AS CHAR
     FIELD ReceiverInternalID                  AS CHAR
     FIELD TaxGroupCode                        AS CHAR
-    
     FIELD PollingMessage                      AS CHAR.
                                               

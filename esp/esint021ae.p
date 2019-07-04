@@ -47,6 +47,7 @@ DEFINE VARIABLE c-json            AS LONGCHAR          NO-UNDO.
 DEFINE VARIABLE lEnviou           AS LOGICAL           NO-UNDO.
 DEFINE VARIABLE c-arq-json        AS CHARACTER         NO-UNDO.
 DEFINE VARIABLE lresp             AS LOGICAL           NO-UNDO.
+DEFINE VARIABLE cLongJson         AS LONGCHAR          NO-UNDO.
 
 DEF         VAR ojsonRet          AS jsonobject        NO-UNDO.
 
@@ -112,22 +113,10 @@ THEN DO:
          mais disponivel
         ***********************************************************/
 
-        MESSAGE "###4-lendo a api-import-for".
-        MESSAGE "###5-imprimindo info json" STRING(api-import-for.c-json).
+        //MESSAGE "###4-lendo a api-import-for".
+        //MESSAGE "###5-imprimindo info json" STRING(api-import-for.c-json).
 
         
-        //MESSAGE "##1-es-ariba-b2e-param" AVAIL es-ariba-b2e-param
-        //    VIEW-AS ALERT-BOX INFORMATION BUTTONS OK.
-        
-        FIND FIRST es-ariba-b2e-param EXCLUSIVE-LOCK NO-ERROR.        
-        IF NOT AVAIL es-ariba-b2e-param  THEN                         
-            CREATE es-ariba-b2e-param.                                
-        IF es-ariba-b2e-param.dt-ult-consulta = ? THEN                
-            ASSIGN es-ariba-b2e-param.dt-ult-consulta = NOW.
-
-        //MESSAGE "##2-es-ariba-b2e-param" AVAIL es-ariba-b2e-param    
-        //    VIEW-AS ALERT-BOX INFORMATION BUTTONS OK.                
-
         RUN piGravaTTFornecedor (OUTPUT c-json,
                                  OUTPUT c-erro).
 
@@ -135,28 +124,61 @@ THEN DO:
         
         /* ------------ Envia Objeto Json --------- */
         RUN piPostJsonObj /*IN h-esint002*/ 
-                          (INPUT c-Json, //oJsonObjMain,
+                          (INPUT oJsonObjMain,
                            INPUT rowid(es-api-param),
                            OUTPUT lResp,
                            OUTPUT TABLE RowErrors,
                            OUTPUT c-retorno,
-                           OUTPUT ojsonRet
-                          ).
+                           OUTPUT ojsonRet).
+        /*-----------------------------------------*/
+        /* ------ Grava conteudo do Json em variavel -----*/                
+        RUN piGeraVarJson IN h-esint002 (INPUT ojsonRet,                
+                                         OUTPUT cLongJson) NO-ERROR.           
+        IF ERROR-STATUS:ERROR THEN DO:                                      
+            ASSIGN c-erro = ERROR-STATUS:GET-MESSAGE(1).                    
+            DELETE OBJECT h-esint002.                                       
+            RETURN "NOK".                                                   
+        END. 
+       //
+       // MESSAGE "####-conteudo json " STRING(c-Json).
+                                                                            
+        //ASSIGN sfa-export-cli.c-json = c-Json.                              
+                                                                            
+        /* ------------ Envia Objeto Json --------- */                      
+        //RUN piPostJsonObj IN h-esint002 (INPUT oJsonObjMain,                
+        //                                 INPUT rowid(es-api-param),            
+        //                                 OUTPUT lResp,                         
+        //                                 OUTPUT TABLE RowErrors,               
+        //                                 OUTPUT c-retorno). 
 
-        LOG-MANAGER:WRITE-MESSAGE("---IMPRIMINDO ARQUIVO JSON --") NO-ERROR.
-        oJsonRet:writeFile("C:/temp/json/retornojson.json").
-                                   
-        IF TEMP-TABLE rowErrors:HAS-RECORDS 
-        THEN DO:
-            FOR EACH rowErrors:
-                ASSIGN 
-                   c-erro = c-erro + string(rowerrors.ErrorNumber)  + " - " + rowerrors.ErrorDescription.
-                DELETE OBJECT h-esint002.
-            END.
-        END.        
-        ELSE DO: 
-           RUN piCast (ojsonRet).
-           RUN piAtualizaFornecedor.
+        //MESSAGE "####-retorno " STRING(c-retorno).
+
+        IF c-retorno <> "" THEN
+            ASSIGN sfa-export.text-retorno = c-retorno.  
+
+
+        IF TEMP-TABLE rowErrors:HAS-RECORDS THEN DO:                                                             
+            FOR EACH rowErrors:                                                                                  
+                ASSIGN c-erro = c-erro + string(rowerrors.ErrorNumber)  + " - " + rowerrors.ErrorDescription.    
+                DELETE OBJECT h-esint002.                                                                        
+                RETURN "NOK".                                                                                    
+            END.                                                                                                 
+        END. 
+        ELSE
+        DO:
+            
+            RUN piConvLongObj IN h-esint002 (INPUT cLongJson, OUTPUT ojsonRet).
+
+            /*----------- Grava Json ---------- */
+            RUN piGeraArqJson IN h-esint002 (INPUT ojsonRet, 
+                                             INPUT es-api-param.dir-export,
+                                             INPUT "import-for",
+                                             OUTPUT c-arq-json).
+
+            //MESSAGE "###-arquivo de log " c-arq-json.
+            
+            RUN piCast (INPUT cLongJson).
+            RUN piAtualizaFornecedor.    
         END.
     END.
     ELSE ASSIGN 
@@ -178,22 +200,19 @@ PROCEDURE piGravaTTFornecedor:
     DEFINE OUTPUT PARAMETER pErro          AS CHARACTER NO-UNDO.
     DEF VAR h-temp AS HANDLE NO-UNDO.
 
-    /* FIND FIRST es-ariba-b2e-param EXCLUSIVE-LOCK NO-ERROR.         */
-    /* IF NOT AVAIL es-ariba-b2e-param  THEN                          */
-    /*     CREATE es-ariba-b2e-param.                                 */
-    /* IF es-ariba-b2e-param.dt-ult-consulta = ? THEN                 */
-    /*     ASSIGN es-ariba-b2e-param.dt-ult-consulta = NOW.           */
+    FIND FIRST es-ariba-b2e-param EXCLUSIVE-LOCK NO-ERROR.
+    IF AVAIL es-ariba-b2e-param AND (es-ariba-b2e-param.dt-ult-consulta = ?) THEN
+        ASSIGN es-ariba-b2e-param.dt-ult-consulta = NOW.
 
     CREATE consulta-fornecedor.
-    ASSIGN //CreationDateTime    = STRING(YEAR(daDtConsulta)) + "-" + STRING(MONTH(daDtConsulta),"99") + "-" + STRING(DAY(daDtConsulta),"99") + "T00:00:00Z"
-           //PollingRequestDetails = STRING(INTERVAL ( es-ariba-b2e-param.dt-ult-consulta, datetime(1,1,1970,0,0,0,0) , "milliseconds" )) 
-           consulta-fornecedor.PollingMessage        = es-ariba-b2e-param.PollingMessage
-           consulta-fornecedor.InboundServiceName    = "BusinessPartnerSUITEBulkReplicateRequest_In".
+    ASSIGN consulta-fornecedor.PollingMessage         = es-ariba-b2e-param.PollingMessage
+           consulta-fornecedor.InboundServiceName     = "BusinessPartnerSUITEBulkReplicateRequest_In".
 
-    ASSIGN es-ariba-b2e-param.dt-ult-consulta = NOW.
+    IF AVAIL es-ariba-b2e-param THEN
+        ASSIGN es-ariba-b2e-param.dt-ult-consulta = NOW.
 
 
-    h-temp = BUFFER consulta-fornecedor:HANDLE.
+    ASSIGN h-temp = BUFFER consulta-fornecedor:HANDLE.
 
     RUN piCriaObj IN h-esint002 (INPUT h-temp,
                                  OUTPUT ojsonObjIni,
@@ -212,6 +231,8 @@ PROCEDURE piGravaTTFornecedor:
     /* ----- Cria Json Principal ------- */
     oJsonObjMain = NEW JsonObject().
     oJsonObjMain:ADD("Consulta_Fornecedor",oJsonArrayMain).
+
+    
     
 END PROCEDURE.
 
@@ -265,7 +286,7 @@ PROCEDURE piPostJsonObj:
         JsonString = STRING(oJsonObject:getJsonText()).
 
 /**/
-        JsonString:writeJson("C:/temp/jsonconsultafornecedor1.json").
+        //JsonString:writeJson("C:/temp/jsonconsultafornecedor1.json").
 /**/                
 
 
@@ -311,11 +332,6 @@ PROCEDURE piPostJsonObj:
                     DELETE OBJECT h-esint002.
                     RETURN "NOK".
                 END.
-/**/
-                c-json:writeJson("C:/temp/c-json.json").
-                
-                
-/**/                
                 COPY-LOB c-json TO sfa-export.clob-retorno.
                 
             END.
@@ -334,9 +350,17 @@ END PROCEDURE.
 
 
 PROCEDURE piCast:
-   DEF INPUT PARAM oJson AS JsonObject NO-UNDO.
+   //DEF INPUT PARAM oJson AS JsonObject NO-UNDO.
+    DEFINE INPUT PARAM pLongJson AS LONGCHAR NO-UNDO.
+
+    DEFINE VARIABLE oJson AS JsonObject  NO-UNDO.
+
+    ASSIGN pLongJson = REPLACE(pLongJson,"!UTF-8!","").
+
    
-   myParser = NEW ObjectModelParser().
+    myParser   = NEW ObjectModelParser().
+    oJson      = CAST(myParser:Parse(cLongJson),JsonObject).
+    
    
    IF oJson:Has("Cadastro_Fornecedor") 
    THEN DO:  
@@ -660,6 +684,8 @@ PROCEDURE piAtualizaFornecedor:
 //       IF cadastro-fornecedor.CNPJ + cadastro-fornecedor.CPF + cadastro-fornecedor.IE = ""
 //       THEN NEXT.
 
+       MESSAGE "####-Tag PollingMessage: " string(cadastro-fornecedor.PollingMessage).
+
        IF cadastro-fornecedor.PollingMessage = "" THEN NEXT.
 
        FIND FIRST es-fornecedor-ariba EXCLUSIVE-LOCK
@@ -669,6 +695,7 @@ PROCEDURE piAtualizaFornecedor:
 
        IF NOT AVAIL es-fornecedor-ariba THEN 
        DO:
+           MESSAGE "#### fornecedor n∆o cadastrado na es-fornecedor-ariba".
           CREATE es-fornecedor-ariba.
           ASSIGN es-fornecedor-ariba.Number             = cadastro-fornecedor.Number            
                  es-fornecedor-ariba.dt-consulta        = daDtConsulta.
@@ -768,6 +795,11 @@ PROCEDURE piAtualizaFornecedor:
           END.
        END.
 
+       MESSAGE "####-status de consultas" SKIP
+               "lSendB2E" lSendB2E SKIP
+               "lSendBOFornecedor" lSendBOFornecedor
+           VIEW-AS ALERT-BOX INFORMATION BUTTONS OK.
+
        /* IF YES // es-fornecedor-ariba.cpf = "571.279.888-38"                                                */
        /*    //es-fornecedor-ariba.corporate-name = "TESTE INT34HK EST"                                       */
        /* THEN DO:                                                                                            */
@@ -795,9 +827,10 @@ PROCEDURE piAtualizaFornecedor:
        /*     THEN RUN piBOFornecedor.                                                                        */
        /*                                                                                                     */
        /* END.                                                                                                */
-       IF AVAIL es-fornecedor-ariba THEN RELEASE es-fornecedor-ariba.
-       IF AVAIL es-ariba-b2e-param  THEN RELEASE es-ariba-b2e-param.
-   END.
+   END. 
+   IF AVAIL es-fornecedor-ariba THEN RELEASE es-fornecedor-ariba.
+   IF AVAIL es-ariba-b2e-param  THEN RELEASE es-ariba-b2e-param. 
+
 END.
 
 
