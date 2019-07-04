@@ -139,8 +139,8 @@ THEN DO:
             DELETE OBJECT h-esint002.                                       
             RETURN "NOK".                                                   
         END. 
-       //
-       // MESSAGE "####-conteudo json " STRING(c-Json).
+       
+        
                                                                             
         //ASSIGN sfa-export-cli.c-json = c-Json.                              
                                                                             
@@ -275,7 +275,7 @@ PROCEDURE piPostJsonObj:
     END.
 
     IF cToken = "" THEN DO:
-        MESSAGE "Token n∆o encontrado!" .
+        //MESSAGE "Token n∆o encontrado!" .
         RUN piErro IN h-esint002 ("Token n∆o encontrado!","").
         RETURN "NOK".
     END.
@@ -684,7 +684,7 @@ PROCEDURE piAtualizaFornecedor:
 //       IF cadastro-fornecedor.CNPJ + cadastro-fornecedor.CPF + cadastro-fornecedor.IE = ""
 //       THEN NEXT.
 
-       MESSAGE "####-Tag PollingMessage: " string(cadastro-fornecedor.PollingMessage).
+       //MESSAGE "####-Tag PollingMessage: " string(cadastro-fornecedor.PollingMessage).
 
        IF cadastro-fornecedor.PollingMessage = "" THEN NEXT.
 
@@ -695,7 +695,7 @@ PROCEDURE piAtualizaFornecedor:
 
        IF NOT AVAIL es-fornecedor-ariba THEN 
        DO:
-           MESSAGE "#### fornecedor n∆o cadastrado na es-fornecedor-ariba".
+           //MESSAGE "#### fornecedor n∆o cadastrado na es-fornecedor-ariba".
           CREATE es-fornecedor-ariba.
           ASSIGN es-fornecedor-ariba.Number             = cadastro-fornecedor.Number            
                  es-fornecedor-ariba.dt-consulta        = daDtConsulta.
@@ -795,38 +795,39 @@ PROCEDURE piAtualizaFornecedor:
           END.
        END.
 
-       MESSAGE "####-status de consultas" SKIP
-               "lSendB2E" lSendB2E SKIP
-               "lSendBOFornecedor" lSendBOFornecedor
-           VIEW-AS ALERT-BOX INFORMATION BUTTONS OK.
 
+       //IF lSendB2E THEN
+       //
+       //MESSAGE "####-status de consultas" SKIP
+       //        "lSendB2E" lSendB2E SKIP
+       //        "lSendBOFornecedor" lSendBOFornecedor
+       //    VIEW-AS ALERT-BOX INFORMATION BUTTONS OK.
+       //
        /* IF YES // es-fornecedor-ariba.cpf = "571.279.888-38"                                                */
        /*    //es-fornecedor-ariba.corporate-name = "TESTE INT34HK EST"                                       */
        /* THEN DO:                                                                                            */
        /*                                                                                                     */
-       /*     MESSAGE                                                                                         */
-       /*         "***** "                                                                                    */
-       /*         "es-fornecedor-ariba.cpf" es-fornecedor-ariba.cpf                                SKIP       */
-       /*         "es-fornecedor-ariba.corporate-name" es-fornecedor-ariba.corporate-name          SKIP       */
-       /*         "lSendB2E"  lSendB2E                                                             SKIP       */
-       /*         "es-fornecedor-ariba.enviado-b2e" es-fornecedor-ariba.enviado-b2e                SKIP(1)    */
-       /*         "lSendBOFornecedor" lSendBOFornecedor                                            SKIP       */
-       /*         "es-fornecedor-ariba.ind-atualizado-ems" es-fornecedor-ariba.ind-atualizado-ems  SKIP       */
-       /*         "es-fornecedor-ariba.ind-inativado" es-fornecedor-ariba.ind-inativado            SKIP       */
-       /*         VIEW-AS ALERT-BOX INFO BUTTONS OK.                                                          */
+      /*      MESSAGE                                                                                            */
+      /*          "***** "                                                                                       */
+      /*          "es-fornecedor-ariba.cpf" es-fornecedor-ariba.cpf                                SKIP          */
+      /*          "es-fornecedor-ariba.corporate-name" es-fornecedor-ariba.corporate-name          SKIP          */
+      /*          "lSendB2E"  lSendB2E                                                             SKIP          */
+      /*          "es-fornecedor-ariba.enviado-b2e" es-fornecedor-ariba.enviado-b2e                SKIP(1)       */
+      /*          "lSendBOFornecedor" lSendBOFornecedor                                            SKIP          */
+      /*          "es-fornecedor-ariba.ind-atualizado-ems" es-fornecedor-ariba.ind-atualizado-ems  SKIP          */
+      /*          "es-fornecedor-ariba.ind-inativado" es-fornecedor-ariba.ind-inativado            SKIP          */
+      /*          VIEW-AS ALERT-BOX INFO BUTTONS OK.                                                             */
        /*                                                                                                     */
        /*                                                                                                     */
-       /*     IF  lSendB2E                               =  YES                                               */
-       /*     AND es-fornecedor-ariba.enviado-b2e        =  NO                                                */
-       /*     THEN RUN piBOFornecedor. //RUN piSendB2E.                                                       */
-       /*                                                                                                     */
-       /*     IF   lSendBOFornecedor                      =  YES                                              */
-       /*     AND  lSendB2E                               =  NO                                               */
-       /*     AND (es-fornecedor-ariba.ind-atualizado-ems <> 2                                                */
-       /*     OR   es-fornecedor-ariba.ind-inativado      >  0)                                               */
-       /*     THEN RUN piBOFornecedor.                                                                        */
-       /*                                                                                                     */
-       /* END.                                                                                                */
+       IF  lSendB2E                               =  YES
+       AND es-fornecedor-ariba.enviado-b2e        =  NO
+       THEN RUN piBOFornecedor. //RUN piSendB2E.
+   
+       IF   lSendBOFornecedor                      =  YES
+       AND  lSendB2E                               =  NO
+       AND (es-fornecedor-ariba.ind-atualizado-ems <> 2
+       OR   es-fornecedor-ariba.ind-inativado      >  0)
+       THEN RUN piBOFornecedor.
    END. 
    IF AVAIL es-fornecedor-ariba THEN RELEASE es-fornecedor-ariba.
    IF AVAIL es-ariba-b2e-param  THEN RELEASE es-ariba-b2e-param. 

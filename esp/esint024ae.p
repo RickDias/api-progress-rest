@@ -175,9 +175,6 @@ PROCEDURE piGravaTTFornecedor:
            AND es-fornecedor-ariba.dt-consulta = api-export-ariba-codigo.dt-consulta     
          NO-ERROR.
 
-    MESSAGE 
-        VIEW-AS ALERT-BOX INFO BUTTONS OK.
-
     CREATE fornecedor-ariba.
 
     ASSIGN 
@@ -190,13 +187,13 @@ PROCEDURE piGravaTTFornecedor:
        fornecedor-ariba.ReceiverUUID         = ""
        fornecedor-ariba.ReceiverInternalID   = STRING(es-fornecedor-ariba.cod-emitente).
 
-    MESSAGE 
-        "fornecedor-ariba.InternalID        " fornecedor-ariba.InternalID          SKIP
-        "fornecedor-ariba.ReceiverInternalID" fornecedor-ariba.ReceiverInternalID
-    
-        "es-fornecedor-ariba.number      " es-fornecedor-ariba.number               SKIP
-        "es-fornecedor-ariba.cod-emitente" STRING(es-fornecedor-ariba.cod-emitente)
-        VIEW-AS ALERT-BOX INFO BUTTONS OK.
+    //MESSAGE 
+    //    "fornecedor-ariba.InternalID        " fornecedor-ariba.InternalID          SKIP
+    //    "fornecedor-ariba.ReceiverInternalID" fornecedor-ariba.ReceiverInternalID
+    //
+    //    "es-fornecedor-ariba.number      " es-fornecedor-ariba.number               SKIP
+    //    "es-fornecedor-ariba.cod-emitente" STRING(es-fornecedor-ariba.cod-emitente)
+    //    VIEW-AS ALERT-BOX INFO BUTTONS OK.
 
     h-temp = BUFFER fornecedor-ariba:HANDLE.
 
@@ -259,7 +256,7 @@ PROCEDURE piPostJsonObj:
     END.
 
     IF cToken = "" THEN DO:
-        MESSAGE "Token n∆o encontrado!" .
+        //MESSAGE "Token n∆o encontrado!" .
         RUN piErro IN h-esint002 ("Token n∆o encontrado!","").
         RETURN "NOK".
     END.

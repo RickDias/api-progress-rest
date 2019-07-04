@@ -156,43 +156,43 @@ DO TRANS:
 
    END.
 
-   CREATE tt_emitente_integr_new.
+   CREATE tt_emitente_integr_old_4.
    
    ASSIGN 
-       tt_emitente_integr_new.num_tip_operac        = 1
-       tt_emitente_integr_new.cod_emitente          = iNumEmit
-       tt_emitente_integr_new.cod_versao_integracao = 1.
+       tt_emitente_integr_old_4.num_tip_operac        = 1
+       tt_emitente_integr_old_4.cod_emitente          = iNumEmit
+       tt_emitente_integr_old_4.cod_versao_integracao = 1.
    
    IF i-oper = 1
    THEN ASSIGN
-      tt_emitente_integr_new.identific              = 2.
+      tt_emitente_integr_old_4.identific              = 2.
    ELSE ASSIGN                                 
-      tt_emitente_integr_new.identific              = integer(emitente.identific)
-      tt_emitente_integr_new.cgc                    = emitente.cgc
-      tt_emitente_integr_new.nome_abrev             = emitente.nome-abrev
-      tt_emitente_integr_new.nome_matriz            = IF   emitente.nome-matriz = "" 
+      tt_emitente_integr_old_4.identific              = integer(emitente.identific)
+      tt_emitente_integr_old_4.cgc                    = emitente.cgc
+      tt_emitente_integr_old_4.nome_abrev             = emitente.nome-abrev
+      tt_emitente_integr_old_4.nome_matriz            = IF   emitente.nome-matriz = "" 
                                                         THEN emitente.nome-abrev
                                                         ELSE emitente.nome-matriz.
 
    ASSIGN
-      tt_emitente_integr_new.nome_emit              = es-fornecedor-ariba.Corporate-Name
+      tt_emitente_integr_old_4.nome_emit              = es-fornecedor-ariba.Corporate-Name
       .
 
    IF i-oper = 1
    THEN DO: 
       IF es-fornecedor-ariba.cpf > ""
       THEN ASSIGN
-         tt_emitente_integr_new.natureza            = 1.
+         tt_emitente_integr_old_4.natureza            = 1.
       IF es-fornecedor-ariba.cnpj > ""
       THEN ASSIGN
-         tt_emitente_integr_new.natureza            = 2.
+         tt_emitente_integr_old_4.natureza            = 2.
 
-      IF tt_emitente_integr_new.natureza            = 1
-      OR tt_emitente_integr_new.natureza            = 2
+      IF tt_emitente_integr_old_4.natureza            = 1
+      OR tt_emitente_integr_old_4.natureza            = 2
       THEN ASSIGN
-         tt_emitente_integr_new.cgc                 = c-cgc
-         tt_emitente_integr_new.nome_abrev          = SUBSTR(c-cgc,1,12)
-         tt_emitente_integr_new.nome_matriz         = tt_emitente_integr_new.nome_abrev.
+         tt_emitente_integr_old_4.cgc                 = c-cgc
+         tt_emitente_integr_old_4.nome_abrev          = SUBSTR(c-cgc,1,12)
+         tt_emitente_integr_old_4.nome_matriz         = tt_emitente_integr_old_4.nome_abrev.
       ELSE DO:
          ASSIGN
             c-bus-estrangeiro = SUBSTR(es-fornecedor-ariba.corporate-name,1,INDEX(es-fornecedor-ariba.corporate-name," ") - 1)
@@ -208,182 +208,182 @@ DO TRANS:
                 c-nom-estrangeiro = c-bus-estrangeiro + STRING(i-nom-estrangeiro).
          END.
          ASSIGN
-            tt_emitente_integr_new.nome_abrev       = c-nom-estrangeiro
-            tt_emitente_integr_new.natureza         = 3
+            tt_emitente_integr_old_4.nome_abrev       = c-nom-estrangeiro
+            tt_emitente_integr_old_4.natureza         = 3
             .
       END.
    END.
    ELSE ASSIGN
-      tt_emitente_integr_new.natureza             = emitente.natureza.
+      tt_emitente_integr_old_4.natureza             = emitente.natureza.
 
    ASSIGN
-      tt_emitente_integr_new.conta_corren         = es-fornecedor-ariba.conta + es-fornecedor-ariba.dig-conta-corrente
-      tt_emitente_integr_new.agencia              = es-fornecedor-ariba.agencia + es-fornecedor-ariba.dig-agencia
-      tt_emitente_integr_new.cod_banco            = INT(SUBSTR(es-fornecedor-ariba.banco,1,3))
+      tt_emitente_integr_old_4.conta_corren         = es-fornecedor-ariba.conta + es-fornecedor-ariba.dig-conta-corrente
+      tt_emitente_integr_old_4.agencia              = es-fornecedor-ariba.agencia + es-fornecedor-ariba.dig-agencia
+      tt_emitente_integr_old_4.cod_banco            = INT(SUBSTR(es-fornecedor-ariba.banco,1,3))
 
-      tt_emitente_integr_new.data_implant         = IF i-oper = 1 THEN TODAY ELSE emitente.data-implant
+      tt_emitente_integr_old_4.data_implant         = IF i-oper = 1 THEN TODAY ELSE emitente.data-implant
       
-      tt_emitente_integr_new.ins_estadual         = es-fornecedor-ariba.ie
-      tt_emitente_integr_new.ins_municipal        = IF i-oper = 1 THEN "" ELSE emitente.ins-municipal
+      tt_emitente_integr_old_4.ins_estadual         = es-fornecedor-ariba.ie
+      tt_emitente_integr_old_4.ins_municipal        = IF i-oper = 1 THEN "" ELSE emitente.ins-municipal
       
-      tt_emitente_integr_new.estado               = es-fornecedor-ariba.state
-      tt_emitente_integr_new.endereco             = REPLACE(es-fornecedor-ariba.street,"-"," ").
+      tt_emitente_integr_old_4.estado               = es-fornecedor-ariba.state
+      tt_emitente_integr_old_4.endereco             = REPLACE(es-fornecedor-ariba.street,"-"," ").
 
     
    IF l-debug 
-   THEN MESSAGE "**** nome-abrev " tt_emitente_integr_new.nome_abrev  SKIP
-                " natureza " tt_emitente_integr_new.natureza          SKIP
+   THEN MESSAGE "**** nome-abrev " tt_emitente_integr_old_4.nome_abrev  SKIP
+                " natureza " tt_emitente_integr_old_4.natureza          SKIP
                 " operacao " ENTRY(i-oper,"cria,altera")                SKIP
-                " endereco " tt_emitente_integr_new.endereco
+                " endereco " tt_emitente_integr_old_4.endereco
                 VIEW-AS ALERT-BOX INFO BUTTONS OK.
 
    ASSIGN
-      tt_emitente_integr_new.telefone[1]          = STRING(es-fornecedor-ariba.Numero-Telefone).
+      tt_emitente_integr_old_4.telefone[1]          = STRING(es-fornecedor-ariba.Numero-Telefone).
    
    ASSIGN
-      tt_emitente_integr_new.endereco2            = es-fornecedor-ariba.complement
-      tt_emitente_integr_new.bairro               = es-fornecedor-ariba.district
-      tt_emitente_integr_new.cep                  = REPLACE(es-fornecedor-ariba.zip,"-","")
-      tt_emitente_integr_new.Nom_cidade           = es-fornecedor-ariba.Municipality
-      tt_emitente_integr_new.E_mail               = es-fornecedor-ariba.e-mail
+      tt_emitente_integr_old_4.endereco2            = es-fornecedor-ariba.complement
+      tt_emitente_integr_old_4.bairro               = es-fornecedor-ariba.district
+      tt_emitente_integr_old_4.cep                  = REPLACE(es-fornecedor-ariba.zip,"-","")
+      tt_emitente_integr_old_4.Nom_cidade           = es-fornecedor-ariba.Municipality
+      tt_emitente_integr_old_4.E_mail               = es-fornecedor-ariba.e-mail
       .
 
-   IF tt_emitente_integr_new.natureza             = 3
+   IF tt_emitente_integr_old_4.natureza             = 3
    THEN DO:
 
       ASSIGN
-         tt_emitente_integr_new.estado            = "EX".
+         tt_emitente_integr_old_4.estado            = "EX".
 
       FIND FIRST es-pais-ariba NO-LOCK
            WHERE es-pais-ariba.cod-pais-ariba = es-fornecedor-ariba.country
            NO-ERROR.
       IF AVAIL es-pais-ariba
       THEN ASSIGN
-         tt_emitente_integr_new.cod_pais          = es-pais-ariba.nome-pais
-         tt_emitente_integr_new.pais              = es-pais-ariba.nome-pais
-         tt_emitente_integr_new.Pais_cob          = es-pais-ariba.nome-pais.
+         tt_emitente_integr_old_4.cod_pais          = es-pais-ariba.nome-pais
+         tt_emitente_integr_old_4.pais              = es-pais-ariba.nome-pais
+         tt_emitente_integr_old_4.Pais_cob          = es-pais-ariba.nome-pais.
    END.
    ELSE DO:
       ASSIGN
-         tt_emitente_integr_new.cod_pais          = "Brasil"
-         tt_emitente_integr_new.pais              = "Brasil"
-         tt_emitente_integr_new.Pais_cob          = "Brasil".
+         tt_emitente_integr_old_4.cod_pais          = "Brasil"
+         tt_emitente_integr_old_4.pais              = "Brasil"
+         tt_emitente_integr_old_4.Pais_cob          = "Brasil".
    END.
 
 
    IF l-ambos = YES
    THEN ASSIGN
-      tt_emitente_integr_new.identific            = 3.
+      tt_emitente_integr_old_4.identific            = 3.
 
    IF i-oper  = 1
    OR l-ambos = YES
    THEN ASSIGN
-      tt_emitente_integr_new.cod_gr_cli           = es-ariba-b2e-param.cod-gr-cli 
-      tt_emitente_integr_new.cod_gr_for           = es-ariba-b2e-param.cod-gr-for 
-      tt_emitente_integr_new.cod_portador         = es-ariba-b2e-param.portador
-      tt_emitente_integr_new.modalidade           = es-ariba-b2e-param.modalidade
-      tt_emitente_integr_new.Ven_sabado           = es-ariba-b2e-param.ven-sabado
-      tt_emitente_integr_new.Ven_Domingo          = es-ariba-b2e-param.ven-domingo
-      tt_emitente_integr_new.Ven_feriado          = es-ariba-b2e-param.ven-feriado
-      tt_emitente_integr_new.Tp_rec_padrao        = es-ariba-b2e-param.tp-rec-padrao
-      tt_emitente_integr_new.Tp_desp_padrao       = es-ariba-b2e-param.tp-desp-padrao
-      tt_emitente_integr_new.cod_rep              = es-ariba-b2e-param.cod-rep
+      tt_emitente_integr_old_4.cod_gr_cli           = es-ariba-b2e-param.cod-gr-cli 
+      tt_emitente_integr_old_4.cod_gr_for           = es-ariba-b2e-param.cod-gr-for 
+      tt_emitente_integr_old_4.cod_portador         = es-ariba-b2e-param.portador
+      tt_emitente_integr_old_4.modalidade           = es-ariba-b2e-param.modalidade
+      tt_emitente_integr_old_4.Ven_sabado           = es-ariba-b2e-param.ven-sabado
+      tt_emitente_integr_old_4.Ven_Domingo          = es-ariba-b2e-param.ven-domingo
+      tt_emitente_integr_old_4.Ven_feriado          = es-ariba-b2e-param.ven-feriado
+      tt_emitente_integr_old_4.Tp_rec_padrao        = es-ariba-b2e-param.tp-rec-padrao
+      tt_emitente_integr_old_4.Tp_desp_padrao       = es-ariba-b2e-param.tp-desp-padrao
+      tt_emitente_integr_old_4.cod_rep              = es-ariba-b2e-param.cod-rep
                                                     
-      tt_emitente_integr_new.Num_tip_operac       = 1
+      tt_emitente_integr_old_4.Num_tip_operac       = 1
       .
    
    IF i-oper  = 2 THEN 
-       ASSIGN tt_emitente_integr_new.cod_gr_cli           = emitente.cod-gr-cli 
-              tt_emitente_integr_new.cod_gr_for           = emitente.cod-gr-for 
-              tt_emitente_integr_new.cod_portador         = emitente.portador
-              tt_emitente_integr_new.modalidade           = emitente.modalidade
-              tt_emitente_integr_new.Ven_sabado           = emitente.Ven-sabado     
-              tt_emitente_integr_new.Ven_Domingo          = emitente.Ven-Domingo    
-              tt_emitente_integr_new.Ven_feriado          = emitente.Ven-feriado    
-              tt_emitente_integr_new.Tp_rec_padrao        = emitente.Tp-rec-padrao  
-              tt_emitente_integr_new.Tp_desp_padrao       = emitente.Tp-desp-padrao 
-              tt_emitente_integr_new.cod_rep              = emitente.cod-rep
-              tt_emitente_integr_new.observacoes          = emitente.observacoes.
+       ASSIGN tt_emitente_integr_old_4.cod_gr_cli           = emitente.cod-gr-cli 
+              tt_emitente_integr_old_4.cod_gr_for           = emitente.cod-gr-for 
+              tt_emitente_integr_old_4.cod_portador         = emitente.portador
+              tt_emitente_integr_old_4.modalidade           = emitente.modalidade
+              tt_emitente_integr_old_4.Ven_sabado           = emitente.Ven-sabado     
+              tt_emitente_integr_old_4.Ven_Domingo          = emitente.Ven-Domingo    
+              tt_emitente_integr_old_4.Ven_feriado          = emitente.Ven-feriado    
+              tt_emitente_integr_old_4.Tp_rec_padrao        = emitente.Tp-rec-padrao  
+              tt_emitente_integr_old_4.Tp_desp_padrao       = emitente.Tp-desp-padrao 
+              tt_emitente_integr_old_4.cod_rep              = emitente.cod-rep
+              tt_emitente_integr_old_4.observacoes          = emitente.observacoes.
 
-   IF tt_emitente_integr_new.cod_portador         = 0
+   IF tt_emitente_integr_old_4.cod_portador         = 0
    THEN ASSIGN
-      tt_emitente_integr_new.cod_portador         = es-ariba-b2e-param.portador.
-   IF tt_emitente_integr_new.modalidade           = 0
+      tt_emitente_integr_old_4.cod_portador         = es-ariba-b2e-param.portador.
+   IF tt_emitente_integr_old_4.modalidade           = 0
    THEN ASSIGN
-      tt_emitente_integr_new.modalidade           = es-ariba-b2e-param.modalidade.
+      tt_emitente_integr_old_4.modalidade           = es-ariba-b2e-param.modalidade.
 
 
    IF i-oper = 2 THEN 
        ASSIGN
-      tt_emitente_integr_new.caixa_postal           = emitente.caixa-postal                 
-      tt_emitente_integr_new.zip_code               = emitente.zip-code                     
-      tt_emitente_integr_new.Endereco_cob           = emitente.endereco-cob                 
-      tt_emitente_integr_new.Bairro_cob             = emitente.bairro-cob                   
-      tt_emitente_integr_new.Cidade_cob             = emitente.cidade-cob                   
-      tt_emitente_integr_new.Estado_cob             = emitente.estado-cob                   
-      tt_emitente_integr_new.Cep_cob                = emitente.cep-cob                      
-      tt_emitente_integr_new.Cgc_cob                = emitente.cgc-cob                      
-      tt_emitente_integr_new.Cx_post_cob            = emitente.cx-post-cob                  
-      tt_emitente_integr_new.Zip_cob_code           = emitente.zip-cob-code                 
-      tt_emitente_integr_new.Ins_est_cob            = emitente.Ins-est-cob                  
-      tt_emitente_integr_new.Gera_ad                = emitente.gera-ad                      
-      tt_emitente_integr_new.tp_pagto               = emitente.tp-pagto                     
+      tt_emitente_integr_old_4.caixa_postal           = emitente.caixa-postal                 
+      tt_emitente_integr_old_4.zip_code               = emitente.zip-code                     
+      tt_emitente_integr_old_4.Endereco_cob           = emitente.endereco-cob                 
+      tt_emitente_integr_old_4.Bairro_cob             = emitente.bairro-cob                   
+      tt_emitente_integr_old_4.Cidade_cob             = emitente.cidade-cob                   
+      tt_emitente_integr_old_4.Estado_cob             = emitente.estado-cob                   
+      tt_emitente_integr_old_4.Cep_cob                = emitente.cep-cob                      
+      tt_emitente_integr_old_4.Cgc_cob                = emitente.cgc-cob                      
+      tt_emitente_integr_old_4.Cx_post_cob            = emitente.cx-post-cob                  
+      tt_emitente_integr_old_4.Zip_cob_code           = emitente.zip-cob-code                 
+      tt_emitente_integr_old_4.Ins_est_cob            = emitente.Ins-est-cob                  
+      tt_emitente_integr_old_4.Gera_ad                = emitente.gera-ad                      
+      tt_emitente_integr_old_4.tp_pagto               = emitente.tp-pagto                     
                                                                                               
-      tt_emitente_integr_new.telefone[1]            = emitente.Telefone[1]                  
-      tt_emitente_integr_new.ramal[1]               = emitente.Ramal[1]                     
-      tt_emitente_integr_new.telefone[2]            = emitente.Telefone[2]                  
-      tt_emitente_integr_new.ramal[2]               = emitente.Ramal[2]                     
-      tt_emitente_integr_new.telefax                = emitente.Telefax                      
-      tt_emitente_integr_new.ramal_fax              = emitente.Ramal-fax                    
-      tt_emitente_integr_new.telex                  = emitente.Telex                        
-      tt_emitente_integr_new.telef_modem            = emitente.Telef-modem                  
-      tt_emitente_integr_new.ramal_modem            = emitente.Ramal-modem                  
-      tt_emitente_integr_new.port_prefer            = emitente.port-prefer                  
-      tt_emitente_integr_new.mod_prefer             = emitente.mod-prefer                   
-      tt_emitente_integr_new.emite_bloq             = emitente.emite-bloq                   
-      tt_emitente_integr_new.nome_mic_reg           = emitente.nome-mic-reg                 
-      tt_emitente_integr_new.ins_banc[1]            = emitente.ins-banc[1]                  
-      tt_emitente_integr_new.ins_banc[2]            = emitente.ins-banc[2]                  
-      tt_emitente_integr_new.tp_rec_padrao          = integer(emitente.tp-rec-padrao)       
-      tt_emitente_integr_new.forn_exp               = emitente.forn-exp                     
-      tt_emitente_integr_new.agente_retencao        = emitente.agente-retencao              
-      tt_emitente_integr_new.Ramo_atividade         = emitente.atividade                    
-      tt_emitente_integr_new.Recebe_inf_sci         = emitente.Recebe-inf-sci               
-      tt_emitente_integr_new.Vencto_dia_nao_util    = emitente.Vencto-dia-nao-util          
-      tt_emitente_integr_new.Bonificacao            = emitente.Bonificacao                  
-      tt_emitente_integr_new.Ind_rendiment          = emitente.Ind-rendiment                
-      tt_emitente_integr_new.Dias_comp              = emitente.Dias-comp                    
-      tt_emitente_integr_new.Rendto_tribut          = emitente.rend-tribut                  
-      tt_emitente_integr_new.Home_page              = emitente.Home-page                    
-      tt_emitente_integr_new.Utiliza_verba          = emitente.Utiliza-verba                
-      tt_emitente_integr_new.Percent_verba          = emitente.Percent-verba                
-      tt_emitente_integr_new.Valor_minimo           = emitente.Valor-minimo                 
-      tt_emitente_integr_new.Dias_atraso            = emitente.nr-Dias-atraso               
-      tt_emitente_integr_new.Calcula_multa          = emitente.Calcula-multa                
-      tt_emitente_integr_new.Flag_pag               = IF emitente.Flag-pag = 2 THEN YES ELSE NO                    
-      tt_emitente_integr_new.Ender_text             = emitente.endereco_text                
-      tt_emitente_integr_new.Ender_cobr_text        = emitente.Endereco-cob-text            
-      tt_emitente_integr_new.Log_cr_pis             = IF emitente.idi-tributac-pis = 1 THEN YES ELSE NO            
-      /*tt_emitente_integr_new.cod_id_munic_fisic     = emitente.cod-id-munic-fisic    */   
-      tt_emitente_integr_new.cod_id_previd_social   = emitente.cod-inscr-inss               
-      /*tt_emitente_integr_new.dat_vencto_id_munic    = emitente.dat-vencto-id-munic   */   
-      tt_emitente_integr_new.log_control_inss       = emitente.log-controla-val-max-inss    
-      /*tt_emitente_integr_new.log_cr_cofins          = emitente.log-cr-cofins         */        /*???*/
-      /*tt_emitente_integr_new.log_retenc_impto_pagto = emitente.log_retenc-impto-pagto*/   
-      /*tt_emitente_integr_new.log_cooperativa        = SUBSTR(emitente.char-2,103,1) = "S" */ .  /*???*/
-      /*tt_emitente_integr_new.ind_tip_fornecto       = SUBSTR(emitente.char-2,104,8)  */    /*???*/
-      /*tt_emitente_integr_new.log_assoc_desportiva   = emitente.log-assoc-desportiva   */   /*???*/
+      tt_emitente_integr_old_4.telefone[1]            = emitente.Telefone[1]                  
+      tt_emitente_integr_old_4.ramal[1]               = emitente.Ramal[1]                     
+      tt_emitente_integr_old_4.telefone[2]            = emitente.Telefone[2]                  
+      tt_emitente_integr_old_4.ramal[2]               = emitente.Ramal[2]                     
+      tt_emitente_integr_old_4.telefax                = emitente.Telefax                      
+      tt_emitente_integr_old_4.ramal_fax              = emitente.Ramal-fax                    
+      tt_emitente_integr_old_4.telex                  = emitente.Telex                        
+      tt_emitente_integr_old_4.telef_modem            = emitente.Telef-modem                  
+      tt_emitente_integr_old_4.ramal_modem            = emitente.Ramal-modem                  
+      tt_emitente_integr_old_4.port_prefer            = emitente.port-prefer                  
+      tt_emitente_integr_old_4.mod_prefer             = emitente.mod-prefer                   
+      tt_emitente_integr_old_4.emite_bloq             = emitente.emite-bloq                   
+      tt_emitente_integr_old_4.nome_mic_reg           = emitente.nome-mic-reg                 
+      tt_emitente_integr_old_4.ins_banc[1]            = emitente.ins-banc[1]                  
+      tt_emitente_integr_old_4.ins_banc[2]            = emitente.ins-banc[2]                  
+      tt_emitente_integr_old_4.tp_rec_padrao          = integer(emitente.tp-rec-padrao)       
+      tt_emitente_integr_old_4.forn_exp               = emitente.forn-exp                     
+      tt_emitente_integr_old_4.agente_retencao        = emitente.agente-retencao              
+      tt_emitente_integr_old_4.Ramo_atividade         = emitente.atividade                    
+      tt_emitente_integr_old_4.Recebe_inf_sci         = emitente.Recebe-inf-sci               
+      tt_emitente_integr_old_4.Vencto_dia_nao_util    = emitente.Vencto-dia-nao-util          
+      tt_emitente_integr_old_4.Bonificacao            = emitente.Bonificacao                  
+      tt_emitente_integr_old_4.Ind_rendiment          = emitente.Ind-rendiment                
+      tt_emitente_integr_old_4.Dias_comp              = emitente.Dias-comp                    
+      tt_emitente_integr_old_4.Rendto_tribut          = emitente.rend-tribut                  
+      tt_emitente_integr_old_4.Home_page              = emitente.Home-page                    
+      tt_emitente_integr_old_4.Utiliza_verba          = emitente.Utiliza-verba                
+      tt_emitente_integr_old_4.Percent_verba          = emitente.Percent-verba                
+      tt_emitente_integr_old_4.Valor_minimo           = emitente.Valor-minimo                 
+      tt_emitente_integr_old_4.Dias_atraso            = emitente.nr-Dias-atraso               
+      tt_emitente_integr_old_4.Calcula_multa          = emitente.Calcula-multa                
+      tt_emitente_integr_old_4.Flag_pag               = IF emitente.Flag-pag = 2 THEN YES ELSE NO                    
+      tt_emitente_integr_old_4.Ender_text             = emitente.endereco_text                
+      tt_emitente_integr_old_4.Ender_cobr_text        = emitente.Endereco-cob-text            
+      tt_emitente_integr_old_4.Log_cr_pis             = IF emitente.idi-tributac-pis = 1 THEN YES ELSE NO            
+      /*tt_emitente_integr_old_4.cod_id_munic_fisic     = emitente.cod-id-munic-fisic    */   
+      tt_emitente_integr_old_4.cod_id_previd_social   = emitente.cod-inscr-inss               
+      /*tt_emitente_integr_old_4.dat_vencto_id_munic    = emitente.dat-vencto-id-munic   */   
+       tt_emitente_integr_old_4.log_control_inss       = emitente.log-controla-val-max-inss    
+      /*tt_emitente_integr_old_4.log_cr_cofins          = emitente.log-cr-cofins         */        /*???*/
+      /*tt_emitente_integr_old_4.log_retenc_impto_pagto = emitente.log_retenc-impto-pagto*/   
+      /*tt_emitente_integr_old_4.log_cooperativa        = SUBSTR(emitente.char-2,103,1) = "S" */ .  /*???*/
+      /*tt_emitente_integr_old_4.ind_tip_fornecto       = SUBSTR(emitente.char-2,104,8)  */    /*???*/
+      /*tt_emitente_integr_old_4.log_assoc_desportiva   = emitente.log-assoc-desportiva   */   /*???*/
       .                                                                                       
                                                         
    ASSIGN 
-      tt_emitente_integr_new.ep_codigo             = empresa.ep-codigo
-      tt_emitente_integr_new.ep_codigo_principal   = empresa.ep-codigo
-      tt_emitente_integr_new.ins_estadual          = IF tt_emitente_integr_new.ins_estadual = "" THEN "ISENTO" ELSE UPPER(STRING(tt_emitente_integr_new.ins_estadual,"x(20)"))
-      tt_emitente_integr_new.Ins_est_cob           = IF tt_emitente_integr_new.Ins_est_cob  = "" THEN "ISENTO" ELSE UPPER(STRING(tt_emitente_integr_new.Ins_est_cob ,"x(20)")) 
+      tt_emitente_integr_old_4.ep_codigo             = empresa.ep-codigo
+      tt_emitente_integr_old_4.ep_codigo_principal   = empresa.ep-codigo
+      tt_emitente_integr_old_4.ins_estadual          = IF tt_emitente_integr_old_4.ins_estadual = "" THEN "ISENTO" ELSE UPPER(STRING(tt_emitente_integr_old_4.ins_estadual,"x(20)"))
+      tt_emitente_integr_old_4.Ins_est_cob           = IF tt_emitente_integr_old_4.Ins_est_cob  = "" THEN "ISENTO" ELSE UPPER(STRING(tt_emitente_integr_old_4.Ins_est_cob ,"x(20)")) 
       NO-ERROR.
    
    
-   
+   /*
    CREATE tt_cont_emit_integr.
    ASSIGN tt_cont_emit_integr.cod_emitente          = emitente.cod-emitente
           tt_cont_emit_integr.sequencia	            = 1
@@ -396,30 +396,31 @@ DO TRANS:
          // overlay(tt_cont_emit_integr.char-2,1,20)  = emitente.cgc
           tt_cont_emit_integr.cod_versao_integracao = 1
           tt_cont_emit_integr.num_tip_operac        = 1 NO-ERROR.
+          */
    
    
    /**/
 
 
    //IF l-debug THEN MESSAGE 
-   //   "***** tt_emitente_integr_new.nome_emit " tt_emitente_integr_new.nome_emit  SKIP
+   //   "***** tt_emitente_integr_old_4.nome_emit " tt_emitente_integr_old_4.nome_emit  SKIP
    //   VIEW-AS ALERT-BOX INFO BUTTONS OK.
    //IF l-debug THEN MESSAGE 
-   //   "***** tt_emitente_integr_new.nome_abrev" tt_emitente_integr_new.nome_abrev SKIP
+   //   "***** tt_emitente_integr_old_4.nome_abrev" tt_emitente_integr_old_4.nome_abrev SKIP
    //   VIEW-AS ALERT-BOX INFO BUTTONS OK.
    //IF l-debug THEN MESSAGE 
-   //   "***** tt_emitente_integr_new.cgc       " tt_emitente_integr_new.cgc        SKIP
+   //   "***** tt_emitente_integr_old_4.cgc       " tt_emitente_integr_old_4.cgc        SKIP
    //   VIEW-AS ALERT-BOX INFO BUTTONS OK.
    //IF l-debug THEN MESSAGE 
-   //   "***** tt_emitente_integr_new.natureza  " tt_emitente_integr_new.natureza   SKIP
+   //   "***** tt_emitente_integr_old_4.natureza  " tt_emitente_integr_old_4.natureza   SKIP
    //   VIEW-AS ALERT-BOX INFO BUTTONS OK.
    //IF l-debug THEN MESSAGE 
-   //   "***** tt_emitente_integr_new.endereco  " tt_emitente_integr_new.endereco   SKIP
+   //   "***** tt_emitente_integr_old_4.endereco  " tt_emitente_integr_old_4.endereco   SKIP
    //   VIEW-AS ALERT-BOX INFO BUTTONS OK.
    //IF l-debug THEN MESSAGE 
-   //   "***** portador  " STRING(tt_emitente_integr_new.cod_portador)
+   //   "***** portador  " STRING(tt_emitente_integr_old_4.cod_portador)
    //          + " - " 
-   //          + STRING(tt_emitente_integr_new.modalidade)  SKIP
+   //          + STRING(tt_emitente_integr_old_4.modalidade)  SKIP
    //   VIEW-AS ALERT-BOX INFO BUTTONS OK.
    //IF l-debug 
    //THEN DO:
@@ -432,8 +433,8 @@ DO TRANS:
    //END.
 
 
-   RUN execute_evoluida_3 in hApi  (INPUT        TABLE tt_emitente_integr_new,
-                                    INPUT        TABLE tt_cont_emit_integr,
+   RUN execute_evoluida_4 in hApi  (INPUT        TABLE tt_emitente_integr_old_4,
+                                    INPUT        TABLE tt_cont_emit_integr_new,
                                     INPUT-OUTPUT TABLE tt_retorno_clien_fornec,
                                     INPUT        0,
                                     INPUT-OUTPUT c-arquivo-saida).
@@ -457,13 +458,13 @@ DO TRANS:
    END.
 
    /*
-   IF AVAIL tt_emitente_integr_new
+   IF AVAIL tt_emitente_integr_old_4
    THEN ASSIGN
       c-erro = c-erro 
              + " Portador "
-             + STRING(tt_emitente_integr_new.cod_portador)
+             + STRING(tt_emitente_integr_old_4.cod_portador)
              + " - " 
-             + STRING(tt_emitente_integr_new.modalidade).
+             + STRING(tt_emitente_integr_old_4.modalidade).
    
 
    DO:*/
