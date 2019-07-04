@@ -147,6 +147,8 @@ RUN integracao\api\ariba\consultafornecedor.p.
 
 RUN pi-finalizar IN h-prog.
 
+RETURN "OK":U.
+
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
