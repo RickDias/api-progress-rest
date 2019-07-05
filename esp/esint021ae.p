@@ -340,7 +340,7 @@ PROCEDURE piPostJsonObj:
             END.
             IF index(JsonString,'"Status":false') > 0 THEN DO:
                 IF LOOKUP("Description",JsonString,'"') > 0 THEN 
-                    RUN piErro (ENTRY(LOOKUP("Description",JsonString,'"') + 2,JsonString,'"'),"").
+                    RUN piErro IN h-esint002 (ENTRY(LOOKUP("Description",JsonString,'"') + 2,JsonString,'"'),"").
             END.
         END.
     END.

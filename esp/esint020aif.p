@@ -120,39 +120,8 @@ DO TRANS:
       IF emitente.identific = 1
       THEN ASSIGN
          l-ambos  = YES.
-      
-      find first mguni.dist-emitente EXCLUSIVE-LOCK
-           where dist-emitente.cod-emitente = emitente.cod-emitente 
-           no-error. 
 
-      if NOT avail dist-emitente 
-      then do:
-         create dist-emitente.
-         assign 
-            dist-emitente.cod-emitente = emitente.cod-emitente.
-      end.
-
-      IF es-fornecedor-ariba.ind-inativado > 0
-      THEN DO:
-         ASSIGN
-            dist-emitente.dat-vigenc-inicial  = TODAY
-            dist-emitente.dat-vigenc-final    = 12/31/9999.
-
-         IF es-fornecedor-ariba.ind-inativado = 1
-         THEN ASSIGN
-            dist-emitente.idi-sit-fornec      = 1.
-         ELSE ASSIGN
-            dist-emitente.idi-sit-fornec      = 2.
-      END.
-      ELSE DO:
-         IF dist-emitente.idi-sit-fornec      > 1
-         THEN ASSIGN
-            dist-emitente.idi-sit-fornec      = 1
-            dist-emitente.dat-vigenc-inicial  = TODAY
-            dist-emitente.dat-vigenc-final    = 12/31/9999.
-      END.
-
-      FIND CURRENT dist-emitente NO-LOCK NO-ERROR.
+      RUN piCriaDistEmitente. 
 
    END.
 
@@ -538,5 +507,99 @@ DO TRANS:
    IF AVAIL emitente
    THEN RELEASE emitente.
 END.
+
+
+
+
+PROCEDURE piCriaDistEmitente:
+    DEFINE VARIABLE h-bodi275 AS HANDLE      NO-UNDO.
+    
+    DEFINE TEMP-TABLE ttDistEmitente NO-UNDO
+        LIKE dist-emitente
+        FIELD r-rowid AS ROWID.
+
+    IF NOT VALID-HANDLE(h-bodi275) THEN
+        RUN dibo/bodi275.p PERSISTENT SET h-bodi275.
+    
+    EMPTY TEMP-TABLE ttDistEmitente.
+
+
+    FIND FIRST dist-emitente NO-LOCK 
+         WHERE dist-emitente.cod-emitente = emitente.cod-emitente  NO-ERROR.
+
+
+    CREATE ttDistEmitente.
+    ASSIGN ttDistEmitente.cod-emitente = emitente.cod-emitente
+           ttDistEmitente.dat-vigenc-inicial  = TODAY          
+           ttDistEmitente.dat-vigenc-final    = 12/31/9999.   
+
+
+
+    IF ( AVAIL dist-emitente AND dist-emitente.idi-sit-fornec > 1 )  
+            OR es-fornecedor-ariba.ind-inativado = 1 THEN
+        ASSIGN ttDistEmitente.idi-sit-fornec  = 1. 
+    ELSE
+        ASSIGN ttDistEmitente.idi-sit-fornec  = 2. 
+
+
+
+
+
+
+
+     /*** logica antiga
+    find first mguni.dist-emitente EXCLUSIVE-LOCK                               
+         where dist-emitente.cod-emitente = emitente.cod-emitente               
+         no-error.                                                              
+                                                                                
+    if NOT avail dist-emitente                                                  
+    then do:                                                                    
+       create dist-emitente.                                                    
+       assign                                                                   
+          dist-emitente.cod-emitente = emitente.cod-emitente.                   
+    end.                                                                        
+                                                                                
+    IF es-fornecedor-ariba.ind-inativado > 0                                    
+    THEN DO:                                                                    
+       ASSIGN                                                                   
+          dist-emitente.dat-vigenc-inicial  = TODAY                             
+          dist-emitente.dat-vigenc-final    = 12/31/9999.                       
+                                                                                
+       IF es-fornecedor-ariba.ind-inativado = 1                                 
+       THEN ASSIGN                                                              
+          dist-emitente.idi-sit-fornec      = 1.                                
+       ELSE ASSIGN                                                              
+          dist-emitente.idi-sit-fornec      = 2.                                
+    END.                                                                        
+    ELSE DO:                                                                    
+       IF dist-emitente.idi-sit-fornec      > 1                                 
+       THEN ASSIGN                                                              
+          dist-emitente.idi-sit-fornec      = 1                                 
+          dist-emitente.dat-vigenc-inicial  = TODAY                             
+          dist-emitente.dat-vigenc-final    = 12/31/9999.                       
+    END.                                                                        
+                                                                                
+    FIND CURRENT dist-emitente NO-LOCK NO-ERROR.   
+    ******************************************************/                             
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+END PROCEDURE.
 
 
