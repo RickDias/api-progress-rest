@@ -165,10 +165,12 @@ PROCEDURE pi-00-consulta-fornecedor :
         
         /*--CHAMA ROTINA DE PROCESSAMENTO CADASTRADO NO ESIN004 --*/
         RUN pi-processa (es-api-param.ind-tipo-trans,
-                         es-api-param.cd-tipo-integr).  
+                         es-api-param.cd-tipo-integr).
+        
         
     END.
-    
+
+    RETURN "OK":U.
 
 END PROCEDURE.
 

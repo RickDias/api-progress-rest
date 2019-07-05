@@ -90,19 +90,19 @@ DEFINE VARIABLE lLoop AS LOG INIT YES NO-UNDO.
 DEFINE VARIABLE lRetOK AS LOG NO-UNDO.
 
 
-DEFINE VARIABLE l-codigo-icm-sensitive AS LOGICAL NO-UNDO.
+DEFINE VARIABLE l-codigo-icm-sensitive   AS LOGICAL NO-UNDO.
 DEFINE VARIABLE l-aliquota-icm-sensitive AS LOGICAL NO-UNDO.
 DEFINE VARIABLE l-aliquota-iss-sensitive AS LOGICAL NO-UNDO.
-DEFINE VARIABLE l-valor-taxa-sensitive AS LOGICAL NO-UNDO.
-DEFINE VARIABLE l-taxa-financ-sensitive AS LOGICAL NO-UNDO.
-DEFINE VARIABLE l-possui-reaj-sensitive AS LOGICAL NO-UNDO.
+DEFINE VARIABLE l-valor-taxa-sensitive   AS LOGICAL NO-UNDO.
+DEFINE VARIABLE l-taxa-financ-sensitive  AS LOGICAL NO-UNDO.
+DEFINE VARIABLE l-possui-reaj-sensitive  AS LOGICAL NO-UNDO.
 
 DEFINE VARIABLE i-cont AS INT INIT 1 NO-UNDO.
 
 
 DEFINE VARIABLE c-end-cobranca-aux LIKE pedido-compr.end-cobranca NO-UNDO.
-DEFINE VARIABLE c-end-entrega-aux LIKE pedido-compr.end-entrega NO-UNDO.
-DEFINE VARIABLE i-cod-mensagem LIKE pedido-compr.cod-mensagem NO-UNDO.
+DEFINE VARIABLE c-end-entrega-aux  LIKE pedido-compr.end-entrega NO-UNDO.
+DEFINE VARIABLE i-cod-mensagem     LIKE pedido-compr.cod-mensagem NO-UNDO.
 
 DEFINE VARIABLE json_recebido  AS LONGCHAR NO-UNDO.
 DEFINE VARIABLE json_retorno   AS LONGCHAR NO-UNDO.

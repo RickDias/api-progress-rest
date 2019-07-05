@@ -195,6 +195,8 @@ PROCEDURE pi-00-envia-cod-fornecedor :
              api-export-ariba-codigo.Number         = es-fornecedor-ariba.Number
              api-export-ariba-codigo.dt-consulta    = es-fornecedor-ariba.dt-consulta
              .
+
+          RELEASE api-export-ariba-codigo.
           //MESSAGE PROGRAM-NAME(2)  2
           //    VIEW-AS ALERT-BOX INFO BUTTONS OK.
           //
@@ -209,6 +211,7 @@ PROCEDURE pi-00-envia-cod-fornecedor :
              sfa-export.data-inicio    = ?
              sfa-export.data-movto     = NOW
              sfa-export.ind-situacao   = 1      /*---- Pendente -----*/.
+          RELEASE sfa-export.
          // MESSAGE PROGRAM-NAME(2)  3
          //     VIEW-AS ALERT-BOX INFO BUTTONS OK.
 
