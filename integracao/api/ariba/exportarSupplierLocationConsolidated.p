@@ -214,6 +214,10 @@ PROCEDURE pi-02-processa :
 DEFINE VARIABLE cLocale AS CHARACTER INITIAL "pt_BR"   NO-UNDO.
 DEFINE VARIABLE cPais   AS CHARACTER INITIAL ""        NO-UNDO.
 
+
+DEFINE BUFFER b-es-fornecedor-ariba FOR es-fornecedor-ariba.
+
+
 EMPTY TEMP-TABLE SupplierLocationConsolidated.
 
 
@@ -227,7 +231,7 @@ IF NOT CAN-FIND (FIRST es-fornecedor-ariba WHERE
 END.
 
 
-FOR EACH es-fornecedor-ariba EXCLUSIVE-LOCK
+FOR EACH es-fornecedor-ariba NO-LOCK
    WHERE es-fornecedor-ariba.cod-emitente <> 0    
      AND es-fornecedor-ariba.enviado-SupplierLocationConsolid = NO:
 
@@ -261,14 +265,20 @@ FOR EACH es-fornecedor-ariba EXCLUSIVE-LOCK
         ASSIGN SupplierLocationConsolidated.Phone        = cont-emit.telefone 
                SupplierLocationConsolidated.ContactID    = cont-emit.e-mail
                SupplierLocationConsolidated.ContactName  = cont-emit.nome.
+    
+    
+    /*-- incluido para atualizar o status do registro --*/
+    FIND FIRST b-es-fornecedor-ariba EXCLUSIVE-LOCK
+         WHERE ROWID(b-es-fornecedor-ariba) = ROWID(es-fornecedor-ariba)  NO-ERROR.
+    IF AVAIL b-es-fornecedor-ariba THEN
+        ASSIGN es-fornecedor-ariba.enviado-SupplierLocationConsolid = YES.
 
-
-    //ASSIGN sfa-export.ind-situacao = 3.
+    FIND CURRENT b-es-fornecedor-ariba NO-LOCK NO-ERROR.
 
     
 END.
 
-RELEASE es-fornecedor-ariba.
+
 
 END PROCEDURE.
 

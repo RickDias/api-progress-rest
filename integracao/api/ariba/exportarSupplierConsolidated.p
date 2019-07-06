@@ -109,15 +109,20 @@ DEFINE VARIABLE i-cont AS INT INIT 1 NO-UNDO.
 
 
 DEFINE VARIABLE c-end-cobranca-aux LIKE pedido-compr.end-cobranca NO-UNDO.
-DEFINE VARIABLE c-end-entrega-aux LIKE pedido-compr.end-entrega NO-UNDO.
-DEFINE VARIABLE i-cod-mensagem LIKE pedido-compr.cod-mensagem NO-UNDO.
+DEFINE VARIABLE c-end-entrega-aux  LIKE pedido-compr.end-entrega NO-UNDO.
+DEFINE VARIABLE i-cod-mensagem     LIKE pedido-compr.cod-mensagem NO-UNDO.
 
 DEFINE VARIABLE json_recebido  AS LONGCHAR NO-UNDO.
 DEFINE VARIABLE json_retorno   AS LONGCHAR NO-UNDO.
 
 
-DEFINE VARIABLE h-boin295 AS HANDLE NO-UNDO.
+DEFINE VARIABLE h-boin295   AS HANDLE NO-UNDO.
 DEFINE VARIABLE h-boin274sd AS HANDLE NO-UNDO.
+
+DEFINE BUFFER b-es-fornecedor-ariba FOR es-fornecedor-ariba.
+
+
+
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -257,9 +262,6 @@ IF NOT CAN-FIND (FIRST es-fornecedor-ariba WHERE
     CREATE tt-erros.
     ASSIGN tt-erros.cod-erro  = 1
            tt-erros.desc-erro = "NÆo existe itens para serem Integrados".
-
-
-
 END.
 
 
@@ -305,6 +307,14 @@ FOR EACH es-fornecedor-ariba NO-LOCK
     IF AVAIL cont-emit THEN
         ASSIGN SupplierConsolidated.CorporatePhone        = cont-emit.telefone 
                SupplierConsolidated.CorporateEmailAddress = cont-emit.e-mail.
+    
+    /*-- atualiza o status de envio do fornecedor --*/
+    FIND FIRST b-es-fornecedor-ariba EXCLUSIVE-LOCK
+         WHERE ROWID(b-es-fornecedor-ariba) = ROWID(es-fornecedor-ariba) NO-ERROR.
+    IF AVAIL b-es-fornecedor-ariba THEN
+        ASSIGN b-es-fornecedor-ariba.enviado-SupplierConsolidated = YES.
+
+    FIND CURRENT b-es-fornecedor-ariba NO-LOCK NO-ERROR.
 
 END.
 

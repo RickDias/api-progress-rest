@@ -230,6 +230,7 @@ PROCEDURE pi-load-providers :
   Notes:       
 ------------------------------------------------------------------------------*/
     DEFINE VARIABLE c-source-codepage AS CHARACTER INITIAL "utf-8"  NO-UNDO.
+    DEFINE VARIABLE cPais AS CHARACTER   NO-UNDO.
     
     FOR EACH emitente 
        WHERE emitente.identific > 1 /*-- n∆o exportar cliente --*/
@@ -238,18 +239,29 @@ PROCEDURE pi-load-providers :
         FIND LAST es-fornecedor-ariba WHERE
                   es-fornecedor-ariba.cod-emitente = emitente.cod-emitente NO-LOCK NO-ERROR.
 
+
+        ASSIGN cPais = "".                                                                       
+        FIND FIRST mguni.pais WHERE pais.nome-pais = emitente.pais NO-LOCK NO-ERROR.             
+        IF AVAIL mguni.pais THEN                                                                 
+            ASSIGN cPais = trim(substring(pais.char-1,23,02)).                                   
+                                                                                                 
+                                                                                                 
+        //IF cPais <> "BR" THEN                                                                    
+        //    ASSIGN cLocale = "en_US".                                                            
+
+
         CREATE csvFornecedor.
         ASSIGN csvFornecedor.sourceSystem      = "SAP"
                csvFornecedor.erpVendorId       = STRING(emitente.cod-emitente)
                csvFornecedor.IE                = STRING(emitente.ins-estadual)
-               csvFornecedor.Street            = emitente.endereco
+               csvFornecedor.Street            = REPLACE(emitente.endereco,","," ")
                csvFornecedor.Number            = ""
-               csvFornecedor.Complement        = emitente.endereco2
+               csvFornecedor.Complement        = REPLACE(emitente.endereco2,","," ")
                csvFornecedor.ZipCode           = STRING(emitente.cep,param-global.formato-cep)
                csvFornecedor.District          = emitente.bairro
                csvFornecedor.Municipality      = emitente.cidade
                csvFornecedor.State             = emitente.estado
-               csvFornecedor.Country           = emitente.pais
+               csvFornecedor.Country           = cPais //emitente.pais
                csvFornecedor.SINTEGRA          = STRING(es-fornecedor-ariba.sintegra)
                csvFornecedor.CNPJAtivo         = STRING(es-fornecedor-ariba.CNPJAtivo)
                csvFornecedor.Simples           = STRING(es-fornecedor-ariba.Simples-Nacional)
