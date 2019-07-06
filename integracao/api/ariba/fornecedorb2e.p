@@ -48,8 +48,8 @@ DEF TEMP-TABLE csvFornecedor NO-UNDO
     FIELD CNAE                AS CHAR SERIALIZE-NAME "CNAE"        
     FIELD Mensagem            AS CHAR SERIALIZE-NAME "Mensagem"    
     FIELD Parecer             AS CHAR SERIALIZE-NAME "Parecer"     
-    FIELD Motivo              AS CHAR SERIALIZE-NAME "Motivo"
-    INDEX emitente_id IS PRIMARY UNIQUE erpVendorId.
+    FIELD Motivo              AS CHAR SERIALIZE-NAME "Motivo".
+    //INDEX emitente_id IS PRIMARY UNIQUE erpVendorId.
 
 
 DEF TEMP-TABLE tt-erros
@@ -230,8 +230,73 @@ PROCEDURE pi-load-providers :
   Notes:       
 ------------------------------------------------------------------------------*/
     DEFINE VARIABLE c-source-codepage AS CHARACTER INITIAL "utf-8"  NO-UNDO.
-    DEFINE VARIABLE cPais AS CHARACTER   NO-UNDO.
-    
+    DEFINE VARIABLE cPais             AS CHARACTER                  NO-UNDO.
+    DEFINE VARIABLE iCodEmitente      AS INTEGER  INITIAL 0         NO-UNDO.
+    DEFINE VARIABLE cMotivo           AS CHARACTER INITIAL ""       NO-UNDO.
+
+    DEFINE BUFFER b-es-fornecedor-ariba FOR es-fornecedor-ariba.
+
+    FOR EACH es-fornecedor-ariba NO-LOCK
+       WHERE es-fornecedor-ariba.enviado-csv = NO:
+
+
+        ASSIGN cMotivo = SUBSTITUTE("&1 - &2",REPLACE(REPLACE(es-fornecedor-ariba.erro,CHR(10)," "),CHR(13)," "),
+                                    CODEPAGE-CONVERT(es-fornecedor-ariba.motivo,SESSION:CHARSET,c-source-codepage)).
+
+
+        CREATE csvFornecedor.                                            
+        ASSIGN csvFornecedor.sourceSystem     = "SAP"                                                                                      
+               csvFornecedor.erpVendorId      = "0"                                                                                          
+               csvFornecedor.IE               = es-fornecedor-ariba.IE 
+               csvFornecedor.Street           = es-fornecedor-ariba.Street
+               csvFornecedor.Number           = "0"                                                                                              
+               csvFornecedor.Complement       = es-fornecedor-ariba.Complement                                                                   
+               csvFornecedor.ZipCode          = es-fornecedor-ariba.Zip-Code                                                                     
+               csvFornecedor.District         = es-fornecedor-ariba.District                                                                     
+               csvFornecedor.Municipality     = es-fornecedor-ariba.Municipality                                                                 
+               csvFornecedor.State            = es-fornecedor-ariba.State                                                                        
+               csvFornecedor.Country          = es-fornecedor-ariba.country                                                                      
+               csvFornecedor.SINTEGRA         = STRING(es-fornecedor-ariba.sintegra)                                                             
+               csvFornecedor.CNPJAtivo        = STRING(es-fornecedor-ariba.CNPJAtivo)                                                            
+               csvFornecedor.Simples          = STRING(es-fornecedor-ariba.Simples-Nacional)                                                     
+               csvFornecedor.ScoreAceito      = STRING(es-fornecedor-ariba.ScoreAceito)                                                          
+               csvFornecedor.CNAE             = STRING(es-fornecedor-ariba.CNAE)                                                                 
+               csvFornecedor.Mensagem         = CODEPAGE-CONVERT(es-fornecedor-ariba.mensagem,SESSION:CHARSET,c-source-codepage)                 
+               csvFornecedor.Parecer          = CODEPAGE-CONVERT(es-fornecedor-ariba.parecer,SESSION:CHARSET,c-source-codepage)                  
+               csvFornecedor.Motivo           = cMotivo.                  
+                                                                                                                                             
+                                                                                                                                              
+        /*-- quando o fornecedor estiver cadastro no totvs, atualiza os dados abaixo --*/
+        ASSIGN cPais = ""
+               iCodEmitente = 0.
+        FIND FIRST emitente NO-LOCK WHERE emitente.cod-emitente = es-fornecedor-ariba.cod-emitente NO-ERROR.
+        IF AVAIL emitente THEN
+        DO:
+            ASSIGN iCodEmitente = emitente.cod-emitente.
+            FIND FIRST mguni.pais WHERE pais.nome-pais = emitente.pais NO-LOCK NO-ERROR.        
+            IF AVAIL mguni.pais THEN                                                            
+                ASSIGN cPais = trim(substring(pais.char-1,23,02)).
+
+            ASSIGN csvFornecedor.erpVendorId       = STRING(emitente.cod-emitente)                   
+                   csvFornecedor.IE                = STRING(emitente.ins-estadual)                   
+                   csvFornecedor.Street            = REPLACE(emitente.endereco,","," ")              
+                   csvFornecedor.Complement        = REPLACE(emitente.endereco2,","," ")             
+                   csvFornecedor.ZipCode           = STRING(emitente.cep,param-global.formato-cep)   
+                   csvFornecedor.District          = emitente.bairro                                 
+                   csvFornecedor.Municipality      = emitente.cidade                                 
+                   csvFornecedor.State             = emitente.estado  
+                   csvFornecedor.Motivo            = ""
+                   csvFornecedor.Country           = cPais. //emitente.pais.
+        END.
+        FIND FIRST b-es-fornecedor-ariba WHERE ROWID(b-es-fornecedor-ariba) = ROWID(es-fornecedor-ariba) EXCLUSIVE-LOCK NO-ERROR.
+        IF AVAIL b-es-fornecedor-ariba THEN
+            ASSIGN b-es-fornecedor-ariba.enviado-csv = YES.
+        FIND CURRENT b-es-fornecedor-ariba NO-LOCK NO-ERROR.
+
+    END.
+
+
+    /******************* deprecated 
     FOR EACH emitente 
        WHERE emitente.identific > 1 /*-- nÆo exportar cliente --*/
          AND emitente.data-implant >= TODAY - 30 NO-LOCK:
@@ -243,13 +308,10 @@ PROCEDURE pi-load-providers :
         ASSIGN cPais = "".                                                                       
         FIND FIRST mguni.pais WHERE pais.nome-pais = emitente.pais NO-LOCK NO-ERROR.             
         IF AVAIL mguni.pais THEN                                                                 
-            ASSIGN cPais = trim(substring(pais.char-1,23,02)).                                   
-                                                                                                 
+            ASSIGN cPais = trim(substring(pais.char-1,23,02)).                                  
                                                                                                  
         //IF cPais <> "BR" THEN                                                                    
-        //    ASSIGN cLocale = "en_US".                                                            
-
-
+        //    ASSIGN cLocale = "en_US".
         CREATE csvFornecedor.
         ASSIGN csvFornecedor.sourceSystem      = "SAP"
                csvFornecedor.erpVendorId       = STRING(emitente.cod-emitente)
@@ -272,6 +334,7 @@ PROCEDURE pi-load-providers :
                csvFornecedor.Motivo            = CODEPAGE-CONVERT(es-fornecedor-ariba.motivo,SESSION:CHARSET,c-source-codepage).
 
     END.
+    ****************************************/
 
 END PROCEDURE.
 
