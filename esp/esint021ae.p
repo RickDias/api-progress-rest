@@ -821,7 +821,7 @@ PROCEDURE piAtualizaFornecedor:
        /*                                                                                                     */
        IF  lSendB2E                               =  YES
        AND es-fornecedor-ariba.enviado-b2e        =  NO
-       THEN RUN piBOFornecedor. //RUN piSendB2E.
+       THEN RUN piSendB2E. //RUN piBOFornecedor
    
        IF   lSendBOFornecedor                      =  YES
        AND  lSendB2E                               =  NO
