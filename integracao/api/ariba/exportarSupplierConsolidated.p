@@ -38,7 +38,8 @@ DEF TEMP-TABLE SupplierConsolidated NO-UNDO
     FIELD State                 AS CHAR                      SERIALIZE-NAME "State"                
     FIELD CorporateEmailAddress AS CHAR                      SERIALIZE-NAME "CorporateEmailAddress"
     FIELD Street                AS CHAR                      SERIALIZE-NAME "Street"               
-    FIELD VendorID              AS CHAR                      SERIALIZE-NAME "VendorID"             
+    FIELD VendorID              AS CHAR                      SERIALIZE-NAME "VendorID"     
+    FIELD SupplierIDValue       AS CHAR                      SERIALIZE-NAME "SupplierIDValue"        
     FIELD SupplierIDDomain      AS CHAR INITIAL "networkid"  SERIALIZE-NAME "SupplierIDDomain".
 
 
@@ -256,9 +257,10 @@ EMPTY TEMP-TABLE SupplierConsolidated.
 EMPTY TEMP-TABLE SupplierConsolidated.
 
 
-IF NOT CAN-FIND (FIRST es-fornecedor-ariba 
+IF NOT CAN-FIND (FIRST es-fornecedor-ariba NO-LOCK
                  WHERE es-fornecedor-ariba.cod-emitente <> 0 
-                   AND es-fornecedor-ariba.enviado-SupplierConsolidated = NO NO-LOCK) THEN DO:
+                   AND es-fornecedor-ariba.enviado-SupplierConsolidated = NO) THEN 
+DO:
     CREATE tt-erros.
     ASSIGN tt-erros.cod-erro  = 1
            tt-erros.desc-erro = "NÆo existe itens para serem Integrados".
@@ -288,10 +290,12 @@ FOR EACH es-fornecedor-ariba NO-LOCK
            SupplierConsolidated.City                  = emitente.cidade
            SupplierConsolidated.SystemID              = es-fornecedor-ariba.number //STRING(emitente.cod-emitente)
            SupplierConsolidated.State                 = emitente.estado
-           SupplierConsolidated.Street                = replace(emitente.endereco,","," ")
-           SupplierConsolidated.VendorID              = STRING(emitente.cod-emitente
+           SupplierConsolidated.Street                = emitente.endereco
+           SupplierConsolidated.VendorID              = STRING(emitente.cod-emitente)
            SupplierConsolidated.CorporatePhone        = emitente.telefone[1]
-           SupplierConsolidated.CorporateEmailAddress = emitente.e-mail.
+           SupplierConsolidated.CorporateEmailAddress = emitente.e-mail
+           SupplierConsolidated.SupplierIDValue       = es-fornecedor-ariba.number.
+                                                                
 
     IF emitente.pais = "Brasil" THEN
         ASSIGN SupplierConsolidated.PreferredLanguage = "BrazilianPortuguese".

@@ -257,14 +257,23 @@ FOR EACH es-fornecedor-ariba NO-LOCK
            SupplierLocationConsolidated.PostalCode   = STRING(emitente.cep,"99999-999")
            SupplierLocationConsolidated.Region       = emitente.estado
            SupplierLocationConsolidated.Locale       = cLocale
-           SupplierLocationConsolidated.Street       = REPLACE(emitente.endereco,","," ")
-           SupplierLocationConsolidated.EmailAddress = emitente.e-mail.
+           SupplierLocationConsolidated.Street       = emitente.endereco
+           SupplierLocationConsolidated.EmailAddress = emitente.e-mail
+           SupplierLocationConsolidated.Phone        = emitente.telefone[1].
+           
 
     FIND FIRST cont-emit OF emitente NO-LOCK NO-ERROR.
     IF AVAIL cont-emit THEN
-        ASSIGN SupplierLocationConsolidated.Phone        = cont-emit.telefone 
-               SupplierLocationConsolidated.ContactID    = cont-emit.e-mail
+        ASSIGN SupplierLocationConsolidated.ContactID    = cont-emit.e-mail
                SupplierLocationConsolidated.ContactName  = cont-emit.nome.
+    ELSE
+        ASSIGN SupplierLocationConsolidated.ContactID    = emitente.e-mail
+               SupplierLocationConsolidated.ContactName  = es-fornecedor-ariba.nome-responsavel.    
+
+    
+    
+    
+    
     
     
     /*-- incluido para atualizar o status do registro --*/
