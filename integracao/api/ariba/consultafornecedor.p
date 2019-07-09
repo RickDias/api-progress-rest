@@ -17,6 +17,7 @@
 /*----------------------------------------------------------------------*/
 
 /* ***************************  Definitions  ************************** */
+CURRENT-LANGUAGE = CURRENT-LANGUAGE. 
 
 DEF TEMP-TABLE consulta-fornecedor NO-UNDO SERIALIZE-NAME "Consulta_Fornecedor"
     FIELD CreationDateTime                    AS CHAR
@@ -124,7 +125,13 @@ DEF                   VAR l-retorno-fornecedor AS l                NO-UNDO.
 
 
 /* ***************************  Main Block  *************************** */
+DEFINE VARIABLE h-acomp AS HANDLE      NO-UNDO.
+RUN utp/ut-acomp.p PERSISTENT SET h-acomp.
+
 RUN pi-00-consulta-fornecedor.
+
+RUN pi-finalizar IN h-acomp.
+RETURN "OK":U.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -150,6 +157,8 @@ PROCEDURE pi-00-consulta-fornecedor :
                api-import-for.id-movto           = NEXT-VALUE(seq-export)
                api-import-for.data-movto         = TODAY
                api-import-for.c-json             = ?.
+
+        RUN pi-acompanhar IN h-acomp (SUBSTITUTE("Criando Registro &1",api-import-for.id-movto)).
         
         CREATE sfa-export.
         ASSIGN sfa-export.ind-tipo-trans          = es-api-param.ind-tipo-trans
@@ -169,9 +178,7 @@ PROCEDURE pi-00-consulta-fornecedor :
         
         
     END.
-
-    RETURN "OK":U.
-
+    
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
