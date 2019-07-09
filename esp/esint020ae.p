@@ -92,77 +92,85 @@ THEN DO:
     FIND FIRST es-api-param NO-LOCK 
          WHERE es-api-param.ind-tipo-trans = sfa-export.ind-tipo-trans
            AND es-api-param.cd-tipo-integr = sfa-export.cd-tipo-integr 
-         NO-ERROR. 
+    NO-ERROR. 
+    IF AVAIL es-api-param THEN
+    DO:
+        FIND FIRST api-export-b2e-pj OF sfa-export NO-ERROR.
+        IF AVAIL api-export-b2e-pj THEN 
+        DO:
+            //Ponto novo incluido para testes - CPAS
+            /******** Inicio ******************/
+            CREATE sfa-export.                                                                                    
+            ASSIGN sfa-export.ind-tipo-trans          = es-api-param.ind-tipo-trans                               
+                   sfa-export.id-movto                = api-export-b2e-pj.id-movto                                   
+                   sfa-export.cd-tipo-integr          = es-api-param.cd-tipo-integr.cd-tipo-integr                             
+                   sfa-export.chave                   = STRING(api-import-for.id-movto)                           
+                   sfa-export.cod-status              = 0      /* ---- sem status ----*/                          
+                   sfa-export.data-fim                = ?                                                         
+                   sfa-export.data-inicio             = ?                                                         
+                   sfa-export.data-movto              = NOW                                                       
+                   sfa-export.ind-situacao            = 1      /*---- Pendente -----*/.  
 
-    FIND FIRST api-export-b2e-pj 
-            OF sfa-export 
-         NO-ERROR.
-    IF AVAIL api-export-b2e-pj 
-    THEN DO:
-        RUN piGravaTTFornecedor (OUTPUT c-json,
-                                 OUTPUT c-erro).
-        
-        ASSIGN 
-            api-export-b2e-pj.c-json = c-Json.
-        
-        /* ------------ Envia Objeto Json --------- */
-        RUN piPostJson IN h-esint002 (INPUT c-Json,
-                                      INPUT rowid(es-api-param),
-                                      OUTPUT lResp,
-                                      OUTPUT TABLE RowErrors).
-/*
-        MESSAGE RETURN-VALUE
-            VIEW-AS ALERT-BOX INFO BUTTONS OK.
-        */
-        ASSIGN 
-           api-export-b2e-pj.text-retorno = RETURN-VALUE
-           sfa-export.text-retorno        = RETURN-VALUE.
-        /*
-        IF RETURN-VALUE > ""
-        THEN DO:
-            myParser = NEW ObjectModelParser().
-            oJson = CAST(myParser:Parse(RETURN-VALUE), JsonObject).
-            IF oJson:Has("Sucesso") 
-            THEN ASSIGN
-               cSucesso = oJson:GetLogical("Sucesso").
-            IF oJson:Has("Mensagens") 
-            THEN DO:  
-                oJsonArraySec = oJson:GetJsonArray("Mensagens").
-                DO iCountSec = 1 TO oJsonArraySec:LENGTH:
-                    oJsonObjectSec =  oJsonArraySec:GetJsonObject(iCountSec).          
-                    if oJsonObjectSec:Has("Descricao")
-                    THEN ASSIGN	
-                       c-erro = c-erro
-                              + oJsonObjectSec:GetCharacter("Descricao").
-                END.
-            END.      
-        END.
-        */
-        IF TEMP-TABLE rowErrors:HAS-RECORDS 
-        THEN DO:
-            FOR EACH rowErrors:
-                ASSIGN 
-                   c-erro = c-erro + string(rowerrors.ErrorNumber)  + " - " + rowerrors.ErrorDescription.
-                DELETE OBJECT h-esint002.
+            //******** FIM *****************
+
+            RUN piGravaTTFornecedor (OUTPUT c-json,
+                                     OUTPUT c-erro).
+            
+            ASSIGN api-export-b2e-pj.c-json = c-Json.
+            
+            /* ------------ Envia Objeto Json --------- */
+            RUN piPostJson IN h-esint002 (INPUT c-Json,
+                                          INPUT rowid(es-api-param),
+                                          OUTPUT lResp,
+                                          OUTPUT TABLE RowErrors).
+    /*
+            MESSAGE RETURN-VALUE
+                VIEW-AS ALERT-BOX INFO BUTTONS OK.
+            */
+            ASSIGN api-export-b2e-pj.text-retorno = RETURN-VALUE
+                   sfa-export.text-retorno        = RETURN-VALUE.
+            /*
+            IF RETURN-VALUE > ""
+            THEN DO:
+                myParser = NEW ObjectModelParser().
+                oJson = CAST(myParser:Parse(RETURN-VALUE), JsonObject).
+                IF oJson:Has("Sucesso") 
+                THEN ASSIGN
+                   cSucesso = oJson:GetLogical("Sucesso").
+                IF oJson:Has("Mensagens") 
+                THEN DO:  
+                    oJsonArraySec = oJson:GetJsonArray("Mensagens").
+                    DO iCountSec = 1 TO oJsonArraySec:LENGTH:
+                        oJsonObjectSec =  oJsonArraySec:GetJsonObject(iCountSec).          
+                        if oJsonObjectSec:Has("Descricao")
+                        THEN ASSIGN	
+                           c-erro = c-erro
+                                  + oJsonObjectSec:GetCharacter("Descricao").
+                    END.
+                END.      
             END.
-        END.        
-    END.
-    ELSE ASSIGN 
-       c-erro = c-erro
-              + "Registro tabela do fornecedor nÆo localizada".
-/*
-    MESSAGE c-erro SKIP(2)
-        RETURN-VALUE
-        VIEW-AS ALERT-BOX INFO BUTTONS OK.
-*/        
-    IF c-erro > ""
-    THEN RETURN "NOK".
-
-    FIND FIRST es-fornecedor-ariba 
-         WHERE es-fornecedor-ariba.chave = STRING(api-export-b2e-pj.id-movto) 
-         NO-ERROR.
-    ASSIGN
-       es-fornecedor-ariba.enviado-b2e = YES.
+            */
+            IF TEMP-TABLE rowErrors:HAS-RECORDS 
+            THEN DO:
+                FOR EACH rowErrors:
+                    ASSIGN c-erro = c-erro + string(rowerrors.ErrorNumber)  + " - " + rowerrors.ErrorDescription.
+                    DELETE OBJECT h-esint002.
+                END.
+            END.        
+        END.
+        ELSE ASSIGN c-erro = c-erro + "Registro tabela do fornecedor nÆo localizada".
+    /*
+        MESSAGE c-erro SKIP(2)
+            RETURN-VALUE
+            VIEW-AS ALERT-BOX INFO BUTTONS OK.
+    */        
+        IF c-erro > "" THEN RETURN "NOK".
+    
+        FIND FIRST es-fornecedor-ariba 
+             WHERE es-fornecedor-ariba.chave = STRING(api-export-b2e-pj.id-movto) 
+             NO-ERROR.
+        ASSIGN es-fornecedor-ariba.enviado-b2e = YES.
+    END. //es-api-param
 
 END.
 
@@ -180,9 +188,7 @@ PROCEDURE piGravaTTFornecedor:
  
     DEFINE VARIABLE i             AS INTEGER     NO-UNDO. 
     
-    FIND FIRST es-ariba-b2e-param NO-LOCK
-         NO-ERROR.
-
+    FIND FIRST es-ariba-b2e-param NO-LOCK NO-ERROR.
     IF NOT AVAIL es-ariba-b2e-param
     THEN DO:
         pErro = "Parƒmetros de integra‡Æo Ariba/B2E nÆo cadastrados".

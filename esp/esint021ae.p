@@ -749,9 +749,7 @@ PROCEDURE piAtualizaFornecedor:
        
        ASSIGN es-ariba-b2e-param.PollingMessage = MAX(es-ariba-b2e-param.PollingMessage,INT64(cadastro-fornecedor.PollingMessage)).
 
-      // MESSAGE 
-      //     "es-ariba-b2e-param.PollingMessage" es-ariba-b2e-param.PollingMessage SKIP
-      //     VIEW-AS ALERT-BOX INFO BUTTONS OK.
+      
 
        IF cadastro-fornecedor.Simples-Nacional = "yes" THEN 
            ASSIGN es-fornecedor-ariba.Simples-Nacional = YES.
@@ -821,7 +819,7 @@ PROCEDURE piAtualizaFornecedor:
        /*                                                                                                     */
        IF  lSendB2E                               =  YES
        AND es-fornecedor-ariba.enviado-b2e        =  NO
-       THEN RUN piSendB2E. //RUN piBOFornecedor
+       THEN RUN piBOFornecedor. //RUN piSendB2E.
    
        IF   lSendBOFornecedor                      =  YES
        AND  lSendB2E                               =  NO
