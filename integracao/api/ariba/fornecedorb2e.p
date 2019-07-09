@@ -253,19 +253,18 @@ PROCEDURE pi-load-providers :
                csvFornecedor.Complement       = es-fornecedor-ariba.Complement                                                                   
                csvFornecedor.ZipCode          = es-fornecedor-ariba.Zip-Code                                                                     
                csvFornecedor.District         = es-fornecedor-ariba.District                                                                     
-               csvFornecedor.Municipality     = es-fornecedor-ariba.Municipality                                                                 
+               csvFornecedor.Municipality     = CODEPAGE-CONVERT(es-fornecedor-ariba.Municipality,SESSION:CHARSET,c-source-codepage)                                                                 
                csvFornecedor.State            = es-fornecedor-ariba.State                                                                        
                csvFornecedor.Country          = es-fornecedor-ariba.country                                                                      
-               csvFornecedor.SINTEGRA         = STRING(es-fornecedor-ariba.sintegra)                                                             
-               csvFornecedor.CNPJAtivo        = STRING(es-fornecedor-ariba.CNPJAtivo)                                                            
-               csvFornecedor.Simples          = STRING(es-fornecedor-ariba.Simples-Nacional)                                                     
-               csvFornecedor.ScoreAceito      = STRING(es-fornecedor-ariba.ScoreAceito)                                                          
-               csvFornecedor.CNAE             = STRING(es-fornecedor-ariba.CNAE)                                                                 
+               csvFornecedor.SINTEGRA         = CAPS(SUBSTR(STRING(es-fornecedor-ariba.sintegra),1,1))         + LC(SUBSTR(STRING(es-fornecedor-ariba.sintegra), 2))                                                        
+               csvFornecedor.CNPJAtivo        = CAPS(SUBSTR(STRING(es-fornecedor-ariba.CNPJAtivo),1,1))        + LC(SUBSTR(STRING(es-fornecedor-ariba.CNPJAtivo), 2))             //STRING(es-fornecedor-ariba.CNPJAtivo)                                                            
+               csvFornecedor.Simples          = CAPS(SUBSTR(STRING(es-fornecedor-ariba.Simples-Nacional),1,1)) + LC(SUBSTR(STRING(es-fornecedor-ariba.Simples-Nacional), 2))      //STRING(es-fornecedor-ariba.Simples-Nacional)                                                     
+               csvFornecedor.ScoreAceito      = CAPS(SUBSTR(STRING(es-fornecedor-ariba.ScoreAceito),1,1))      + LC(SUBSTR(STRING(es-fornecedor-ariba.ScoreAceito), 2))           //STRING(es-fornecedor-ariba.ScoreAceito)                                                          
+               csvFornecedor.CNAE             = STRING(es-fornecedor-ariba.CNAE)                                                                                                   
                csvFornecedor.Mensagem         = CODEPAGE-CONVERT(es-fornecedor-ariba.mensagem,SESSION:CHARSET,c-source-codepage)                 
                csvFornecedor.Parecer          = CODEPAGE-CONVERT(es-fornecedor-ariba.parecer,SESSION:CHARSET,c-source-codepage)                  
-               csvFornecedor.Motivo           = cMotivo.                  
-                                                                                                                                             
-                                                                                                                                              
+               csvFornecedor.Motivo           = cMotivo.
+
         /*-- quando o fornecedor estiver cadastro no totvs, atualiza os dados abaixo --*/
         ASSIGN cPais = ""
                iCodEmitente = 0.
@@ -277,10 +276,14 @@ PROCEDURE pi-load-providers :
             IF AVAIL mguni.pais THEN                                                            
                 ASSIGN cPais = trim(substring(pais.char-1,23,02)).
 
+
+            IF CODEPAGE-CONVERT(es-fornecedor-ariba.parecer,SESSION:CHARSET,c-source-codepage) = "" THEN
+                ASSIGN csvFornecedor.Parecer = "APROVADO".
+
             ASSIGN csvFornecedor.erpVendorId       = STRING(emitente.cod-emitente)                   
                    csvFornecedor.IE                = STRING(emitente.ins-estadual)                   
-                   csvFornecedor.Street            = REPLACE(emitente.endereco,","," ")              
-                   csvFornecedor.Complement        = REPLACE(emitente.endereco2,","," ")             
+                   csvFornecedor.Street            = emitente.endereco             
+                   csvFornecedor.Complement        = emitente.endereco2           
                    csvFornecedor.ZipCode           = STRING(emitente.cep,param-global.formato-cep)   
                    csvFornecedor.District          = emitente.bairro                                 
                    csvFornecedor.Municipality      = emitente.cidade                                 
@@ -288,10 +291,19 @@ PROCEDURE pi-load-providers :
                    csvFornecedor.Motivo            = ""
                    csvFornecedor.Country           = cPais. //emitente.pais.
         END.
+        ELSE
+        DO:
+            IF es-fornecedor-ariba.parecer = "" THEN
+                ASSIGN csvFornecedor.Parecer =  cMotivo.
+        END.
+
+
+        /*
         FIND FIRST b-es-fornecedor-ariba WHERE ROWID(b-es-fornecedor-ariba) = ROWID(es-fornecedor-ariba) EXCLUSIVE-LOCK NO-ERROR.
         IF AVAIL b-es-fornecedor-ariba THEN
             ASSIGN b-es-fornecedor-ariba.enviado-csv = YES.
         FIND CURRENT b-es-fornecedor-ariba NO-LOCK NO-ERROR.
+        */
 
     END.
 
