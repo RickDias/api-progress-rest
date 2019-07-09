@@ -57,6 +57,7 @@ DEF TEMP-TABLE tt-imp-pedido-compr NO-UNDO SERIALIZE-NAME "Pedido_Compra"
     FIELD Compl-entrega         AS CHAR     
     FIELD End-entrega           AS CHAR     
     FIELD End-cobranca          AS CHAR     
+    FIELD ReqType               AS CHAR
     FIELD Via-transp            AS INT
     FIELD data-pgto-1           AS DATE
     FIELD data-pgto-2           AS DATE
@@ -645,31 +646,43 @@ DO TRANSACTION ON ERROR UNDO, RETURN ON STOP UNDO, RETURN:
 
             END.
 
-            IF NOT CAN-FIND(FIRST sfa-export WHERE sfa-export.cd-tipo-integr = 20
-                                               AND sfa-export.chave          = STRING(tt-imp-pedido-compr.num-pedido-totvs)
-                                               AND sfa-export.ind-situacao   < 2) THEN DO: 
-    
-                CREATE sfa-export-ped-ariba.
-                ASSIGN sfa-export-ped-ariba.cd-tipo-integr = 20
-                       sfa-export-ped-ariba.id-movto       = NEXT-VALUE(seq-export)
-                       sfa-export-ped-ariba.num-pedido     = tt-imp-pedido-compr.num-pedido-totvs
-                       sfa-export-ped-ariba.data-movto     = NOW
-                       sfa-export-ped-ariba.tp-integracao  = 1
-                       sfa-export-ped-ariba.c-json         = ?.
-        
-                CREATE sfa-export.
-                ASSIGN sfa-export.ind-tipo-trans = 2
-                       sfa-export.id-movto       = sfa-export-ped-ariba.id-movto
-                       sfa-export.cd-tipo-integr = sfa-export-ped-ariba.cd-tipo-integr
-                       sfa-export.chave          = STRING(sfa-export-ped-ariba.num-pedido)
-                       sfa-export.cod-status     = 0      /* ---- sem status ----*/
-                       sfa-export.data-fim       = ?
-                       sfa-export.data-inicio    = ?
-                       sfa-export.data-movto     = NOW
-                       sfa-export.ind-situacao   = 1       /*---- Pendente -----*/.
-    
-            END.
+            MESSAGE "ReqType " tt-imp-pedido-compr.ReqType.
 
+            /*ENVIAR NETWORK*/
+            IF tt-imp-pedido-compr.ReqType = "CUS_REQ_07" OR        /*DEFINO DELOITTE TIPOS DE PEDIDOS A SEREM ENVIADOS*/
+               tt-imp-pedido-compr.ReqType = "CUS_REQ_01" THEN DO:
+
+                MESSAGE "Gerei Pedido Compra Network".
+
+                IF NOT CAN-FIND(FIRST sfa-export WHERE sfa-export.cd-tipo-integr = 20
+                                                   AND sfa-export.chave          = STRING(tt-imp-pedido-compr.num-pedido-totvs)
+                                                   AND sfa-export.ind-situacao   < 2) THEN DO: 
+        
+                    CREATE sfa-export-ped-ariba.
+                    ASSIGN sfa-export-ped-ariba.cd-tipo-integr = 20
+                           sfa-export-ped-ariba.id-movto       = NEXT-VALUE(seq-export)
+                           sfa-export-ped-ariba.num-pedido     = tt-imp-pedido-compr.num-pedido-totvs
+                           sfa-export-ped-ariba.data-movto     = NOW
+                           sfa-export-ped-ariba.tp-integracao  = 1
+                           sfa-export-ped-ariba.c-json         = ?.
+            
+                    CREATE sfa-export.
+                    ASSIGN sfa-export.ind-tipo-trans = 2
+                           sfa-export.id-movto       = sfa-export-ped-ariba.id-movto
+                           sfa-export.cd-tipo-integr = sfa-export-ped-ariba.cd-tipo-integr
+                           sfa-export.chave          = STRING(sfa-export-ped-ariba.num-pedido)
+                           sfa-export.cod-status     = 0      /* ---- sem status ----*/
+                           sfa-export.data-fim       = ?
+                           sfa-export.data-inicio    = ?
+                           sfa-export.data-movto     = NOW
+                           sfa-export.ind-situacao   = 1       /*---- Pendente -----*/.
+        
+                END.
+
+            END.
+            ELSE
+                MESSAGE "NÇO Gerei Pedido Compra Network".
+    
             
         END.
         
@@ -723,28 +736,26 @@ PROCEDURE pi-04-geraPedidoCompra :
     RUN geraNumeroPedidoCompra IN h-boin295 (OUTPUT i-num-pedido).
 
     CREATE tt-pedido-compr.
-    ASSIGN tt-pedido-compr.num-pedido    =  i-num-pedido
-           tt-pedido-compr.char-2        =  tt-imp-pedido-compr.num-pedido
-           tt-pedido-compr.cod-estabel   =  tt-imp-pedido-compr.cod-estabel
-           tt-pedido-compr.cod-emitente  =  INT(tt-imp-pedido-compr.cod-emitente)
-           tt-pedido-compr.cod-emit-terc =  INT(tt-imp-pedido-compr.cod-emitente)
-           tt-pedido-compr.cod-cond-pag  =  INT(tt-imp-pedido-compr.cod-cond-pag)
-           tt-pedido-compr.natureza      =  tt-imp-pedido-compr.natureza     
-           tt-pedido-compr.data-pedido   =  tt-imp-pedido-compr.data-pedido  
-           tt-pedido-compr.situacao      =  2                                        /*FIXO*/
-           //tt-pedido-compr.frete         =  tt-imp-pedido-compr.frete        
-           //tt-pedido-compr.cod-transp    =  tt-imp-pedido-compr.cod-transp
-           tt-pedido-compr.responsavel   =  tt-imp-pedido-compr.responsavel  
-           tt-pedido-compr.impr-pedido   =  YES
-           tt-pedido-compr.comentarios   =  tt-imp-pedido-compr.comentarios  
-           tt-pedido-compr.mot-elimina   =  tt-imp-pedido-compr.mot-elimina  
-           tt-pedido-compr.emergencial   =  YES
-           tt-pedido-compr.contr-forn    =  tt-imp-pedido-compr.contr-forn   
-           tt-pedido-compr.compl-entrega =  tt-imp-pedido-compr.compl-entrega
-           tt-pedido-compr.end-entrega   =  tt-imp-pedido-compr.end-entrega  
-           tt-pedido-compr.end-cobranca  =  tt-imp-pedido-compr.end-cobranca 
-           //tt-pedido-compr.via-transp    =  tt-imp-pedido-compr.via-transp
-           tt-pedido-compr.cod-mensagem  =  100.                         /*VERIFICA*/
+    ASSIGN tt-pedido-compr.num-pedido              =  i-num-pedido
+           tt-pedido-compr.char-2                  =  tt-imp-pedido-compr.num-pedido
+           //SUBSTRING(tt-pedido-compr.char-2,50,20) =  tt-imp-pedido-compr.ReqType
+           tt-pedido-compr.cod-estabel             =  tt-imp-pedido-compr.cod-estabel
+           tt-pedido-compr.cod-emitente            =  INT(tt-imp-pedido-compr.cod-emitente)
+           tt-pedido-compr.cod-emit-terc           =  INT(tt-imp-pedido-compr.cod-emitente)
+           tt-pedido-compr.cod-cond-pag            =  INT(tt-imp-pedido-compr.cod-cond-pag)
+           tt-pedido-compr.natureza                =  tt-imp-pedido-compr.natureza     
+           tt-pedido-compr.data-pedido             =  tt-imp-pedido-compr.data-pedido  
+           tt-pedido-compr.situacao                =  2                                        /*FIXO*/
+           tt-pedido-compr.responsavel             =  tt-imp-pedido-compr.responsavel  
+           tt-pedido-compr.impr-pedido             =  YES
+           tt-pedido-compr.comentarios             =  tt-imp-pedido-compr.comentarios  
+           tt-pedido-compr.mot-elimina             =  tt-imp-pedido-compr.mot-elimina  
+           tt-pedido-compr.emergencial             =  YES
+           tt-pedido-compr.contr-forn              =  tt-imp-pedido-compr.contr-forn   
+           tt-pedido-compr.compl-entrega           =  tt-imp-pedido-compr.compl-entrega
+           tt-pedido-compr.end-entrega             =  tt-imp-pedido-compr.end-entrega  
+           tt-pedido-compr.end-cobranca            =  tt-imp-pedido-compr.end-cobranca 
+           tt-pedido-compr.cod-mensagem            =  100.                         /*VERIFICA*/
 
     IF tt-imp-pedido-compr.frete = "CIF" THEN
         ASSIGN tt-pedido-compr.frete = 1.
@@ -764,48 +775,7 @@ PROCEDURE pi-04-geraPedidoCompra :
     
     END.
 
-    /*
-    FIND FIRST tt-imp-ordem-compra WHERE
-               tt-imp-ordem-compra.num-pedido = tt-imp-pedido-compr.num-pedido NO-LOCK NO-ERROR.
-    IF AVAIL tt-imp-ordem-compra THEN DO:
-    
-        FIND FIRST item-uni-estab WHERE
-                   item-uni-estab.it-codigo = tt-imp-ordem-compra.it-codigo NO-LOCK NO-ERROR.
-        IF AVAIL item-uni-estab THEN
-            //ASSIGN tt-pedido-compr.responsavel = item-uni-estab.cod-comprado.
-    
-        ELSE DO:
-    
-            FIND FIRST ITEM WHERE
-                       ITEM.it-codigo = tt-imp-ordem-compra.it-codigo NO-LOCK NO-ERROR.
-            IF AVAIL ITEM THEN
-                ASSIGN tt-pedido-compr.responsavel = ITEM.cod-comprado.
-    
-        END.
-    
-    END.
-    */
-
-
-    /*
-    FIND FIRST emitente WHERE
-               emitente.cod-emitente = INT(tt-imp-pedido-compr.cod-emitente) NO-LOCK NO-ERROR.
-    IF AVAIL emitente THEN DO:
-    
-        ASSIGN tt-pedido-compr.cod-transp  = emitente.cod-transp
-               tt-imp-pedido-compr.via-transp = emitente.cod-transp.
-    
-        FIND FIRST transporte WHERE 
-                   transporte.cod-transp = emitente.cod-transp NO-LOCK NO-ERROR.
-        IF AVAIL transporte THEN
-            ASSIGN tt-pedido-compr.via-transp   = transporte.via-transp
-                   tt-imp-pedido-compr.via-transp  = transporte.via-transp.
-    
-    END.
-    */
-
-    ASSIGN //tt-imp-pedido-compr.num-pedido       = i-num-pedido
-           tt-imp-pedido-compr.num-pedido-totvs = i-num-pedido.
+    ASSIGN tt-imp-pedido-compr.num-pedido-totvs = i-num-pedido.
     
     IF VALID-HANDLE(h-boin295) THEN DO:
         DELETE PROCEDURE h-boin295.
@@ -863,12 +833,12 @@ PROCEDURE pi-05-geraOrdemCompra :
            tt-ordem-compra.Codigo-ipi     = tt-imp-ordem-compra.Codigo-ipi  
            tt-ordem-compra.aliquota-ipi   = IF tt-imp-ordem-compra.Aliquota-ipi = ? THEN 0 ELSE tt-imp-ordem-compra.Aliquota-ipi  //27-06 Leandro Policarpo 
            tt-ordem-compra.Codigo-icm     = tt-imp-ordem-compra.Codigo-icm  
-           tt-ordem-compra.aliquota-icm   = IF tt-imp-ordem-compra.Aliquota-icm = ? THEN 0 ELSE tt-imp-ordem-compra.Aliquota-ipi  //27-6 Leandro Policarpo 
+           tt-ordem-compra.aliquota-icm   = IF tt-imp-ordem-compra.Aliquota-icm = ? THEN 0 ELSE tt-imp-ordem-compra.Aliquota-icm  //27-6 Leandro Policarpo 
            //tt-ordem-compra.Aliquota-iss   = tt-imp-ordem-compra.Aliquota-iss
            tt-ordem-compra.valor-frete    = tt-imp-ordem-compra.Valor-frete 
            tt-ordem-compra.cod-cond-pag   = INT(tt-imp-ordem-compra.cod-cond-pag)
            tt-ordem-compra.requisitante   = tt-imp-ordem-compra.requisitante
-           tt-ordem-compra.usuario        = tt-imp-ordem-compra.usuario
+           tt-ordem-compra.usuario        = tt-imp-ordem-compra.requisitante
            tt-ordem-compra.narrativa      = tt-imp-ordem-compra.narrativa.
 
     FIND FIRST item-uni-estab WHERE
@@ -876,10 +846,7 @@ PROCEDURE pi-05-geraOrdemCompra :
                item-uni-estab.cod-estabel = tt-imp-pedido-compr.cod-estabel NO-LOCK NO-ERROR.
     IF AVAIL item-uni-estab THEN DO:
 
-        ASSIGN //tt-ordem-compra.cod-comprado     = item-uni-estab.cod-comprado
-               //tt-ordem-compra.usuario          = item-uni-estab.cod-comprado
-               //tt-imp-ordem-compra.requisitante = item-uni-estab.cod-comprado
-               tt-ordem-compra.tp-despesa       = item-uni-estab.tp-desp-padrao
+        ASSIGN tt-ordem-compra.tp-despesa       = item-uni-estab.tp-desp-padrao
                tt-ordem-compra.dep-almoxar      = item-uni-estab.deposito-pad .
 
         
@@ -897,21 +864,15 @@ PROCEDURE pi-05-geraOrdemCompra :
         FIND FIRST ITEM WHERE
                    ITEM.it-codigo = tt-imp-ordem-compra.it-codigo NO-LOCK NO-ERROR.
         IF AVAIL ITEM THEN
-            ASSIGN //tt-ordem-compra.cod-comprado     = ITEM.cod-comprado
-                   //tt-ordem-compra.usuario          = ITEM.cod-comprado
-                   //tt-imp-ordem-compra.requisitante = ITEM.cod-comprado
-                   tt-ordem-compra.tp-despesa       = ITEM.tp-desp-padrao
+            ASSIGN tt-ordem-compra.tp-despesa       = ITEM.tp-desp-padrao
                    tt-ordem-compra.dep-almoxar      = ITEM.deposito-pad.
 
 
     END.
 
-    ASSIGN tt-ordem-compra.codigo-ipi     = NO        /* 03/07 - BCC */
-           tt-imp-ordem-compra.codigo-ipi = NO.   /* 03/07 - BCC */
-    
     IF tt-imp-ordem-compra.Aliquota-ipi > 0 THEN
-        ASSIGN tt-ordem-compra.codigo-ipi     = YES
-               tt-imp-ordem-compra.codigo-ipi = YES.
+        ASSIGN tt-ordem-compra.codigo-ipi     = NO
+               tt-imp-ordem-compra.codigo-ipi = NO.
 
     IF tt-imp-ordem-compra.natureza = 2 THEN DO:
 
@@ -940,16 +901,8 @@ PROCEDURE pi-05-geraOrdemCompra :
     ASSIGN tt-ordem-compra.numero-ordem     = i-num-ordem
            tt-imp-ordem-compra.numero-ordem = i-num-ordem.
 
-    MESSAGE "i-num-ordem " i-num-ordem.
-
     IF NOT VALID-HANDLE(h-boin274sd) THEN
         RUN inbo/boin274vl.p PERSISTENT SET h-boin274vl.
-
-    MESSAGE "CLF >>>>>>>>>>>> L-MANUT-ITEM-FORNEC " l-manut-item-fornec
-        VIEW-AS ALERT-BOX INFO BUTTONS OK.
-
-
-    
 
     ASSIGN lLoop = TRUE.
 
@@ -1045,7 +998,8 @@ ASSIGN tt-cotacao-item.numero-ordem = tt-imp-ordem-compra.numero-ordem
        tt-cotacao-item.valor-frete  = IF tt-imp-ordem-compra.valor-frete = ? THEN 0 ELSE tt-imp-ordem-compra.valor-frete
        tt-cotacao-item.cod-cond-pag = INT(tt-imp-pedido-compr.cod-cond-pag)
        tt-cotacao-item.contato      = "IMPORTADO ARIBA" 
-       tt-cotacao-item.valor-taxa   = 0   /**aqui taxa **/
+       tt-cotacao-item.valor-taxa   = 0   /**aqui taxa BCC **/
+       tt-cotacao-item.nr-dias-taxa = 0   /**aqui taxa BCC **/
        tt-cotacao-item.cod-comprado = tt-imp-pedido-compr.responsavel
        tt-cotacao-item.hora-atualiz = STRING(TIME,'HH:MM')
        tt-cotacao-item.cot-aprovada = YES.
