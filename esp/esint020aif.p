@@ -12,9 +12,15 @@
 {esp/esint0020.i}
 
 /*603833*/
-DEF VAR l-debug AS LOG INIT NO NO-UNDO.
+DEF VAR l-debug AS LOG INIT YES NO-UNDO.
 
-//FUNCTION fnc-proximo-emit RETURNS INTEGER() FORWARD.
+&GLOBAL-DEFINE ROW-NUM-DEFINED YES
+
+DEFINE TEMP-TABLE ttDistEmitente NO-UNDO LIKE dist-emitente
+&IF "{&ROW-NUM-DEFINED}":U = "YES":U &THEN
+    FIELD RowNum AS INTEGER INIT 1
+&ENDIF
+    FIELD r-Rowid AS ROWID.
 
 DEF TEMP-TABLE ttx-emitente NO-UNDO 
           LIKE emitente.
@@ -22,7 +28,8 @@ DEF TEMP-TABLE ttx-emitente NO-UNDO
 DEF BUFFER empresa     FOR mgcad.empresa.
 DEF BUFFER bf-emitente FOR emitente.
 
-//{esp/esint001aic.i}
+
+
 
 DEF  INPUT PARAM c-acao      AS c         NO-UNDO.
 DEF  INPUT PARAM rw-registro AS ROWID     NO-UNDO.
@@ -43,61 +50,53 @@ DEF VAR l-ambos              AS l         NO-UNDO.
 DEF VAR iNumEmit             AS i         NO-UNDO.
 
 DEF VAR c-destino            AS c         NO-UNDO. 
-DEF VAR c-filename           AS c         NO-UNDO. 
+DEF VAR c-filename           AS c         NO-UNDO.
+DEFINE VARIABLE h-bodi275 AS HANDLE   NO-UNDO.
+DEFINE VARIABLE c-return AS CHARACTER   NO-UNDO.
 
 DO TRANS:
 
-   FIND empresa NO-LOCK
-        WHERE empresa.ep-codigo = i-ep-codigo-usuario 
-        NO-ERROR.
+   FIND empresa NO-LOCK WHERE empresa.ep-codigo = i-ep-codigo-usuario NO-ERROR.
    
    RUN cdp/cdapi366b.r PERSISTENT SET hApi.
    
    FIND FIRST es-fornecedor-ariba EXCLUSIVE-LOCK
         WHERE ROWID(es-fornecedor-ariba) = rw-registro
-        NO-ERROR.
-
+   NO-ERROR.
    IF NOT AVAIL es-fornecedor-ariba
    THEN DO:
-       ASSIGN
-          c-erro = "es-fonrecedor-ariba nÆo encontrado".
+       ASSIGN c-erro = "es-fonrecedor-ariba nÆo encontrado".
        RETURN "NOK".
    END.
 
-   FIND FIRST es-ariba-b2e-param NO-LOCK
-        NO-ERROR.
+   FIND FIRST es-ariba-b2e-param NO-LOCK NO-ERROR.
    
    IF NOT AVAIL es-ariba-b2e-param
    THEN DO:
        c-Erro = "Parƒmetros de integra‡Æo Ariba/B2E nÆo cadastrados".
-       ASSIGN
-          es-fornecedor-ariba.erro = c-erro.
+       ASSIGN es-fornecedor-ariba.erro = c-erro.
        RELEASE es-fornecedor-ariba.
        RETURN "NOK".
    END.
 
 
-   IF es-fornecedor-ariba.cnpj > ""
-   THEN ASSIGN
-      c-cgc = es-fornecedor-ariba.cnpj.
-   IF es-fornecedor-ariba.cpf > ""
-   THEN ASSIGN
-      c-cgc = es-fornecedor-ariba.cpf.
-   ASSIGN
-      c-cgc = REPLACE(c-cgc,".","")
-      c-cgc = REPLACE(c-cgc,"-","")
-      c-cgc = REPLACE(c-cgc,"/","").
+   IF es-fornecedor-ariba.cnpj > "" THEN 
+       ASSIGN c-cgc = es-fornecedor-ariba.cnpj.
+   IF es-fornecedor-ariba.cpf > "" THEN 
+       ASSIGN c-cgc = es-fornecedor-ariba.cpf.
+
+   //Elimina os caracteres especiais
+   ASSIGN c-cgc = REPLACE(c-cgc,".","")
+          c-cgc = REPLACE(c-cgc,"-","")
+          c-cgc = REPLACE(c-cgc,"/","").
    
-   IF es-fornecedor-ariba.cpf + es-fornecedor-ariba.cnpj > ""
-   THEN FIND FIRST emitente NO-LOCK
-        WHERE emitente.cgc          = c-cgc
+   IF es-fornecedor-ariba.cpf + es-fornecedor-ariba.cnpj > "" THEN 
+       FIND FIRST emitente NO-LOCK WHERE emitente.cgc = c-cgc
 /*          AND emitente.ins-estadual = es-fornecedor-ariba.ie *************/
-        NO-ERROR.
+       NO-ERROR.
    ELSE DO:
-      IF es-fornecedor-ariba.cod-emitente > 0
-      THEN FIND FIRST emitente NO-LOCK
-           WHERE emitente.cod-emitente = es-fornecedor-ariba.cod-emitente
-           NO-ERROR.
+      IF es-fornecedor-ariba.cod-emitente > 0 THEN 
+          FIND FIRST emitente NO-LOCK WHERE emitente.cod-emitente = es-fornecedor-ariba.cod-emitente NO-ERROR.
    END.
 
    IF l-debug THEN DO:
@@ -106,20 +105,18 @@ DO TRANS:
       THEN MESSAGE "**** emitente " emitente.cgc emitente.cod-emitente VIEW-AS ALERT-BOX.
    END.
 
-   IF NOT AVAIL emitente
-   THEN DO ON ERROR UNDO, LEAVE:
+   IF NOT AVAIL emitente THEN 
+       DO ON ERROR UNDO, LEAVE:
       RUN cdp/cd9960.p (OUTPUT iNumEmit).
       IF l-debug THEN MESSAGE "iNumEmit " + STRING(iNumEmit) VIEW-AS ALERT-BOX.
       ASSIGN 
          i-oper   = 1.
    END.
    ELSE DO:
-       ASSIGN
-         iNumEmit = emitente.cod-emitente
-         i-oper   = 2.
-      IF emitente.identific = 1
-      THEN ASSIGN
-         l-ambos  = YES.
+       ASSIGN iNumEmit = emitente.cod-emitente
+              i-oper   = 2.
+      IF emitente.identific = 1 THEN 
+          ASSIGN l-ambos  = YES.
 
       RUN piCriaDistEmitente. 
 
@@ -127,25 +124,21 @@ DO TRANS:
 
    CREATE tt_emitente_integr_old_4.
    
-   ASSIGN 
-       tt_emitente_integr_old_4.num_tip_operac        = 1
-       tt_emitente_integr_old_4.cod_emitente          = iNumEmit
-       tt_emitente_integr_old_4.cod_versao_integracao = 1.
+   ASSIGN tt_emitente_integr_old_4.num_tip_operac        = 1
+          tt_emitente_integr_old_4.cod_emitente          = iNumEmit
+          tt_emitente_integr_old_4.cod_versao_integracao = 1.
    
-   IF i-oper = 1
-   THEN ASSIGN
-      tt_emitente_integr_old_4.identific              = 2.
-   ELSE ASSIGN                                 
-      tt_emitente_integr_old_4.identific              = integer(emitente.identific)
-      tt_emitente_integr_old_4.cgc                    = emitente.cgc
-      tt_emitente_integr_old_4.nome_abrev             = emitente.nome-abrev
-      tt_emitente_integr_old_4.nome_matriz            = IF   emitente.nome-matriz = "" 
+   IF i-oper = 1 THEN 
+       ASSIGN tt_emitente_integr_old_4.identific              = 2.
+   ELSE 
+       ASSIGN  tt_emitente_integr_old_4.identific              = integer(emitente.identific)
+               tt_emitente_integr_old_4.cgc                    = emitente.cgc
+               tt_emitente_integr_old_4.nome_abrev             = emitente.nome-abrev
+               tt_emitente_integr_old_4.nome_matriz            = IF   emitente.nome-matriz = "" 
                                                         THEN emitente.nome-abrev
                                                         ELSE emitente.nome-matriz.
 
-   ASSIGN
-      tt_emitente_integr_old_4.nome_emit              = es-fornecedor-ariba.Corporate-Name
-      .
+   ASSIGN tt_emitente_integr_old_4.nome_emit              = es-fornecedor-ariba.Corporate-Name.
 
    IF i-oper = 1
    THEN DO: 
@@ -518,31 +511,54 @@ PROCEDURE piCriaDistEmitente:
         LIKE dist-emitente
         FIELD r-rowid AS ROWID.
 
-    IF NOT VALID-HANDLE(h-bodi275) THEN
-        RUN dibo/bodi275.p PERSISTENT SET h-bodi275.
-    
-    EMPTY TEMP-TABLE ttDistEmitente.
+        IF NOT VALID-HANDLE(h-bodi275) THEN                         
+            RUN dibo/bodi275.p PERSISTENT SET h-bodi275.            
+                                                                    
+        EMPTY TEMP-TABLE ttDistEmitente. 
+        
+        RUN openQueryStatic IN h-bodi275 (INPUT "Main").
+        
+        RUN findCodigo IN h-bodi275 (INPUT es-fornecedor-ariba.cod-emitente, OUTPUT c-return).
 
 
-    FIND FIRST dist-emitente NO-LOCK 
-         WHERE dist-emitente.cod-emitente = emitente.cod-emitente  NO-ERROR.
+        IF c-return = "" THEN
+        DO:
+            RUN getRecord  IN h-bodi275(OUTPUT TABLE ttDistEmitente).
+            FIND FIRST ttDistEmitente NO-ERROR.
+        END.
+        ELSE CREATE ttDistEmitente.
 
-
-    CREATE ttDistEmitente.
-    ASSIGN ttDistEmitente.cod-emitente = emitente.cod-emitente
-           ttDistEmitente.dat-vigenc-inicial  = TODAY          
-           ttDistEmitente.dat-vigenc-final    = 12/31/9999.   
-
-
-
-    IF ( AVAIL dist-emitente AND dist-emitente.idi-sit-fornec > 1 )  
-            OR es-fornecedor-ariba.ind-inativado = 1 THEN
-        ASSIGN ttDistEmitente.idi-sit-fornec  = 1. 
-    ELSE
-        ASSIGN ttDistEmitente.idi-sit-fornec  = 2. 
-
-
-
+        IF es-fornecedor-ariba.ind-inativado > 0 THEN                             
+        DO:                                                                       
+            ASSIGN ttDistEmitente.dat-vigenc-inicial = TODAY                      
+                   ttDistEmitente.dat-vigenc-final   = 12/31/9999.                
+                                                                                  
+            IF es-fornecedor-ariba.ind-inativado = 1 THEN                         
+                ASSIGN ttDistEmitente.idi-sit-fornec      = 3.                    
+            ELSE                                                                  
+                ASSIGN ttDistEmitente.idi-sit-fornec      = 2.                    
+        END.                                                                      
+        ELSE                                                                      
+        DO:                                                                       
+            IF ttDistEmitente.idi-sit-fornec      > 1 THEN                        
+            ASSIGN ttDistEmitente.idi-sit-fornec      = 2                         
+                   ttDistEmitente.dat-vigenc-inicial  = TODAY                     
+                   ttDistEmitente.dat-vigenc-final    = 12/31/9999.               
+                                                                                  
+                                                                                  
+        END.                                                                      
+                                                                                  
+        RUN setRecord IN h-bodi275 (INPUT TABLE ttDistEmitente).                  
+                                                                                  
+        IF c-RETURN = "" THEN                                                     
+           RUN updateRecord IN h-bodi275.                                         
+        ELSE                                                                      
+            RUN createRecord IN h-bodi275.                                        
+                                                                                  
+                                                                                  
+                                                                                  
+        IF VALID-HANDLE(h-bodi275) THEN                                           
+            DELETE PROCEDURE h-bodi275.                                           
 
 
 
