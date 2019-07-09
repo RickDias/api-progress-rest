@@ -258,7 +258,7 @@ FOR EACH es-fornecedor-ariba NO-LOCK
            SupplierLocationConsolidated.Region       = emitente.estado
            SupplierLocationConsolidated.Locale       = cLocale
            SupplierLocationConsolidated.Street       = REPLACE(emitente.endereco,","," ")
-           SupplierLocationConsolidated.EmailAddress = emitente.e-mai.
+           SupplierLocationConsolidated.EmailAddress = emitente.e-mail.
 
     FIND FIRST cont-emit OF emitente NO-LOCK NO-ERROR.
     IF AVAIL cont-emit THEN
@@ -268,12 +268,12 @@ FOR EACH es-fornecedor-ariba NO-LOCK
     
     
     /*-- incluido para atualizar o status do registro --*/
-    FIND FIRST b-es-fornecedor-ariba EXCLUSIVE-LOCK
-         WHERE ROWID(b-es-fornecedor-ariba) = ROWID(es-fornecedor-ariba)  NO-ERROR.
-    IF AVAIL b-es-fornecedor-ariba THEN
-        ASSIGN es-fornecedor-ariba.enviado-SupplierLocationConsolid = YES.
-
-    FIND CURRENT b-es-fornecedor-ariba NO-LOCK NO-ERROR.
+    //FIND FIRST b-es-fornecedor-ariba EXCLUSIVE-LOCK
+    //     WHERE ROWID(b-es-fornecedor-ariba) = ROWID(es-fornecedor-ariba)  NO-ERROR.
+    //IF AVAIL b-es-fornecedor-ariba THEN
+    //    ASSIGN es-fornecedor-ariba.enviado-SupplierLocationConsolid = YES.
+    //
+    //FIND CURRENT b-es-fornecedor-ariba NO-LOCK NO-ERROR.
 
     
 END.

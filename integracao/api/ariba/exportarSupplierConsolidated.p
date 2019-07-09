@@ -27,19 +27,19 @@
 {cdp/cdcfgmat.i}
 
 DEF TEMP-TABLE SupplierConsolidated NO-UNDO
-    FIELD country               AS CHAR
-    FIELD PreferredLanguage     AS CHAR
-    FIELD organizationType      AS CHAR
-    FIELD NAME                  AS CHAR
-    FIELD PostalCode            AS CHAR
-    FIELD City                  AS CHAR
-    FIELD SystemID              AS CHAR
-    FIELD CorporatePhone        AS CHAR
-    FIELD State                 AS CHAR
-    FIELD CorporateEmailAddress AS CHAR
-    FIELD Street                AS CHAR
-    FIELD VendorID              AS CHAR
-    FIELD SupplierIDDomain      AS CHAR INITIAL "networkid".
+    FIELD country               AS CHAR                      SERIALIZE-NAME "country"
+    FIELD PreferredLanguage     AS CHAR                      SERIALIZE-NAME "PreferredLanguage"
+    FIELD organizationType      AS CHAR                      SERIALIZE-NAME "organizationType" 
+    FIELD NAME                  AS CHAR                      SERIALIZE-NAME "NAME"       
+    FIELD PostalCode            AS CHAR                      SERIALIZE-NAME "PostalCode" 
+    FIELD City                  AS CHAR                      SERIALIZE-NAME "City"                 
+    FIELD SystemID              AS CHAR                      SERIALIZE-NAME "SystemID"             
+    FIELD CorporatePhone        AS CHAR                      SERIALIZE-NAME "CorporatePhone"       
+    FIELD State                 AS CHAR                      SERIALIZE-NAME "State"                
+    FIELD CorporateEmailAddress AS CHAR                      SERIALIZE-NAME "CorporateEmailAddress"
+    FIELD Street                AS CHAR                      SERIALIZE-NAME "Street"               
+    FIELD VendorID              AS CHAR                      SERIALIZE-NAME "VendorID"             
+    FIELD SupplierIDDomain      AS CHAR INITIAL "networkid"  SERIALIZE-NAME "SupplierIDDomain".
 
 
 DEF TEMP-TABLE SupplierLocationConsolidated NO-UNDO
@@ -256,9 +256,9 @@ EMPTY TEMP-TABLE SupplierConsolidated.
 EMPTY TEMP-TABLE SupplierConsolidated.
 
 
-IF NOT CAN-FIND (FIRST es-fornecedor-ariba WHERE
-                       es-fornecedor-ariba.cod-emitente <> 0 AND
-                       es-fornecedor-ariba.enviado-SupplierConsolidated = NO NO-LOCK) THEN DO:
+IF NOT CAN-FIND (FIRST es-fornecedor-ariba 
+                 WHERE es-fornecedor-ariba.cod-emitente <> 0 
+                   AND es-fornecedor-ariba.enviado-SupplierConsolidated = NO NO-LOCK) THEN DO:
     CREATE tt-erros.
     ASSIGN tt-erros.cod-erro  = 1
            tt-erros.desc-erro = "NÆo existe itens para serem Integrados".
@@ -267,8 +267,7 @@ END.
 
 FOR EACH es-fornecedor-ariba NO-LOCK
    WHERE es-fornecedor-ariba.cod-emitente <> 0    
-     AND es-fornecedor-ariba.enviado-SupplierConsolidated = NO :
-
+     AND es-fornecedor-ariba.enviado-SupplierConsolidated = NO:
 
     FIND FIRST emitente NO-LOCK
          WHERE emitente.cod-emitente = es-fornecedor-ariba.cod-emitente  NO-ERROR.
@@ -279,19 +278,20 @@ FOR EACH es-fornecedor-ariba NO-LOCK
     IF AVAIL mguni.pais THEN
         ASSIGN cPais = trim(substring(pais.char-1,23,02)).
 
-
     IF cPais <> "BR" THEN
         ASSIGN cLocale = "en_US".
 
     CREATE SupplierConsolidated.
-    ASSIGN SupplierConsolidated.country       = cPais
-           SupplierConsolidated.NAME          = emitente.nome-emit
-           SupplierConsolidated.PostalCode    = STRING(emitente.cep,"99999-999")
-           SupplierConsolidated.City          = emitente.cidade
-           SupplierConsolidated.SystemID      = STRING(emitente.cod-emitente)
-           SupplierConsolidated.State         = emitente.estado
-           SupplierConsolidated.Street        = replace(emitente.endereco,","," ")
-           SupplierConsolidated.VendorID      = STRING(emitente.cod-emitente).
+    ASSIGN SupplierConsolidated.country               = cPais
+           SupplierConsolidated.NAME                  = emitente.nome-emit
+           SupplierConsolidated.PostalCode            = STRING(emitente.cep,"99999-999")
+           SupplierConsolidated.City                  = emitente.cidade
+           SupplierConsolidated.SystemID              = es-fornecedor-ariba.number //STRING(emitente.cod-emitente)
+           SupplierConsolidated.State                 = emitente.estado
+           SupplierConsolidated.Street                = replace(emitente.endereco,","," ")
+           SupplierConsolidated.VendorID              = STRING(emitente.cod-emitente
+           SupplierConsolidated.CorporatePhone        = emitente.telefone[1]
+           SupplierConsolidated.CorporateEmailAddress = emitente.e-mail.
 
     IF emitente.pais = "Brasil" THEN
         ASSIGN SupplierConsolidated.PreferredLanguage = "BrazilianPortuguese".
@@ -303,18 +303,20 @@ FOR EACH es-fornecedor-ariba NO-LOCK
     ELSE
         ASSIGN SupplierConsolidated.organizationType = "Corporation".
 
-    FIND FIRST cont-emit OF emitente NO-LOCK NO-ERROR.
-    IF AVAIL cont-emit THEN
-        ASSIGN SupplierConsolidated.CorporatePhone        = cont-emit.telefone 
-               SupplierConsolidated.CorporateEmailAddress = cont-emit.e-mail.
-    
-    /*-- atualiza o status de envio do fornecedor --*/
-    FIND FIRST b-es-fornecedor-ariba EXCLUSIVE-LOCK
-         WHERE ROWID(b-es-fornecedor-ariba) = ROWID(es-fornecedor-ariba) NO-ERROR.
-    IF AVAIL b-es-fornecedor-ariba THEN
-        ASSIGN b-es-fornecedor-ariba.enviado-SupplierConsolidated = YES.
+    /*-- ajustado regra para buscar os dados do emitente - cpas 09.07.2019 --*/
+    //FIND FIRST cont-emit OF emitente NO-LOCK NO-ERROR.
+    //IF AVAIL cont-emit THEN
+    //    ASSIGN SupplierConsolidated.CorporatePhone        = cont-emit.telefone 
+    //           SupplierConsolidated.CorporateEmailAddress = cont-emit.e-mail.
+    /***************************************************************************/
 
-    FIND CURRENT b-es-fornecedor-ariba NO-LOCK NO-ERROR.
+    /*-- atualiza o status de envio do fornecedor --*/
+    //FIND FIRST b-es-fornecedor-ariba EXCLUSIVE-LOCK
+    //     WHERE ROWID(b-es-fornecedor-ariba) = ROWID(es-fornecedor-ariba) NO-ERROR.
+    //IF AVAIL b-es-fornecedor-ariba THEN
+    //    ASSIGN b-es-fornecedor-ariba.enviado-SupplierConsolidated = YES.
+    //
+    //FIND CURRENT b-es-fornecedor-ariba NO-LOCK NO-ERROR.
 
 END.
 
