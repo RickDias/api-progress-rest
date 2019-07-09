@@ -266,7 +266,7 @@ PROCEDURE piGravaTTEmitente:
                tt_emitente.NomeAbreviado           = emitente.nome-abrev            
                tt_emitente.LimiteCredito           = dec(emitente.lim-credito) 
                tt_emitente.AvaliacaoCredito        = LOG(emitente.ind-aval   )            
-               tt_emitente.TipoCredito             = entry(emitente.Ind-cre-cli,cTipoCredito)
+               tt_emitente.TipoCredito             = IF emitente.Ind-cre-cli = 0 THEN entry(1,cTipoCredito) ELSE entry(emitente.Ind-cre-cli,cTipoCredito)
                tt_emitente.Banco                   = IF emitente.cod-banco > 0 THEN string(emitente.cod-banco,"999" ) ELSE ""
                tt_emitente.Agencia                 = string(emitente.agencia,"X(4)")               
                tt_emitente.Conta                   = string(emitente.conta-corren,"X(10)")
@@ -375,7 +375,7 @@ PROCEDURE piGravaTTCondicaoPagto:
             FOR EACH cond-pagto NO-LOCK WHERE cond-pagto.cod-cond-pag = es-gp-emit-cond-pagto.cod-cond-pag :
             
                 CREATE tt_CondicaoPagamentoList.
-                ASSIGN tt_CondicaoPagamentoList.codigoCondicao = string(es-gp-emit-cond-pagto.cod-cond-pag)
+                ASSIGN tt_CondicaoPagamentoList.codigoCondicao = trim(string(es-gp-emit-cond-pagto.cod-cond-pag,">99"))
                        tt_CondicaoPagamentoList.descricao      = caps(cond-pagto.descricao).
             END.
         END.

@@ -732,9 +732,13 @@ IF NOT (hnd_apps_server:CONNECTED()) THEN DO:
     RETURN .
 END.
 
-
 IF (hnd_apps_server:CONNECTED()) THEN DO:
-    RUN esp/esint001rp.p ON hnd_apps_server ASYNCHRONOUS SET hnd_apps_server
+    IF rs-tipo-trans = 1 THEN
+        RUN esp/esint001irp.p ON hnd_apps_server ASYNCHRONOUS SET hnd_apps_server
+    /*EVENT-PROCEDURE "pi-finaliza" */ (INPUT rs-tipo-trans, INPUT fi-cd-sistema).
+
+    ELSE
+        RUN esp/esint001erp.p ON hnd_apps_server ASYNCHRONOUS SET hnd_apps_server
     /*EVENT-PROCEDURE "pi-finaliza" */ (INPUT rs-tipo-trans, INPUT fi-cd-sistema).
 END.
 

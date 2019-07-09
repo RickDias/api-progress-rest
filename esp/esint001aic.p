@@ -42,6 +42,8 @@ DEFINE VARIABLE i-portador-rede    LIKE emitente.portador.
 DEFINE VARIABLE i-modalidade-rede  LIKE emitente.modalidade.
 DEFINE VARIABLE i-port-prefer-rede LIKE emitente.port-prefer.
 DEFINE VARIABLE i-mod-prefer-rede  LIKE emitente.mod-prefer.
+DEFINE VARIABLE i-cod-gr-cli-rede  LIKE emitente.cod-gr-cli.
+DEFINE VARIABLE i-instr-banc       AS INTEGER NO-UNDO.
 
 DEFINE BUFFER bf-es-gp-emit-canal FOR es-gp-emit-canal.
 
@@ -79,21 +81,17 @@ RUN btb/btapi910za.p (INPUT "geosales",
 
 find empresa no-lock
     where empresa.ep-codigo = i-ep-codigo-usuario no-error.
-
+FIND FIRST tt_emitente NO-LOCK NO-ERROR.
 EMPTY TEMP-TABLE tt-emitente.
-
-
-FIND FIRST emitente WHERE emitente.cgc = tt_emitente.cnpj NO-LOCK NO-ERROR.
+FIND FIRST emitente WHERE emitente.cgc = trim(tt_emitente.cnpj) NO-LOCK NO-ERROR.
 IF NOT AVAIL emitente THEN DO:
     ASSIGN v_tipo_movto = "Incluir".
 END.
 ELSE DO:
-    IF emitente.identific = 2 THEN
+     IF emitente.identific = 2 THEN 
         ASSIGN v_tipo_movto = "Alterar".
     ELSE RETURN "OK".
 END.
-
-MESSAGE "antes do importa".
 
 RUN piImportParam.
 
@@ -105,7 +103,7 @@ IF NOT AVAIL tt-emitente THEN DO:
     RETURN "NOK".
 END.
 
-
+DO TRANSACTION:
 IF tt-emitente.tipo-movimento = "Incluir" THEN DO:
 
     ASSIGN iNumEmit = fnc-proximo-emit().
@@ -117,12 +115,12 @@ END.
 ELSE DO: /* alteraùˇo */
     FIND emitente WHERE emitente.cgc = tt-emitente.cpfcnpj NO-LOCK NO-ERROR.
     IF AVAIL emitente THEN DO:
-        
-        i-count = i-count + 1.
+        ASSIGN i-count = i-count + 1.
 
         ASSIGN iNumEmit = integer(emitente.cod-emitente)
                i-cod-rep-ant = emitente.cod-rep.        
     END.
+END.
 END.
 
 ASSIGN pCodEmitenteReturn = iNumEmit.
@@ -133,9 +131,16 @@ ASSIGN tt_emitente_integr_old_2.cod_versao_integracao = 1
        tt_emitente_integr_old_2.identific             = integer(tt-emitente.identific)
        tt_emitente_integr_old_2.modalidade            = integer(tt-emitente.Modalidade)
        tt_emitente_integr_old_2.tp_rec_padrao         = integer(tt-emitente.cod_receita)
-       tt_emitente_integr_old_2.cod_gr_forn           = 0
        tt_emitente_integr_old_2.data_implant          = TODAY.
 
+IF  tt-emitente.tipo-movimento <> "Incluir" THEN
+DO:
+   IF NOT AVAILABLE emitente THEN
+      FIND FIRST emitente WHERE emitente.cgc = tt-emitente.cpfcnpj NO-LOCK NO-ERROR.
+   ASSIGN tt_emitente_integr_old_2.identific             = 2 
+          tt_emitente_integr_old_2.cod_gr_forn           = emitente.cod-gr-for
+          tt_emitente_integr_old_2.tp_desp_padrao        = emitente.tp-desp-padrao.
+END.
 FOR FIRST UNID-FEDER NO-LOCK WHERE
           UNID-FEDER.estado = tt-emitente.cod_estado.
     ASSIGN tt-emitente.nome_pais = unid-feder.pais.
@@ -167,6 +172,7 @@ ASSIGN tt_emitente_integr_old_2.cod_pais             = tt-emitente.nome_pais
 IF integer(tt-emitente.identific) = 1 THEN DO:
     ASSIGN tt_emitente_integr_old_2.tp_desp_padrao       = 1.
 END.
+
 
 ASSIGN tt_emitente_integr_old_2.nome_emit    = tt-emitente.Nome_emit
        tt_emitente_integr_old_2.cod_gr_cli   = integer(tt-emitente.cod_grupo)
@@ -210,7 +216,6 @@ ASSIGN tt_emitente_integr_old_2.port_prefer  = integer(tt-emitente.portador_pref
        tt_emitente_integr_old_2.nome_mic_reg = IF AVAIL mgdis.cidade THEN mgdis.cidade.nome-mic-reg ELSE ""
        tt_emitente_integr_old_2.data_implant = date(tt-emitente.dt_implantacao) 
        tt_emitente_integr_old_2.ins_banc[1]  = integer(tt-emitente.cd_instrucao_bancaria)         NO-ERROR.
-
 
 IF ERROR-STATUS:ERROR THEN DO:
 
@@ -258,6 +263,13 @@ END.
 ASSIGN tt_emitente_integr_old_2.nome_matriz      = IF tt-emitente.nome_cliente = "" THEN tt-emitente.nome_abreviado ELSE tt-emitente.nome_cliente
        tt_emitente_integr_old_2.ins_estadual     = IF tt-emitente.Ins_estadual = "" THEN "ISENTO" ELSE UPPER(STRING(tt-emitente.Ins_estadual,"x(20)"))
        tt_emitente_integr_old_2.Ins_est_cob      = IF tt-emitente.Ins_est_cob  = "" THEN "ISENTO" ELSE UPPER(STRING(tt-emitente.Ins_est_cob,"x(20)")) NO-ERROR.
+
+IF i-portador-rede <> 0 THEN
+   ASSIGN tt_emitente_integr_old_2.cod_portador = i-portador-rede.
+IF c-nome-matriz-rede <> "" THEN
+   ASSIGN tt_emitente_integr_old_2.nome_matriz  = c-nome-matriz-rede. 
+IF c-nome-abrev-rede <> "" THEN
+   ASSIGN tt_emitente_integr_old_2.nome_abrev   = c-nome-abrev-rede. 
 
        i-count = i-count + 1.
 
@@ -311,7 +323,8 @@ END.
 blk_insert-emitente:
 DO TRANSACTION ON ERROR UNDO, LEAVE:
    
-    IF LENGTH(tt-emitente.nome_abreviado) <> 12 THEN
+    IF c-nome-abrev-rede  = "" AND 
+       LENGTH(tt-emitente.nome_abreviado) <> 12 THEN
     DO:
         CREATE tt-erros-integracao.
         ASSIGN tt-erros-integracao.erro  = "17006"
@@ -343,7 +356,7 @@ DO TRANSACTION ON ERROR UNDO, LEAVE:
             ASSIGN emitente.cod-transp                          = integer(tt-emitente.cod_transportadora)
                    overlay(emitente.char-1,21,1)                = tt-emitente.suspensao_ipi
                    emitente.telef-fac                           = tt-emitente.Telefax2
-                   emitente.ins-banc[1]                         = int(tt-emitente.nm_instrucao_bancaria)
+                   emitente.ins-banc[1]                         = int(tt-emitente.cd_instrucao_bancaria)
                    emitente.pais                                = tt-emitente.nome_pais
                    emitente.estado                              = tt-emitente.cod_estado
                    emitente.endereco                            = tt-emitente.endereco.
@@ -358,6 +371,9 @@ DO TRANSACTION ON ERROR UNDO, LEAVE:
                    emitente.estado-cob                          = IF tt-emitente.estado_cob <> ? THEN UPPER(tt-emitente.estado_cob) ELSE ""
                    emitente.pais-cob                            = IF tt-emitente.nome_pais_cob <> ? THEN UPPER(tt-emitente.nome_pais_cob) ELSE ""
                    emitente.nome-mic-reg                        = IF AVAIL mgdis.cidade THEN mgdis.cidade.nome-mic-reg ELSE "".
+
+            IF tt-emitente.tipo-movimento <> "Incluir" THEN 
+               ASSIGN emitente.identific = 3.
 
             find first loc-entr use-index ch-entrega EXCLUSIVE-LOCK
                 where loc-entr.nome-abrev  = emitente.nome-abrev
@@ -390,6 +406,8 @@ DO TRANSACTION ON ERROR UNDO, LEAVE:
                 ASSIGN emitente.nome-matriz      = tt-emitente.nome_abreviado.
             ELSE
                 ASSIGN emitente.nome-matriz      = tt-emitente.nome_cliente.
+            IF c-nome-matriz-rede <> "" THEN
+                ASSIGN emitente.nome-matriz      = c-nome-matriz-rede. 
 
             find first dist-emitente
                 where dist-emitente.cod-emitente = emitente.cod-emitente exclusive-lock no-error.
@@ -643,8 +661,7 @@ RETURN "OK".
 
 
 PROCEDURE piImportParam:
-    
-
+                
     FIND FIRST tt_emitente NO-LOCK NO-ERROR.
     FIND FIRST tt_CondicaoPagamentoList  NO-LOCK NO-ERROR.
     FIND FIRST es-api-param-cliente NO-LOCK NO-ERROR.
@@ -652,9 +669,13 @@ PROCEDURE piImportParam:
     FIND FIRST transporte WHERE transporte.cod-transp = es-api-param-cliente.cod-transp NO-LOCK NO-ERROR.
 
     
-    CREATE tt-emitente.                               
-    ASSIGN tt-emitente.identific                      = "1"
-           tt-emitente.tipo-movimento                 = v_tipo_movto 
+    CREATE tt-emitente.  
+    IF v_tipo_movto = "Incluir"  THEN
+        ASSIGN tt-emitente.identific                      = "1".
+    ELSE 
+        ASSIGN tt-emitente.identific                      = "2".
+
+    ASSIGN tt-emitente.tipo-movimento                 = v_tipo_movto 
            tt-emitente.nome_abreviado                 = substring(replace(replace(tt_emitente.CNPJ,"-",""),"/",""),1,12)
            tt-emitente.Nome_emit                      = tt_emitente.RazaoSocial  
            tt-emitente.cod_grupo                      = IF AVAIL es-api-param-cliente THEN string(es-api-param-cliente.cod-gr-cli) ELSE "0".
@@ -710,7 +731,7 @@ PROCEDURE piImportParam:
            tt-emitente.Ins_estadual                   = tt_emitente.IE
            tt-emitente.Ins_municipal                  = ""
            tt-emitente.cpfcnpjCobranca                = tt_emitente.CNPJCobranca
-           tt-emitente.Ins_est_cob                    = ""
+           tt-emitente.Ins_est_cob                    = tt_emitente.IE
            tt-emitente.cod_canal_venda                = string(tt_emitente.TipoClienteCanal).
 
     ASSIGN tt-emitente.canal_venda                    = ""
@@ -740,8 +761,6 @@ ASSIGN  tt-emitente.nome_receita                   = ""
         tt-emitente.cod_transportadora             = string(es-api-param-cliente.cod-transp)
         tt-emitente.nome_transportadora            = IF AVAIL transporte THEN transporte.nome    ELSE ""
         tt-emitente.dt_implantacao                 = ""
-        tt-emitente.cd_instrucao_bancaria          = "1"
-        tt-emitente.nm_instrucao_bancaria          = ""
         tt-emitente.nr_cgcmf                       = ""
         tt-emitente.cd_cidade_cif                  = ""
         tt-emitente.nm_cidade_cif                  = tt-emitente.cidade
@@ -824,13 +843,16 @@ ASSIGN  tt-emitente.nome_receita                   = ""
            ASSIGN tt-emitente.rejeita-prox-ven = IF tt-emitente.rejeita-prox-ven = "" THEN "NO" ELSE tt-emitente.rejeita-prox-ven. 
            ASSIGN tt-emitente.lim-credito      = IF tt-emitente.lim-credito      = ?  THEN "0" ELSE tt-emitente.lim-credito.
 
-    RUN pi-grandes-red.
+    ASSIGN i-instr-banc = 1.
+
+    RUN pi-grandes-red.  
+
     IF i-portador-rede <> 0 THEN
     DO:
        FIND FIRST portador WHERE portador.cod-portador = i-portador-rede
                            NO-LOCK NO-ERROR.
        ASSIGN tt-emitente.nome_portador             = IF AVAILABLE portador THEN portador.nome      ELSE ""
-              tt_emitente_integr_old_2.cod_portador = i-portador-rede  
+              /* tt_emitente_integr_old_2.cod_portador = i-portador-rede   */
               tt-emitente.portador                  = STRING(i-portador-rede).
     END. /* i-portador-rede <> 0 */
     IF i-modalidade-rede <> 0 THEN
@@ -840,24 +862,33 @@ ASSIGN  tt-emitente.nome_receita                   = ""
     IF i-mod-prefer-rede <> 0 THEN
        ASSIGN tt-emitente.modalidade_pref           = STRING(i-mod-prefer-rede)
               tt-emitente.Mod_prefer                = STRING(i-mod-prefer-rede).
-    IF c-nome-matriz-rede <> "" THEN
-       ASSIGN tt_emitente_integr_old_2.nome_matriz  = c-nome-matriz-rede.
+/*     IF c-nome-matriz-rede <> "" THEN
+       ASSIGN tt_emitente_integr_old_2.nome_matriz  = c-nome-matriz-rede. */
     IF c-nome-abrev-rede <> "" THEN
-       ASSIGN tt-emitente.nome_abreviado            = c-nome-abrev-rede
-              tt_emitente_integr_old_2.nome_abrev   = c-nome-abrev-rede.
+       ASSIGN tt-emitente.nome_abreviado            = c-nome-abrev-rede.
+/*               tt_emitente_integr_old_2.nome_abrev   = c-nome-abrev-rede. */
+    IF i-cod-gr-cli-rede <> 0 THEN
+       ASSIGN tt-emitente.cod_grupo                 = STRING(i-cod-gr-cli-rede).
+
+    ASSIGN tt-emitente.cd_instrucao_bancaria          = string(i-instr-banc)
+           tt-emitente.nm_instrucao_bancaria          = "".
+
 END PROCEDURE.
 
 /* Procedure para alterar os campos de nome abreviado, matriz, portador e modalidade para clientes de grandes redes
 Informacao obtida atravÇs dos codigos de grupos de clientes de exceá∆o da tabela es-api-param-cliente */
 PROCEDURE pi-grandes-red:
+
    DEFINE BUFFER b1-emitente         FOR  emitente.
    DEFINE BUFFER b2-emitente         FOR  emitente.
    DEFINE BUFFER b3-emitente         FOR  emitente.
    DEFINE BUFFER b4-emitente         FOR  emitente.
+
    DEFINE VARIABLE c-nome-abrev-raiz LIKE emitente.nome-abrev.
    DEFINE VARIABLE i-sequencia       AS INTEGER.
    DEFINE VARIABLE i-cont            AS INTEGER.
    DEFINE VARIABLE c-sequencia       AS CHARACTER.
+
    ASSIGN c-nome-abrev-rede  = ""
           c-nome-abrev-raiz  = ""
           c-nome-matriz-rede = ""
@@ -865,18 +896,24 @@ PROCEDURE pi-grandes-red:
           i-portador-rede    = 0 
           i-mod-prefer-rede  = 0 
           i-port-prefer-rede = 0 
+          i-cod-gr-cli-rede  = 0 
           c-sequencia        = ""
           i-sequencia        = 0 
           i-cont             = 0.
+
+   FIND FIRST es-api-param-cliente NO-LOCK NO-ERROR.
    FIND FIRST b1-emitente WHERE SUBSTRING(b1-emitente.cgc, 01, 08) = SUBSTRING(tt_emitente.cnpj, 01,08) 
                           NO-LOCK NO-ERROR.
    /* emitente integrado faz parte de uma grande rede */
    IF AVAILABLE b1-emitente THEN
    DO:
+      
       IF AVAILABLE es-api-param-cliente THEN
       DO:
          IF LOOKUP(STRING(b1-emitente.cod-gr-cli), es-api-param-cliente.cod-gr-c-e) = 0 THEN 
          DO:
+             ASSIGN i-instr-banc = 0.
+
             /* Localizando o ultimo emitente pertencente a rede */
             FIND LAST b3-emitente WHERE SUBSTRING(b3-emitente.cgc, 1, 8) =  SUBSTRING(b1-emitente.cgc, 1, 8)
                                   AND   b3-emitente.nome-abrev           <> b3-emitente.nome-matriz
@@ -910,7 +947,8 @@ PROCEDURE pi-grandes-red:
                       i-portador-rede    = b2-emitente.portador
                       i-mod-prefer-rede  = b2-emitente.modalidade
                       i-port-prefer-rede = b2-emitente.portador
-                      c-nome-matriz-rede = b2-emitente.nome-matriz.
+                      c-nome-matriz-rede = b2-emitente.nome-matriz
+                      i-cod-gr-cli-rede  = b2-emitente.cod-gr-cli.
                IF LENGTH(b2-emitente.nome-abrev) <= 3 THEN
                   ASSIGN c-nome-abrev-raiz = b2-emitente.nome-abrev + "-" + b2-emitente.nome-abrev + "-".
                IF LENGTH(b2-emitente.nome-abrev) > 3  AND 
@@ -920,6 +958,7 @@ PROCEDURE pi-grandes-red:
                    ASSIGN c-nome-abrev-raiz = SUBSTRING(b2-emitente.nome-abrev,01,09) + "-".
 
             END. /* AVAILABLE b2-emitente - Matriz */
+         /*   MESSAGE "c-nome-matriz-rede" c-nome-matriz-rede. */
             bl-ver-reg:
             REPEAT:
                ASSIGN i-sequencia       = i-sequencia + 1
