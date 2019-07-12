@@ -59,18 +59,18 @@ PROCEDURE pi-create:
 
     /* ---- Lˆ propriedade Principal ---- */        
    // oJsonArrayMain = jsonInput:GetJsonObject("payload":U):GetJsonArray("req":U).
-    oJsonArrayMain = jsonInput:GetJsonObject("payload":U):GetJsonArray("Contrato":U).
+    oJsonArrayMain = jsonInput:GetJsonObject("payload":U):GetJsonArray("ContratoFornecedor":U).
 
       DO iCountMain = 1 TO oJsonArrayMain:LENGTH:
         oJsonObjectMain =  oJsonArrayMain:GetJsonObject(iCountMain).
 
-        IF oJsonObjectMain:Has("Contrato") then do:
-            c-numero-contrato = oJsonObjectMain:GetCharacter("contrato")  NO-ERROR.       
+        IF oJsonObjectMain:Has("ContratoFornecedor") then do:
+            c-numero-contrato = oJsonObjectMain:GetCharacter("nr-contrato")  NO-ERROR.       
             LEAVE.
         END.
     END.
 
-    //Necessário criar a Df da Tabela (sfa-import-contrato
+    //Necessario criar a Df da Tabela (sfa-import-contrato
     //basear a tabela na sfa-import-cli 
     CREATE  sfa-import-contr.
     ASSIGN  sfa-import-contr.cd-tipo-integr  = 1 /*--- import ---*/
@@ -79,7 +79,9 @@ PROCEDURE pi-create:
             sfa-import-contr.c-json          = json_recebido
             sfa-import-contr.nr-contrato     = int(c-numero-contrato).
 
-    //Cria as informações de log da Importação na tabela (Visualiza no esp\esint006)        
+    RELEASE sfa-import-contr.
+
+    //Cria as informa‡äes de log da Importa‡Æo na tabela (Visualiza no esp\esint006)        
     CREATE  sfa-import.
     ASSIGN  sfa-import.ind-tipo-trans   = 1 /*--- import ---*/
             sfa-import.cd-tipo-integr   = sfa-import-contr.cd-tipo-integr
@@ -90,6 +92,8 @@ PROCEDURE pi-create:
             sfa-import.data-fim         = ?
             sfa-import.ind-situacao     = 1 /*--- Pendente ---*/
             sfa-import.cod-status       = 0 /*--- sem status ---*/  .
+
+     RELEASE sfa-import.
 
      FIND FIRST es-api-param WHERE es-api-param.ind-tipo-trans = 1
                               AND es-api-param.cd-tipo-integr = sfa-import-contr.cd-tipo-integr NO-LOCK NO-ERROR.
