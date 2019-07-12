@@ -12,7 +12,7 @@
 {esp/esint0020.i}
 
 /*603833*/
-DEF VAR l-debug AS LOG INIT YES NO-UNDO.
+DEF VAR l-debug AS LOG INIT NO NO-UNDO.
 
 &GLOBAL-DEFINE ROW-NUM-DEFINED YES
 
@@ -21,6 +21,7 @@ DEFINE TEMP-TABLE ttDistEmitente NO-UNDO LIKE dist-emitente
     FIELD RowNum AS INTEGER INIT 1
 &ENDIF
     FIELD r-Rowid AS ROWID.
+
 
 DEF TEMP-TABLE ttx-emitente NO-UNDO 
           LIKE emitente.
@@ -70,7 +71,6 @@ DO TRANS:
    END.
 
    FIND FIRST es-ariba-b2e-param NO-LOCK NO-ERROR.
-   
    IF NOT AVAIL es-ariba-b2e-param
    THEN DO:
        c-Erro = "Parƒmetros de integra‡Æo Ariba/B2E nÆo cadastrados".
@@ -431,18 +431,12 @@ DO TRANS:
 
    DO:*/
 
-      FIND CURRENT es-fornecedor-ariba NO-LOCK NO-ERROR.
-      IF AVAIL es-fornecedor-ariba THEN
+      
+      ASSIGN es-fornecedor-ariba.cod-emitente       = iNumEmit
+             es-fornecedor-ariba.ind-atualizado-ems = 1.
 
-      ASSIGN
-          es-fornecedor-ariba.cod-emitente       = iNumEmit
-          es-fornecedor-ariba.ind-atualizado-ems = 1.
-
-      FIND FIRST emitente EXCLUSIVE-LOCK
-           WHERE emitente.cod-emitente = iNumEmit
-           NO-ERROR.
-      IF AVAIL emitente 
-      THEN DO:
+      FIND FIRST emitente NO-LOCK WHERE emitente.cod-emitente = iNumEmit NO-ERROR.
+      IF AVAIL emitente THEN DO:
 
           /* Atualiza EMS5 */
           IF l-debug THEN MESSAGE "***** Atualizando EMS5 " es-fornecedor-ariba.cod-emitente VIEW-AS ALERT-BOX.
@@ -482,23 +476,19 @@ DO TRANS:
           RUN integracao/api/ariba/alterarfornecedorariba.p (emitente.cod-emitente).
           
       END.
-      ELSE ASSIGN
-         c-erro = c-erro
-                + "Fornecedor nÆo foi criado. Atualiza‡Æo no EMS5 nÆo ‚ poss¡vel./".
+      ELSE 
+          ASSIGN c-erro = c-erro + "Fornecedor nÆo foi criado. Atualiza‡Æo no EMS5 nÆo ‚ poss¡vel./".
    //END.
    
-   IF c-erro > ""
-   THEN DO: 
-       ASSIGN
-         es-fornecedor-ariba.erro               = c-erro
-         es-fornecedor-ariba.ind-atualizado-ems = 2.   
+   IF c-erro > "" THEN DO: 
+       ASSIGN es-fornecedor-ariba.erro               = c-erro
+              es-fornecedor-ariba.ind-atualizado-ems = 2.   
        RELEASE es-fornecedor-ariba.
        RETURN "NOK".
    END.
    IF AVAIL es-fornecedor-ariba 
    THEN RELEASE es-fornecedor-ariba.
-   IF AVAIL emitente
-   THEN RELEASE emitente.
+   RETURN "OK":U.
 END.
 
 
@@ -507,58 +497,55 @@ END.
 PROCEDURE piCriaDistEmitente:
     DEFINE VARIABLE h-bodi275 AS HANDLE      NO-UNDO.
     
-    DEFINE TEMP-TABLE ttDistEmitente NO-UNDO
-        LIKE dist-emitente
-        FIELD r-rowid AS ROWID.
-
-        IF NOT VALID-HANDLE(h-bodi275) THEN                         
-            RUN dibo/bodi275.p PERSISTENT SET h-bodi275.            
-                                                                    
-        EMPTY TEMP-TABLE ttDistEmitente. 
-        
-        RUN openQueryStatic IN h-bodi275 (INPUT "Main").
-        
-        RUN findCodigo IN h-bodi275 (INPUT es-fornecedor-ariba.cod-emitente, OUTPUT c-return).
 
 
-        IF c-return = "" THEN
-        DO:
-            RUN getRecord  IN h-bodi275(OUTPUT TABLE ttDistEmitente).
-            FIND FIRST ttDistEmitente NO-ERROR.
-        END.
-        ELSE CREATE ttDistEmitente.
+    IF NOT VALID-HANDLE(h-bodi275) THEN                         
+        RUN dibo/bodi275.p PERSISTENT SET h-bodi275.            
+                                                                
+    EMPTY TEMP-TABLE ttDistEmitente. 
+    
+    RUN openQueryStatic IN h-bodi275 (INPUT "Main").
+    
+    RUN findCodigo IN h-bodi275 (INPUT es-fornecedor-ariba.cod-emitente, OUTPUT c-return).
 
-        IF es-fornecedor-ariba.ind-inativado > 0 THEN                             
-        DO:                                                                       
-            ASSIGN ttDistEmitente.dat-vigenc-inicial = TODAY                      
-                   ttDistEmitente.dat-vigenc-final   = 12/31/9999.                
-                                                                                  
-            IF es-fornecedor-ariba.ind-inativado = 1 THEN                         
-                ASSIGN ttDistEmitente.idi-sit-fornec      = 3.                    
-            ELSE                                                                  
-                ASSIGN ttDistEmitente.idi-sit-fornec      = 2.                    
-        END.                                                                      
-        ELSE                                                                      
-        DO:                                                                       
-            IF ttDistEmitente.idi-sit-fornec      > 1 THEN                        
-            ASSIGN ttDistEmitente.idi-sit-fornec      = 2                         
-                   ttDistEmitente.dat-vigenc-inicial  = TODAY                     
-                   ttDistEmitente.dat-vigenc-final    = 12/31/9999.               
-                                                                                  
-                                                                                  
-        END.                                                                      
-                                                                                  
-        RUN setRecord IN h-bodi275 (INPUT TABLE ttDistEmitente).                  
-                                                                                  
-        IF c-RETURN = "" THEN                                                     
-           RUN updateRecord IN h-bodi275.                                         
-        ELSE                                                                      
-            RUN createRecord IN h-bodi275.                                        
-                                                                                  
-                                                                                  
-                                                                                  
-        IF VALID-HANDLE(h-bodi275) THEN                                           
-            DELETE PROCEDURE h-bodi275.                                           
+
+    IF c-return = "" THEN
+    DO:
+        RUN getRecord  IN h-bodi275(OUTPUT TABLE ttDistEmitente).
+        FIND FIRST ttDistEmitente NO-ERROR.
+    END.
+    ELSE CREATE ttDistEmitente.
+
+    IF es-fornecedor-ariba.ind-inativado > 0 THEN                             
+    DO:                                                                       
+        ASSIGN ttDistEmitente.dat-vigenc-inicial = TODAY                      
+               ttDistEmitente.dat-vigenc-final   = 12/31/9999.                
+                                                                              
+        IF es-fornecedor-ariba.ind-inativado = 1 THEN                         
+            ASSIGN ttDistEmitente.idi-sit-fornec      = 3.                    
+        ELSE                                                                  
+            ASSIGN ttDistEmitente.idi-sit-fornec      = 2.                    
+    END.                                                                      
+    ELSE                                                                      
+    DO:                                                                       
+        IF ttDistEmitente.idi-sit-fornec      > 1 THEN                        
+        ASSIGN ttDistEmitente.idi-sit-fornec      = 2                         
+               ttDistEmitente.dat-vigenc-inicial  = TODAY                     
+               ttDistEmitente.dat-vigenc-final    = 12/31/9999.               
+                                                                              
+                                                                              
+    END.                                                                      
+                                                                              
+    RUN setRecord IN h-bodi275 (INPUT TABLE ttDistEmitente).                  
+                                                                              
+    IF c-return = "" THEN                                                     
+       RUN updateRecord IN h-bodi275.                                         
+    ELSE                                                                      
+        RUN createRecord IN h-bodi275.                                       
+                                                                              
+                                                                              
+    IF VALID-HANDLE(h-bodi275) THEN                                           
+        DELETE PROCEDURE h-bodi275.                                           
 
 
 
@@ -596,25 +583,7 @@ PROCEDURE piCriaDistEmitente:
     END.                                                                        
                                                                                 
     FIND CURRENT dist-emitente NO-LOCK NO-ERROR.   
-    ******************************************************/                             
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    ******************************************************/ 
 
 END PROCEDURE.
 

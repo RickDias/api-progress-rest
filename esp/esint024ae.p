@@ -117,16 +117,12 @@ THEN DO:
            AND es-api-param.cd-tipo-integr = sfa-export.cd-tipo-integr 
          NO-ERROR. 
 
-    FIND FIRST api-export-ariba-codigo 
-            OF sfa-export 
-         NO-ERROR.
-    IF AVAIL api-export-ariba-codigo 
-    THEN DO:
+    FIND FIRST api-export-ariba-codigo OF sfa-export EXCLUSIVE-LOCK NO-ERROR.
+    IF AVAIL api-export-ariba-codigo THEN DO:
         RUN piGravaTTFornecedor (OUTPUT c-json,
                                  OUTPUT c-erro).
 
-        ASSIGN 
-            api-export-ariba-codigo.c-json = c-Json.
+        ASSIGN api-export-ariba-codigo.c-json = c-Json.
         
         /* ------------ Envia Objeto Json --------- */
         RUN piPostJsonObj /*IN h-esint002*/ 
@@ -170,50 +166,57 @@ PROCEDURE piGravaTTFornecedor:
     DEFINE OUTPUT PARAMETER pErro          AS CHARACTER NO-UNDO.
     DEF VAR h-temp AS HANDLE NO-UNDO.
 
-    FIND FIRST es-fornecedor-ariba
+    FIND FIRST es-fornecedor-ariba NO-LOCK
          WHERE es-fornecedor-ariba.Number      = api-export-ariba-codigo.Number          
            AND es-fornecedor-ariba.dt-consulta = api-export-ariba-codigo.dt-consulta     
-         NO-ERROR.
+    NO-ERROR.
+    IF AVAIL es-fornecedor-ariba  THEN
+    DO:
+        CREATE fornecedor-ariba.
+        ASSIGN fornecedor-ariba.InternalID           = es-fornecedor-ariba.number
+               fornecedor-ariba.ID                   = es-fornecedor-ariba.ID    
+               fornecedor-ariba.UUID                 = es-fornecedor-ariba.UUID  
+               fornecedor-ariba.ID_1                 = es-fornecedor-ariba.ID_1  
+               fornecedor-ariba.UUID_1               = es-fornecedor-ariba.UUID_1
+               fornecedor-ariba.UUID_2               = es-fornecedor-ariba.UUID_2
+               fornecedor-ariba.ReceiverUUID         = ""
+               fornecedor-ariba.ReceiverInternalID   = STRING(es-fornecedor-ariba.cod-emitente).
 
-    CREATE fornecedor-ariba.
+        //MESSAGE 
+        //    "fornecedor-ariba.InternalID        " fornecedor-ariba.InternalID          SKIP
+        //    "fornecedor-ariba.ReceiverInternalID" fornecedor-ariba.ReceiverInternalID
+        //
+        //    "es-fornecedor-ariba.number      " es-fornecedor-ariba.number               SKIP
+        //    "es-fornecedor-ariba.cod-emitente" STRING(es-fornecedor-ariba.cod-emitente)
+        //    VIEW-AS ALERT-BOX INFO BUTTONS OK.
 
-    ASSIGN 
-       fornecedor-ariba.InternalID           = es-fornecedor-ariba.number
-       fornecedor-ariba.ID                   = es-fornecedor-ariba.ID    
-       fornecedor-ariba.UUID                 = es-fornecedor-ariba.UUID  
-       fornecedor-ariba.ID_1                 = es-fornecedor-ariba.ID_1  
-       fornecedor-ariba.UUID_1               = es-fornecedor-ariba.UUID_1
-       fornecedor-ariba.UUID_2               = es-fornecedor-ariba.UUID_2
-       fornecedor-ariba.ReceiverUUID         = ""
-       fornecedor-ariba.ReceiverInternalID   = STRING(es-fornecedor-ariba.cod-emitente).
-
-    //MESSAGE 
-    //    "fornecedor-ariba.InternalID        " fornecedor-ariba.InternalID          SKIP
-    //    "fornecedor-ariba.ReceiverInternalID" fornecedor-ariba.ReceiverInternalID
-    //
-    //    "es-fornecedor-ariba.number      " es-fornecedor-ariba.number               SKIP
-    //    "es-fornecedor-ariba.cod-emitente" STRING(es-fornecedor-ariba.cod-emitente)
-    //    VIEW-AS ALERT-BOX INFO BUTTONS OK.
-
-    h-temp = BUFFER fornecedor-ariba:HANDLE.
-
-    RUN piCriaObj IN h-esint002 (INPUT h-temp,
-                                 OUTPUT ojsonObjIni,
-                                 OUTPUT ojsonArrayIni,
-                                 INPUT NO) NO-ERROR.
-    IF ERROR-STATUS:ERROR THEN DO:
-        ASSIGN c-erro = ERROR-STATUS:GET-MESSAGE(1).
-        DELETE OBJECT h-temp.
-        RETURN "NOK".
-    END.            
-    DELETE OBJECT h-temp.
-
-    oJsonArrayMain = NEW JsonArray().
-    oJsonArrayMain:ADD(ojsonObjIni).
         
-    /* ----- Cria Json Principal ------- */
-    oJsonObjMain = NEW JsonObject().
-    oJsonObjMain:ADD("Fornecedor_Ariba",oJsonArrayMain).
+    END.
+
+    ASSIGN h-temp = BUFFER fornecedor-ariba:HANDLE.                       
+                                                                          
+    RUN piCriaObj IN h-esint002 (INPUT h-temp,                            
+                                 OUTPUT ojsonObjIni,                      
+                                 OUTPUT ojsonArrayIni,                    
+                                 INPUT NO) NO-ERROR.                      
+    IF ERROR-STATUS:ERROR THEN DO:                                        
+        ASSIGN c-erro = ERROR-STATUS:GET-MESSAGE(1).                      
+        DELETE OBJECT h-temp.                                             
+        RETURN "NOK".                                                     
+    END.                                                                  
+    DELETE OBJECT h-temp.                                                 
+    
+
+    oJsonArrayMain = NEW JsonArray().    
+    oJsonArrayMain:ADD(ojsonObjIni).     
+
+
+
+    /* ----- Cria Json Principal ------- */                  
+    oJsonObjMain = NEW JsonObject().                         
+    oJsonObjMain:ADD("Fornecedor_Ariba",oJsonArrayMain).     
+
+
     
 END PROCEDURE.
 

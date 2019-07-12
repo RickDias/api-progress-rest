@@ -66,9 +66,7 @@ FIND FIRST sfa-import NO-LOCK WHERE ROWID(sfa-import) = r-table NO-ERROR.
 IF AVAIL sfa-import 
 THEN DO:
     /* ------- Grava clob para longchar ----- */
-    FIND FIRST api-import-for EXCLUSIVE-LOCK
-            OF sfa-import 
-         NO-ERROR.
+    FIND FIRST api-import-for EXCLUSIVE-LOCK OF sfa-import NO-ERROR.
     IF AVAIL api-import-for 
     THEN DO:
 

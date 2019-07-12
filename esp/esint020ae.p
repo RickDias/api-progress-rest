@@ -99,7 +99,7 @@ THEN DO:
         IF AVAIL api-export-b2e-pj THEN 
         DO:
             //Ponto novo incluido para testes - CPAS
-            /******** Inicio ******************/
+            /******** Inicio *****************
             CREATE sfa-export.                                                                                    
             ASSIGN sfa-export.ind-tipo-trans          = es-api-param.ind-tipo-trans                               
                    sfa-export.id-movto                = api-export-b2e-pj.id-movto                                   
@@ -111,7 +111,7 @@ THEN DO:
                    sfa-export.data-movto              = NOW                                                       
                    sfa-export.ind-situacao            = 1      /*---- Pendente -----*/.  
 
-            //******** FIM *****************
+            ******* FIM ******************/
 
             RUN piGravaTTFornecedor (OUTPUT c-json,
                                      OUTPUT c-erro).

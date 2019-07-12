@@ -79,8 +79,6 @@ DEFINE TEMP-TABLE RowErrors NO-UNDO
     FIELD ErrorSubType     AS CHARACTER.
 
 /*------------------------------ Main Begin ----------------------------*/
-LOG-MANAGER:WRITE-MESSAGE("---Main Begin --") NO-ERROR.
-
 ASSIGN c-erro = "".
 
 /* ---- Chama o programa persistent ----- */
@@ -121,6 +119,7 @@ THEN DO:
                                  OUTPUT c-erro).
 
         ASSIGN api-import-for.c-json = c-Json.
+
         
         /* ------------ Envia Objeto Json --------- */
         RUN piPostJsonObj /*IN h-esint002*/ 
@@ -166,8 +165,9 @@ THEN DO:
         END. 
         ELSE
         DO:
-            
-            RUN piConvLongObj IN h-esint002 (INPUT cLongJson, OUTPUT ojsonRet).
+
+                       
+            RUN piConvLongObj IN h-esint002 (INPUT cLongJson, OUTPUT ojsonRet) NO-ERROR.
 
             /*----------- Grava Json ---------- */
             RUN piGeraArqJson IN h-esint002 (INPUT ojsonRet, 
@@ -306,7 +306,8 @@ PROCEDURE piPostJsonObj:
         END.
 
         oJsonObject = NEW JsonObject(). 
-
+        
+        
         IF oResponse:StatusCode < 200 OR oResponse:StatusCode > 299 THEN DO:
             RUN piErro IN h-esint002 ("Ocorreram erros no envio do Json - " + 
                         STRING(oResponse:statusCode)          + 
@@ -319,14 +320,16 @@ PROCEDURE piPostJsonObj:
                 oJsonEntity = CAST(oResponse:Entity, JsonArray).                
                 oJsonObject:ADD("retorno",oJsonEntity).
                 JsonString = string(oJsonObject:getJsonText()).
+
             END.
             ELSE IF TYPE-OF(oResponse:Entity, JsonObject) THEN DO:
                 oJsonObject = CAST(oResponse:Entity, JsonObject). 
-                ASSIGN
-                   oOutputData = oJsonObject.
+                ASSIGN oOutputData = oJsonObject.
 
                 RUN piGeraVarJson IN h-esint002 (INPUT oJsonObject,
                                                  OUTPUT c-Json) NO-ERROR.
+                
+
                 IF ERROR-STATUS:ERROR THEN DO:
                     ASSIGN c-erro = ERROR-STATUS:GET-MESSAGE(1).
                     DELETE OBJECT h-esint002.
