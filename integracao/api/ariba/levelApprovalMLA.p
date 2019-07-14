@@ -130,8 +130,7 @@ PROCEDURE pi-getAll :
                               mla-hierarquia-faixa.cod-estabel,                            
                               STRING(mla-hierarquia-faixa.ep-codigo),                      
                               STRING(mla-hierarquia-faixa.num-faixa),                      
-                              REPLACE(STRING(mla-faixa-aprov.limite-ini),",","")           
-                              + "-" + REPLACE(STRING(mla-faixa-aprov.limite-fim),",","")).
+                              STRING(INT(mla-faixa-aprov.limite-ini)) + "-" + STRING(INT(mla-faixa-aprov.limite-fim)).
 
 
             CREATE ttCsv.
