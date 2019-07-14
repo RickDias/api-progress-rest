@@ -376,30 +376,44 @@ PROCEDURE pi-02-processa :
 
 FOR EACH tt-budgetcheck NO-LOCK:
 
-    MESSAGE "CLF "  tt-budgetcheck.num-ord-inv.
-
     IF tt-budgetcheck.num-ord-inv = ?  OR 
        tt-budgetcheck.num-ord-inv = "" THEN DO:
 
-        CREATE tt-budgetcheck-ok.
-        ASSIGN tt-budgetcheck-ok.sequencia     = tt-budgetcheck.sequencia
-               tt-budgetcheck-ok.num-req-ariba = tt-budgetcheck.num-req-ariba.
+        MESSAGE "CLF>>>>> SEM NUMERO ORDEM"
+            VIEW-AS ALERT-BOX INFO BUTTONS OK.
+
+        FIND FIRST tt-budgetcheck-ok NO-LOCK NO-ERROR.
+        IF NOT AVAIL tt-budgetcheck-ok THEN DO:
+
+            CREATE tt-budgetcheck-ok.
+            ASSIGN tt-budgetcheck-ok.sequencia     = tt-budgetcheck.sequencia
+                   tt-budgetcheck-ok.num-req-ariba = tt-budgetcheck.num-req-ariba.
+
+        END.
 
     END.
-    ELSE IF tt-budgetcheck.tp-requisicao = "<CUS_REQ_07>" /*ORDEM MANUTENCAO*/ THEN DO:
+    ELSE IF tt-budgetcheck.tp-requisicao = "CUS_REQ_07" /*ORDEM MANUTENCAO*/ THEN DO:
 
         FIND FIRST ord-manut WHERE 
                    ord-manut.nr-ord-produ = INT(tt-budgetcheck.num-ord-inv) NO-LOCK NO-ERROR.
         IF AVAIL ord-manut THEN DO:
-    
-            CREATE tt-budgetcheck-ok.
-            ASSIGN tt-budgetcheck-ok.sequencia     = tt-budgetcheck.sequencia
-                   tt-budgetcheck-ok.num-req-ariba = tt-budgetcheck.num-req-ariba.
+
+            MESSAGE "CLF ORDEM MANUTEN€ÇO>>> OK"
+                VIEW-AS ALERT-BOX INFO BUTTONS OK.
+
+            FIND FIRST tt-budgetcheck-ok NO-LOCK NO-ERROR.
+            IF NOT AVAIL tt-budgetcheck-ok THEN DO:
+                
+                CREATE tt-budgetcheck-ok.
+                ASSIGN tt-budgetcheck-ok.sequencia     = tt-budgetcheck.sequencia
+                       tt-budgetcheck-ok.num-req-ariba = tt-budgetcheck.num-req-ariba.
+
+            END.
     
         END.
         ELSE DO:
 
-            MESSAGE "CLF>>> AQUI"
+            MESSAGE "CLF ORDEM MANUTEN€ÇO>>> NOK"
                 VIEW-AS ALERT-BOX INFO BUTTONS OK.
             
             CREATE tt-budgetcheck-nok.
@@ -407,7 +421,7 @@ FOR EACH tt-budgetcheck NO-LOCK:
                    tt-budgetcheck-nok.num-req-ariba = tt-budgetcheck.num-req-ariba
                    tt-budgetcheck-nok.data          = NOW
                    tt-budgetcheck-nok.cod-erro      = 1
-                   tt-budgetcheck-nok.desc-erro     = "Numero de Ordem de Manuten‡Æo NÇO ‚ V lida".
+                   tt-budgetcheck-nok.desc-erro     = "Numero de Ordem de Manuten‡Æo NÇO ‚ V lida. Linha: " + STRING(tt-budgetcheck.sequencia).
     
         END.
 
@@ -417,60 +431,115 @@ FOR EACH tt-budgetcheck NO-LOCK:
         IF tt-budgetcheck.tp-verificacao = 1 /*VALIDAR SALDO ORDEM INVESTIMENTO*/ THEN DO:
 
 
-            FIND FIRST ordem-inv WHERE 
-                       ordem-inv.num-ordem = INT(tt-budgetcheck.num-ord-inv) NO-LOCK NO-ERROR.
+            FIND FIRST sub-div-ordem WHERE 
+                       sub-div-ordem.num-ord-magnus = INT(tt-budgetcheck.num-ord-inv) NO-LOCK NO-ERROR.
+
+            FIND FIRST ordem-inv OF sub-div-ordem NO-LOCK NO-ERROR.
+            IF AVAIL ordem-inv THEN DO:
+
+                FIND FIRST user-inv WHERE
+                           //user-inv.num-ordem = ordem-inv.num-ordem AND
+                           user-inv.usuario      = tt-budgetcheck.usuario AND
+                           user-inv.dt-desat     = ?                      NO-LOCK NO-ERROR.
+                IF AVAIL user-inv THEN DO:
     
-            FIND FIRST user-inv WHERE
-                       //user-inv.num-ordem = ordem-inv.num-ordem AND
-                       user-inv.usuario      = tt-budgetcheck.usuario AND
-                       user-inv.dt-desat     = ?                      NO-LOCK NO-ERROR.
-            IF AVAIL user-inv THEN DO:
+                    MESSAGE "CLF>>>>> OK ORDEM INVESTIMENTO USUARIO"
+                        VIEW-AS ALERT-BOX INFO BUTTONS OK.
+
+                    FIND FIRST tt-budgetcheck-ok NO-LOCK NO-ERROR.
+                    IF NOT AVAIL tt-budgetcheck-ok THEN DO:
+        
+                        CREATE tt-budgetcheck-ok.
+                        ASSIGN tt-budgetcheck-ok.sequencia     = tt-budgetcheck.sequencia
+                               tt-budgetcheck-ok.num-req-ariba = tt-budgetcheck.num-req-ariba.
+
+                    END.
+                    
+                END.
+                ELSE DO:
     
-                CREATE tt-budgetcheck-ok.
-                ASSIGN tt-budgetcheck-ok.sequencia     = tt-budgetcheck.sequencia
-                       tt-budgetcheck-ok.num-req-ariba = tt-budgetcheck.num-req-ariba.
-                
+                    MESSAGE "CLF>>>>> NOK ORDEM INVESTIMENTO USUARIO"
+                        VIEW-AS ALERT-BOX INFO BUTTONS OK.
+        
+                    CREATE tt-budgetcheck-nok.
+                    ASSIGN tt-budgetcheck-nok.sequencia     = tt-budgetcheck.sequencia
+                           tt-budgetcheck-nok.num-req-ariba = tt-budgetcheck.num-req-ariba
+                           tt-budgetcheck-nok.data          = NOW
+                           tt-budgetcheck-nok.cod-erro      = 2
+                           tt-budgetcheck-nok.desc-erro     = "Usu rio NÇO habilitado para efetuar Compra para Ordem de Investimento. Linha: " + STRING(tt-budgetcheck.sequencia).
+        
+                END.
+
             END.
             ELSE DO:
-    
-                CREATE tt-budgetcheck-nok.
-                ASSIGN tt-budgetcheck-nok.sequencia     = tt-budgetcheck.sequencia
-                       tt-budgetcheck-nok.num-req-ariba = tt-budgetcheck.num-req-ariba
-                       tt-budgetcheck-nok.data          = NOW
-                       tt-budgetcheck-nok.cod-erro      = 2
-                       tt-budgetcheck-nok.desc-erro     = "Usu rio NÇO habilitado para efetuar Compra para Ordem de Investimento".
-    
-            END.
 
-        END.
-        ELSE IF tt-budgetcheck.tp-verificacao = 2 /*VALIDAR SALDO ORDEM INVESTIMENTO*/ THEN DO:
-    
-            FIND FIRST ordem-inv WHERE 
-                       ordem-inv.num-ordem = INT(tt-budgetcheck.num-ord-inv) NO-LOCK NO-ERROR.
-    
-            FIND FIRST controle-verba OF ordem-inv NO-LOCK NO-ERROR.
-    
-            IF AVAIL controle-verba AND 
-               tt-budgetcheck.vl-investimento <= (controle-verba.vl-verba[1] - controle-verba.vl-comp[1]) THEN DO:
-
-                CREATE tt-budgetcheck-nok.
-                ASSIGN tt-budgetcheck-nok.sequencia     = tt-budgetcheck.sequencia
-                       tt-budgetcheck-nok.num-req-ariba = tt-budgetcheck.num-req-ariba
-                       tt-budgetcheck-nok.data          = NOW
-                       tt-budgetcheck-nok.cod-erro      = 3
-                       tt-budgetcheck-nok.desc-erro     = "Ordem de Investimento NÇO possu¡ Saldo para a Compra".
-    
-            END.
-            ELSE DO:
+                MESSAGE "CLF>>>>> NOK ORDEM INVESTIMENTO NUMERO"
+                    VIEW-AS ALERT-BOX INFO BUTTONS OK.
 
                 CREATE tt-budgetcheck-nok.
                 ASSIGN tt-budgetcheck-nok.sequencia     = tt-budgetcheck.sequencia
                        tt-budgetcheck-nok.num-req-ariba = tt-budgetcheck.num-req-ariba
                        tt-budgetcheck-nok.data          = NOW
                        tt-budgetcheck-nok.cod-erro      = 4
-                       tt-budgetcheck-nok.desc-erro     = "Ordem de Investimento NÇO encontrada".
+                       tt-budgetcheck-nok.desc-erro     = "Ordem de Investimento NÇO encontrada. Linha: " + STRING(tt-budgetcheck.sequencia).
     
             END.
+
+        END.
+        ELSE IF tt-budgetcheck.tp-verificacao = 2 /*VALIDAR SALDO ORDEM INVESTIMENTO*/ THEN DO:
+
+            FIND FIRST sub-div-ordem WHERE 
+                       sub-div-ordem.num-ord-magnus = INT(tt-budgetcheck.num-ord-inv) NO-LOCK NO-ERROR.
+
+            FIND FIRST ordem-inv OF sub-div-ordem NO-LOCK NO-ERROR.
+            IF AVAIL ordem-inv THEN DO:
+
+                FIND FIRST controle-verba OF ordem-inv NO-LOCK NO-ERROR.
+                IF AVAIL controle-verba AND 
+                   tt-budgetcheck.vl-investimento <= (controle-verba.vl-verba[1] - controle-verba.vl-comp[1]) THEN DO:
+    
+                    MESSAGE "CLF>>>>> OK ORDEM INVESTIMENTO SALDO"
+                        VIEW-AS ALERT-BOX INFO BUTTONS OK.
+                    
+                    FIND FIRST tt-budgetcheck-ok NO-LOCK NO-ERROR.
+                    IF NOT AVAIL tt-budgetcheck-ok THEN DO:
+        
+                        CREATE tt-budgetcheck-ok.
+                        ASSIGN tt-budgetcheck-ok.sequencia     = tt-budgetcheck.sequencia
+                               tt-budgetcheck-ok.num-req-ariba = tt-budgetcheck.num-req-ariba.
+
+                    END.
+        
+                END.
+                ELSE DO:
+    
+                    MESSAGE "CLF>>>>> NOK ORDEM INVESTIMENTO SALDO"
+                        VIEW-AS ALERT-BOX INFO BUTTONS OK.
+    
+                    CREATE tt-budgetcheck-nok.
+                    ASSIGN tt-budgetcheck-nok.sequencia     = tt-budgetcheck.sequencia
+                           tt-budgetcheck-nok.num-req-ariba = tt-budgetcheck.num-req-ariba
+                           tt-budgetcheck-nok.data          = NOW
+                           tt-budgetcheck-nok.cod-erro      = 4
+                           tt-budgetcheck-nok.desc-erro     = "Ordem de Investimento NÇO possu¡ SALDO para a Requisi‡Æo. Linha: " + STRING(tt-budgetcheck.sequencia).
+        
+                END.
+
+            END.
+            ELSE DO:
+    
+                MESSAGE "CLF>>>>> NOK ORDEM INVESTIMENTO NÇO ENCONTRADA"
+                    VIEW-AS ALERT-BOX INFO BUTTONS OK.
+
+                CREATE tt-budgetcheck-nok.
+                ASSIGN tt-budgetcheck-nok.sequencia     = tt-budgetcheck.sequencia
+                       tt-budgetcheck-nok.num-req-ariba = tt-budgetcheck.num-req-ariba
+                       tt-budgetcheck-nok.data          = NOW
+                       tt-budgetcheck-nok.cod-erro      = 4
+                       tt-budgetcheck-nok.desc-erro     = "Ordem de Investimento NÇO encontrada. Linha: " + STRING(tt-budgetcheck.sequencia).
+        
+            END.
+
     
         END.
 

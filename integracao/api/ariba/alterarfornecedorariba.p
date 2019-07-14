@@ -171,63 +171,47 @@ PROCEDURE pi-00-envia-cod-fornecedor :
     FIND FIRST es-fornecedor-ariba
          WHERE es-fornecedor-ariba.cod-emitente = p-cod-emitente
            AND es-fornecedor-ariba.number       > ""
-         NO-ERROR.
-
-   // MESSAGE PROGRAM-NAME(1) AVAIL es-fornecedor-ariba
-   //     VIEW-AS ALERT-BOX INFO BUTTONS OK.
-
-    IF AVAIL es-fornecedor-ariba
-    THEN DO:
+    NO-ERROR.
+    IF AVAIL es-fornecedor-ariba THEN
+    DO:
        FIND FIRST es-api-param NO-LOCK
             WHERE es-api-param.ind-tipo-trans = 2  /*---- Saida ----*/
               AND es-api-param.cd-tipo-integr = 27
             NO-ERROR.
-       IF AVAIL es-api-param
-       THEN DO:
+       IF AVAIL es-api-param THEN
+       DO:
            //MESSAGE PROGRAM-NAME(2)  1
            //    VIEW-AS ALERT-BOX INFO BUTTONS OK.
           CREATE api-export-ariba-codigo.
-          ASSIGN
-             api-export-ariba-codigo.cd-tipo-integr = es-api-param.cd-tipo-integr
-             api-export-ariba-codigo.id-movto       = NEXT-VALUE(seq-export)
-             api-export-ariba-codigo.data-movto     = NOW
-             api-export-ariba-codigo.c-json         = ?
-             api-export-ariba-codigo.Number         = es-fornecedor-ariba.Number
-             api-export-ariba-codigo.dt-consulta    = es-fornecedor-ariba.dt-consulta
+          ASSIGN api-export-ariba-codigo.cd-tipo-integr = es-api-param.cd-tipo-integr
+                 api-export-ariba-codigo.id-movto       = NEXT-VALUE(seq-export)
+                 api-export-ariba-codigo.data-movto     = NOW
+                 api-export-ariba-codigo.c-json         = ?
+                 api-export-ariba-codigo.Number         = es-fornecedor-ariba.Number
+                 api-export-ariba-codigo.dt-consulta    = es-fornecedor-ariba.dt-consulta
              .
 
-          RELEASE api-export-ariba-codigo.
-          //MESSAGE PROGRAM-NAME(2)  2
-          //    VIEW-AS ALERT-BOX INFO BUTTONS OK.
-          //
+          
           CREATE sfa-export.
-          ASSIGN
-             sfa-export.ind-tipo-trans = es-api-param.ind-tipo-trans
-             sfa-export.id-movto       = api-export-ariba-codigo.id-movto
-             sfa-export.cd-tipo-integr = api-export-ariba-codigo.cd-tipo-integr
-             sfa-export.chave          = STRING(api-export-ariba-codigo.id-movto)
-             sfa-export.cod-status     = 0      /* ---- sem status ----*/
-             sfa-export.data-fim       = ?
-             sfa-export.data-inicio    = ?
-             sfa-export.data-movto     = NOW
-             sfa-export.ind-situacao   = 1      /*---- Pendente -----*/.
-          RELEASE sfa-export.
-         // MESSAGE PROGRAM-NAME(2)  3
-         //     VIEW-AS ALERT-BOX INFO BUTTONS OK.
+          ASSIGN sfa-export.ind-tipo-trans = es-api-param.ind-tipo-trans
+                 sfa-export.id-movto       = api-export-ariba-codigo.id-movto
+                 sfa-export.cd-tipo-integr = api-export-ariba-codigo.cd-tipo-integr
+                 sfa-export.chave          = STRING(api-export-ariba-codigo.id-movto)
+                 sfa-export.cod-status     = 0      /* ---- sem status ----*/
+                 sfa-export.data-fim       = ?
+                 sfa-export.data-inicio    = ?
+                 sfa-export.data-movto     = NOW
+                 sfa-export.ind-situacao   = 1      /*---- Pendente -----*/.
+          
+          RUN pi-processa (es-api-param.ind-tipo-trans,
+                           es-api-param.cd-tipo-integr).
 
+          RELEASE sfa-import.
+          RELEASE api-export-ariba-codigo.
 
-         // MESSAGE PROGRAM-NAME(2)  4
-         //  VIEW-AS ALERT-BOX INFO BUTTONS OK.
 
        END.
-       //MESSAGE PROGRAM-NAME(2)  5
-       //VIEW-AS ALERT-BOX INFO BUTTONS OK.
-       //
-       RUN pi-processa (es-api-param.ind-tipo-trans,
-                        es-api-param.cd-tipo-integr
-                       ).
-      // MESSAGE PROGRAM-NAME(2)  5
-      //- VIEW-AS ALERT-BOX INFO BUTTONS OK.
+      
 
     END.
 
