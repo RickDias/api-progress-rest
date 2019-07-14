@@ -125,12 +125,8 @@ DEF                   VAR l-retorno-fornecedor AS l                NO-UNDO.
 
 
 /* ***************************  Main Block  *************************** */
-DEFINE VARIABLE h-acomp AS HANDLE      NO-UNDO.
-RUN utp/ut-acomp.p PERSISTENT SET h-acomp.
-
 RUN pi-00-consulta-fornecedor.
 
-RUN pi-finalizar IN h-acomp.
 RETURN "OK":U.
 
 /* _UIB-CODE-BLOCK-END */
@@ -156,10 +152,8 @@ PROCEDURE pi-00-consulta-fornecedor :
         ASSIGN api-import-for.cd-tipo-integr     = es-api-param.cd-tipo-integr
                api-import-for.id-movto           = NEXT-VALUE(seq-export)
                api-import-for.data-movto         = TODAY
-               api-import-for.c-json             = ?.
+               api-import-for.c-json             = ?.  
 
-        RUN pi-acompanhar IN h-acomp (SUBSTITUTE("Criando Registro &1",api-import-for.id-movto)).
-        
         CREATE sfa-export.
         ASSIGN sfa-export.ind-tipo-trans          = es-api-param.ind-tipo-trans
                sfa-export.id-movto                = api-import-for.id-movto
@@ -170,11 +164,15 @@ PROCEDURE pi-00-consulta-fornecedor :
                sfa-export.data-inicio             = ?
                sfa-export.data-movto              = NOW
                sfa-export.ind-situacao            = 1      /*---- Pendente -----*/.
-        
-        
-        /*--CHAMA ROTINA DE PROCESSAMENTO CADASTRADO NO ESIN004 --*/
-        RUN pi-processa (es-api-param.ind-tipo-trans,
-                         es-api-param.cd-tipo-integr).
+
+         /*--CHAMA ROTINA DE PROCESSAMENTO CADASTRADO NO ESIN004 --*/
+         RUN pi-processa (es-api-param.ind-tipo-trans,
+                          es-api-param.cd-tipo-integr).
+
+         RELEASE sfa-export.
+         RELEASE api-import-for.
+
+
         
         
     END.
