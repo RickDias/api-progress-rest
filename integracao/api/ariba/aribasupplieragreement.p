@@ -50,9 +50,8 @@ PROCEDURE pi-create:
     DEFINE VARIABLE oJsonArrayMain     AS JsonArray            NO-UNDO.   
     DEFINE VARIABLE c-numero-contrato AS CHARACTER             NO-UNDO.
 
-
-
-
+    //usu†rio e senha para acesso ao apigee 
+    //Informaá∆o padr∆o para todos os endpoints 
     RUN btb/btapi910ze.p   (INPUT "tcpasilva", /*USUARIO*/
                             INPUT "",          /*SENHA*/
                             INPUT "1",         /*EMPRESA*/
