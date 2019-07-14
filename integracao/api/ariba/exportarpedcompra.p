@@ -55,6 +55,8 @@ DEF TEMP-TABLE tt-po-ariba NO-UNDO SERIALIZE-NAME "Pedido_Compra"
     field ShipTo-AreaorCityCode               as CHAR
     field ShipTo-Number                       as CHAR
     field ShipTo-CNPJ                         as CHAR
+
+    field ShipTo-isoCountryCode               as CHAR
     
     field BillTo-addressID                    as char
     field BillTo-Name                         as char
@@ -71,6 +73,8 @@ DEF TEMP-TABLE tt-po-ariba NO-UNDO SERIALIZE-NAME "Pedido_Compra"
     field BillTo-Number                       as char
     field BillTo-CNPJ                         as char
 
+    field BillTo-isoCountryCode               as char
+
     field Supplier-Name                       as CHAR
     field Supplier-Street                     as CHAR
     field Supplier-Street2                    as CHAR
@@ -83,6 +87,9 @@ DEF TEMP-TABLE tt-po-ariba NO-UNDO SERIALIZE-NAME "Pedido_Compra"
     field Supplier-AreaorCityCode             as CHAR
     field Supplier-Number                     as CHAR
     field Supplier-CNPJ                       as CHAR
+
+    field Supplier-preferredLanguage          as CHAR
+    field Supplier-isoCountryCode	          as CHAR
     
     field sender-domain                       as CHAR
     field sender-useragent                    as CHAR
@@ -93,7 +100,6 @@ DEF TEMP-TABLE tt-po-ariba NO-UNDO SERIALIZE-NAME "Pedido_Compra"
     field orderID                             as CHAR
     field Total-Money                         as CHAR
     field Total-currency                      as CHAR
-    field ShipTo-isoCountryCode               as CHAR
     field PurchasingUnit                      as char
     field PUName                              as char
     field incoTerm                            as char
@@ -345,6 +351,7 @@ EMPTY TEMP-TABLE tt-it-po-ariba.
 
 DEF VAR d-total-pedido AS DECIMAL NO-UNDO.
 DEF VAR c-token        AS CHAR    NO-UNDO.
+DEF VAR c-moeda        AS CHAR    NO-UNDO.
 
 DEF VAR pArquivoEntrada AS LONGCHAR NO-UNDO.
 DEF VAR lc-erro AS LONGCHAR NO-UNDO.
@@ -354,7 +361,8 @@ FIND FIRST pedido-compr WHERE
 IF AVAIL pedido-compr THEN DO:
 
     RUN pi-11-calc-total-pedido (INPUT  pedido-compr.num-pedido,
-                                 OUTPUT d-total-pedido).
+                                 OUTPUT d-total-pedido,
+                                 OUTPUT c-moeda).
 
     CREATE tt-po-ariba.
     ASSIGN tt-po-ariba.payloadID                 = NOW
@@ -372,13 +380,9 @@ IF AVAIL pedido-compr THEN DO:
            tt-po-ariba.orderID                   = STRING(pedido-compr.num-pedido)
            tt-po-ariba.orderDate                 = NOW
 
-           tt-po-ariba.Total-Money               = STRING(d-total-pedido)
-           tt-po-ariba.Total-currency            = "BRL"    
-           tt-po-ariba.ShipTo-isoCountryCode     = "BR".
-           //tt-po-ariba.PurchasingUnit            = "1000"    
-           //tt-po-ariba.PUName                    = "Dummy_Purchase_Unit"
-           //tt-po-ariba.incoTermLocation          = "".
-           
+           tt-po-ariba.Total-Money               = REPLACE(STRING(d-total-pedido),",",".")
+           tt-po-ariba.Total-currency            = c-moeda.
+
     IF pedido-compr.frete = 1 THEN
         ASSIGN tt-po-ariba.incoTerm = "CIF".
     ELSE
@@ -407,12 +411,25 @@ IF AVAIL pedido-compr THEN DO:
                tt-po-ariba.Supplier-Country      = emitente.pais
                tt-po-ariba.Supplier-CNPJ         = emitente.cgc.
 
+        IF emitente.pais = "Brasil" THEN
+            ASSIGN Supplier-preferredLanguage = "pt-BR"
+                   Supplier-isoCountryCode	  = "BR".
+        ELSE
+            ASSIGN Supplier-preferredLanguage = "en-US"
+                   Supplier-isoCountryCode	  = "US".
+
+
         FIND FIRST cont-emit OF emitente NO-LOCK NO-ERROR.
         IF AVAIL cont-emit THEN
-            ASSIGN tt-po-ariba.SoldTo-Number = cont-emit.telefone 
-                   tt-po-ariba.SoldTo-Email  = cont-emit.e-mail
-                   tt-po-ariba.Supplier-Email  = cont-emit.e-mail
+            ASSIGN tt-po-ariba.SoldTo-Number   = cont-emit.telefone 
+                   tt-po-ariba.SoldTo-Email    = "luabreu@deloitte.com" //cont-emit.e-mail
+                   tt-po-ariba.Supplier-Email  = "luabreu@deloitte.com" //cont-emit.e-mail
                    tt-po-ariba.Supplier-Number = cont-emit.telefone.
+        ELSE
+            ASSIGN tt-po-ariba.SoldTo-Email    = "luabreu@deloitte.com" //cont-emit.e-mail
+                   tt-po-ariba.Supplier-Email  = "luabreu@deloitte.com" //cont-emit.e-mail
+                   .
+
                    //tt-po-ariba.ShipTo-CountryCode        = ""    
                    //tt-po-ariba.ShipTo-AreaorCityCode     = ""    
         
@@ -431,7 +448,8 @@ IF AVAIL pedido-compr THEN DO:
                tt-po-ariba.ShipTo-State              = estabelec.estado
                tt-po-ariba.ShipTo-PostalCode         = STRING(estabelec.cep)
                tt-po-ariba.ShipTo-Country            = estabelec.pais
-               tt-po-ariba.ShipTo-CNPJ               = estabelec.cgc.
+               tt-po-ariba.ShipTo-CNPJ               = estabelec.cgc
+               tt-po-ariba.ShipTo-isoCountryCode     = "BR".
                //tt-po-ariba.ShipTo-Street2            = estabelec.complemento
                //tt-po-ariba.ShipTo-Email              = estabelec.e-mail
                //tt-po-ariba.ShipTo-Number             = estabelec.telefone.
@@ -452,7 +470,8 @@ IF AVAIL pedido-compr THEN DO:
                tt-po-ariba.BillTo-State              = estabelec.estado
                tt-po-ariba.BillTo-PostalCode         = STRING(estabelec.cep)
                tt-po-ariba.BillTo-Country            = estabelec.pais
-               tt-po-ariba.BillTo-CNPJ               = estabelec.cgc.
+               tt-po-ariba.BillTo-CNPJ               = estabelec.cgc
+               tt-po-ariba.BillTo-isoCountryCode     = "BR".
                //tt-po-ariba.BillTo-Street2            = estabelec.complemento
                //tt-po-ariba.BillTo-Email              = estabelec.e-mail
                //tt-po-ariba.BillTo-Number             = estabelec.telefone.
@@ -478,27 +497,27 @@ IF AVAIL pedido-compr THEN DO:
                tt-it-po-ariba.LineNumber        = STRING(ordem-compra.sequencia)
                tt-it-po-ariba.SupplierPartID    = ordem-compra.it-codigo         /*CODIGO FORNECEDOR*/
                tt-it-po-ariba.BuyerPartID       = ordem-compra.it-codigo         /*CODIGO TOTVS*/
-               tt-it-po-ariba.Money             = STRING(ordem-compra.preco-fornec)
-               tt-it-po-ariba.Currency          = "BRL" 
+               tt-it-po-ariba.Money             = REPLACE(STRING(ordem-compra.preco-fornec),",",".")
+               tt-it-po-ariba.Currency          = c-moeda
                tt-it-po-ariba.C-Description     = ITEM.desc-item
                tt-it-po-ariba.UnitOfMeasure     = ITEM.un
                tt-it-po-ariba.LeadTime          = "15" 
                tt-it-po-ariba.ReqLineNo         = STRING(ordem-compra.sequencia)
-               tt-it-po-ariba.Requester         = ordem-compra.usuario
-               tt-it-po-ariba.PRNo              = STRING(ordem-compra.num-pedido)
+               tt-it-po-ariba.Requester         = ordem-compra.requisitante
+               tt-it-po-ariba.PRNo              = STRING(ordem-compra.numero-ordem)
 
                tt-it-po-ariba.narrativa-item    = ordem-compra.narrativa
 
                tt-it-po-ariba.ContractID        = STRING(ordem-compra.nr-contrato)
 
-               tt-it-po-ariba.Tax-currency      = ""   /*MOEDA IMPOSTOS*/
-               tt-it-po-ariba.Tax-Money         = ""   /*TOTAL VALOR IMPOSTOS*/
-               tt-it-po-ariba.Tax-ICMS-currency = ""   /*MOEDA ICMS*/
-               tt-it-po-ariba.Tax-ICMS-perc     = ""   /*PERC ICMS*/
-               tt-it-po-ariba.Tax-ICMS-money    = ""   /*VALOR ICMS*/
-               tt-it-po-ariba.Tax-IPI-currency  = ""   /*MOEDA IPI*/ 
-               tt-it-po-ariba.Tax-IPI-perc      = ""   /*PERC IPI*/  
-               tt-it-po-ariba.Tax-IPI-money     = ""   /*VALOR IPI*/ 
+               tt-it-po-ariba.Tax-currency      = c-moeda   /*MOEDA IMPOSTOS*/
+               tt-it-po-ariba.Tax-Money         = REPLACE(STRING((ordem-compra.qt-solic * ((ordem-compra.Aliquota-icm / 100) *  ordem-compra.preco-fornec)) + (ordem-compra.qt-solic * ((ordem-compra.Aliquota-ipi / 100)) *  ordem-compra.preco-fornec)),",",".")    /*TOTAL VALOR IMPOSTOS*/
+               tt-it-po-ariba.Tax-ICMS-currency = c-moeda   /*MOEDA ICMS*/
+               tt-it-po-ariba.Tax-ICMS-perc     = REPLACE(STRING(ordem-compra.Aliquota-icm),",",".")   /*PERC ICMS*/
+               tt-it-po-ariba.Tax-ICMS-money    = REPLACE(STRING(ordem-compra.qt-solic * ((ordem-compra.Aliquota-icm / 100) *  ordem-compra.preco-fornec)),",",".")  /*VALOR ICMS*/
+               tt-it-po-ariba.Tax-IPI-currency  = c-moeda   /*MOEDA IPI*/ 
+               tt-it-po-ariba.Tax-IPI-perc      = REPLACE(STRING(ordem-compra.Aliquota-ipi),",",".")   /*PERC IPI*/  
+               tt-it-po-ariba.Tax-IPI-money     = REPLACE(STRING(ordem-compra.qt-solic * ((ordem-compra.Aliquota-ipi / 100) *  ordem-compra.preco-fornec)),",",".")  /*VALOR IPI*/ 
                .
 
 
@@ -539,13 +558,18 @@ IF AVAIL es-api-param THEN DO:
     client:SetRequestHeader ("Authorization", "Bearer " + c-token).
     client:Send(pArquivoEntrada).
 
-   // MESSAGE 'ResponseText  '    client:ResponseText   SKIP
-   //         'Responsexml   '    client:Responsexml    SKIP
-   //         'responseStream'    client:responseStream SKIP
-   //         'STATUS        '    client:STATUS         SKIP
-   //         VIEW-AS ALERT-BOX TITLE "retorno".
+    FIND FIRST tt-po-ariba NO-LOCK NO-ERROR.
 
-    IF client:STATUS = "201" THEN
+
+
+    MESSAGE 'Pedido Compra '    tt-po-ariba.orderID   SKIP
+            'ResponseText  '    client:ResponseText   SKIP
+            'Responsexml   '    client:Responsexml    SKIP
+            'responseStream'    client:responseStream SKIP
+            'STATUS        '    client:STATUS         SKIP
+            VIEW-AS ALERT-BOX TITLE "retorno".
+
+    IF client:ResponseText MATCHES("*Accepted*") THEN
         ASSIGN p-retorno   = YES.
     ELSE
         ASSIGN p-menssagem = client:ResponseText.
@@ -581,11 +605,25 @@ PROCEDURE pi-11-calc-total-pedido :
 
 DEFINE INPUT  PARAMETER p-num-pedido   AS INT  NO-UNDO.
 DEFINE OUTPUT PARAMETER p-total-pedido AS DECIMAL NO-UNDO.
+DEFINE OUTPUT PARAMETER p-moeda        AS CHAR     NO-UNDO.
+
+DEF VAR d-vl-ipi AS DECIMAL NO-UNDO.
+DEF VAR d-vl-icm AS DECIMAL NO-UNDO.
 
 FOR EACH ordem-compra WHERE
          ordem-compra.num-pedido = p-num-pedido NO-LOCK:
 
-    ASSIGN p-total-pedido = p-total-pedido + ordem-compra.preco-fornec.
+    ASSIGN d-vl-ipi = 0.
+    ASSIGN d-vl-icm = 0.
+
+    ASSIGN d-vl-ipi = (ordem-compra.Aliquota-ipi / 100) *  ordem-compra.preco-fornec
+           d-vl-icm = (ordem-compra.Aliquota-icm / 100) *  ordem-compra.preco-fornec
+           p-total-pedido = p-total-pedido + (ordem-compra.qt-solic * (ordem-compra.preco-fornec - d-vl-ipi - d-vl-icm)).
+
+    IF ordem-compra.mo-codigo = 0 THEN
+        ASSIGN p-moeda = "BRL".
+    ELSE
+        ASSIGN p-moeda = "USD".
 
 END.
 

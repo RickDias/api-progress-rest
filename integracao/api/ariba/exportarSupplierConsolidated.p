@@ -315,12 +315,12 @@ FOR EACH es-fornecedor-ariba NO-LOCK
     /***************************************************************************/
 
     /*-- atualiza o status de envio do fornecedor --*/
-    //FIND FIRST b-es-fornecedor-ariba EXCLUSIVE-LOCK
-    //     WHERE ROWID(b-es-fornecedor-ariba) = ROWID(es-fornecedor-ariba) NO-ERROR.
-    //IF AVAIL b-es-fornecedor-ariba THEN
-    //    ASSIGN b-es-fornecedor-ariba.enviado-SupplierConsolidated = YES.
-    //
-    //FIND CURRENT b-es-fornecedor-ariba NO-LOCK NO-ERROR.
+    FIND FIRST b-es-fornecedor-ariba EXCLUSIVE-LOCK
+         WHERE ROWID(b-es-fornecedor-ariba) = ROWID(es-fornecedor-ariba) NO-ERROR.
+    IF AVAIL b-es-fornecedor-ariba THEN
+        ASSIGN b-es-fornecedor-ariba.enviado-SupplierConsolidated = YES.
+    
+    FIND CURRENT b-es-fornecedor-ariba NO-LOCK NO-ERROR.
 
 END.
 

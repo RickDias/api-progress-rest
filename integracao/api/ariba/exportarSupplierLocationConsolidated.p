@@ -268,21 +268,18 @@ FOR EACH es-fornecedor-ariba NO-LOCK
                SupplierLocationConsolidated.ContactName  = cont-emit.nome.
     ELSE
         ASSIGN SupplierLocationConsolidated.ContactID    = emitente.e-mail
-               SupplierLocationConsolidated.ContactName  = es-fornecedor-ariba.nome-responsavel.    
-
-    
-    
+               SupplierLocationConsolidated.ContactName  = es-fornecedor-ariba.nome-responsavel.
     
     
     
     
     /*-- incluido para atualizar o status do registro --*/
-    //FIND FIRST b-es-fornecedor-ariba EXCLUSIVE-LOCK
-    //     WHERE ROWID(b-es-fornecedor-ariba) = ROWID(es-fornecedor-ariba)  NO-ERROR.
-    //IF AVAIL b-es-fornecedor-ariba THEN
-    //    ASSIGN es-fornecedor-ariba.enviado-SupplierLocationConsolid = YES.
-    //
-    //FIND CURRENT b-es-fornecedor-ariba NO-LOCK NO-ERROR.
+    FIND FIRST b-es-fornecedor-ariba EXCLUSIVE-LOCK
+         WHERE ROWID(b-es-fornecedor-ariba) = ROWID(es-fornecedor-ariba)  NO-ERROR.
+    IF AVAIL b-es-fornecedor-ariba THEN
+        ASSIGN es-fornecedor-ariba.enviado-SupplierLocationConsolid = YES.
+    
+    FIND CURRENT b-es-fornecedor-ariba NO-LOCK NO-ERROR.
 
     
 END.
