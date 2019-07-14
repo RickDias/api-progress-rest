@@ -50,26 +50,27 @@ PROCEDURE pi-create:
     DEFINE VARIABLE oJsonArrayMain     AS JsonArray            NO-UNDO.   
     DEFINE VARIABLE c-numero-contrato AS CHARACTER             NO-UNDO.
 
-    //usu†rio e senha para acesso ao apigee 
-    //Informaá∆o padr∆o para todos os endpoints 
+    //usu†rio e senha para acesso ao datasul, para testes estamos passando usuario
+    //fixo, porem deve ser corrigido para um usuario de integracao ou usuario que 
+    //chamar o endpoint
     RUN btb/btapi910ze.p   (INPUT "tcpasilva", /*USUARIO*/
                             INPUT "",          /*SENHA*/
                             INPUT "1",         /*EMPRESA*/
                             OUTPUT TABLE tt-erros). /*RETORNO DE ERROSl*/
 
 
-    jsonInput:writeFile("c:\temp\aribasupplieragreement.json").
+    //jsonInput:writeFile("c:\temp\aribasupplieragreement.json").
 
     fix-codepage(json_recebido) = "UTF-8".
 
     ASSIGN  oRequestParser = NEW JsonAPIRequestParser(jsonInput)
             json_recebido = oRequestParser:getPayloadLongChar() .
 
-    /* ---- L«¶ propriedade Principal ---- */        
-   // oJsonArrayMain = jsonInput:GetJsonObject("payload":U):GetJsonArray("req":U).
-      oJsonArrayMain = jsonInput:GetJsonObject("payload":U):GetJsonArray("ContratoFornecedor":U).
+    /* ---- Le propriedade Principal ---- */        
+    oJsonArrayMain = jsonInput:GetJsonObject("payload":U):GetJsonArray("ContratoFornecedor":U).
+    oJsonArrayMain:writeFile("c:\temp\integracao\ariba\aribasupplieragreement.json").
 
-      DO iCountMain = 1 TO oJsonArrayMain:LENGTH:
+    DO iCountMain = 1 TO oJsonArrayMain:LENGTH:
         oJsonObjectMain =  oJsonArrayMain:GetJsonObject(iCountMain).
 
         IF oJsonObjectMain:Has("nr-contrato") then do:
@@ -87,15 +88,13 @@ PROCEDURE pi-create:
             sfa-import-contr.Id-movto        = NEXT-VALUE(seq-import)
             sfa-import-contr.data-movto      = TODAY
             sfa-import-contr.c-json          = json_recebido
-            sfa-import-contr.nr-contrato     = int(c-numero-contrato).
-
-    RELEASE sfa-import-contr.
+            sfa-import-contr.nr-contrato     = sfa-import-contr.Id-movto. //int(c-numero-contrato).
 
     MESSAGE ">> Passo2".
 
 //    RELEASE sfa-import-contr.
 
-    //Cria as informa«ı«Êes de log da Importa«ı«úo na tabela (Visualiza no esp\esint006)        
+    //Cria as informacoes de log da importacao na tabela (Visualiza no esp\esint006)        
     CREATE  sfa-import.
     ASSIGN  sfa-import.ind-tipo-trans   = 1 /*--- import ---*/
             sfa-import.cd-tipo-integr   = sfa-import-contr.cd-tipo-integr
@@ -106,22 +105,17 @@ PROCEDURE pi-create:
             sfa-import.data-fim         = ?
             sfa-import.ind-situacao     = 1 /*--- Pendente ---*/
             sfa-import.cod-status       = 0 /*--- sem status ---*/  .
-
     
-
-    MESSAGE ">> Passo3".
-
-//     RELEASE sfa-import.
-
-     FIND FIRST es-api-param WHERE es-api-param.ind-tipo-trans = 1
+    FIND FIRST es-api-param WHERE es-api-param.ind-tipo-trans = 1
                               AND es-api-param.cd-tipo-integr = sfa-import-contr.cd-tipo-integr NO-LOCK NO-ERROR.
-     IF NOT AVAIL es-api-param THEN RETURN. /*-----tratar erro */
+    IF NOT AVAIL es-api-param THEN RETURN. /*-----tratar erro */
 
-     /* ------ Executa progama espec«fico para o tipo de integra«ı«úo ------ */
+     /* ------ Executa progama especifico para o tipo de integracao ------ */
     RUN VALUE( es-api-param.programa-integr ) (INPUT ROWID(sfa-import),
                                                OUTPUT c-erro,
                                                INPUT jsonInput) NO-ERROR.   
-    IF ERROR-STATUS:ERROR THEN DO:
+    IF ERROR-STATUS:ERROR THEN 
+    DO:
         c-erro = c-erro + ERROR-STATUS:GET-MESSAGE(1) + 'propath: ' + PROPATH.
     END.
     ASSIGN sfa-import.data-fim     = NOW
@@ -134,6 +128,7 @@ PROCEDURE pi-create:
     RUN pi-gera-status (INPUT c-erro).
 
     RELEASE sfa-import.
+    RELEASE sfa-import-contr.
 
     /* -------- Grava retorno ------*/
     ASSIGN  jsonRetorno = NEW JsonArray().
