@@ -58,11 +58,10 @@ DEF         VAR myParser          AS ObjectModelParser NO-UNDO.
 DEF         VAR c-retorno         AS LONGCHAR          NO-UNDO.
         
 
-DEF         VAR cSucesso          AS l                 NO-UNDO.
-DEF         VAR daDtConsulta      AS da                NO-UNDO.
+DEF         VAR cSucesso          AS LOGICAL           NO-UNDO.
+DEF         VAR daDtConsulta      AS DATE              NO-UNDO.
 
-ASSIGN
-   daDtConsulta = TODAY.
+ASSIGN daDtConsulta = TODAY.
 
 /* ------- Defini‡Æo de Temp-Tables ------ */
 
@@ -71,14 +70,13 @@ ASSIGN
 
 DEF TEMP-TABLE fornecedor-ariba NO-UNDO SERIALIZE-NAME "Fornecedor_Ariba"
     FIELD InternalID                          AS CHAR
-    
-    FIELD ID                                  AS c
-    FIELD UUID                                AS c
-    FIELD ID_1                                AS c
-    FIELD UUID_1                              AS c
-    FIELD UUID_2                              AS c
-    FIELD ReceiverUUID                        AS c
-    FIELD ReceiverInternalID                  AS c.
+    FIELD ID                                  AS CHAR
+    FIELD UUID                                AS CHAR
+    FIELD ID_1                                AS CHAR
+    FIELD UUID_1                              AS CHAR
+    FIELD UUID_2                              AS CHAR
+    FIELD ReceiverUUID                        AS CHAR
+    FIELD ReceiverInternalID                  AS CHAR.
 
 DEFINE TEMP-TABLE RowErrors NO-UNDO
     FIELD ErrorSequence    AS INTEGER
@@ -91,8 +89,7 @@ DEFINE TEMP-TABLE RowErrors NO-UNDO
 
 /*------------------------------ Main Begin ----------------------------*/
 
-ASSIGN 
-   c-erro = "".
+ASSIGN c-erro = "".
 
 /* ---- Chama o programa persistent ----- */
 RUN esp/esint002.p PERSISTENT SET h-esint002 NO-ERROR.
@@ -193,6 +190,8 @@ PROCEDURE piGravaTTFornecedor:
         
     END.
 
+    FIND CURRENT api-export-ariba-codigo NO-LOCK NO-ERROR.
+
     ASSIGN h-temp = BUFFER fornecedor-ariba:HANDLE.                       
                                                                           
     RUN piCriaObj IN h-esint002 (INPUT h-temp,                            
@@ -270,7 +269,7 @@ PROCEDURE piPostJsonObj:
         JsonString = STRING(oJsonObject:getJsonText()).
 
 /**/
-       OUTPUT TO c:\temp\jsonalterafornecedor1.json.
+       OUTPUT TO VALUE ("C:\temp\integracao\ariba\jsonalterafornecedor-1" + STRING(TIME) + ".json").
        EXPORT JsonString.
        OUTPUT CLOSE.
 /**/                
@@ -328,7 +327,7 @@ PROCEDURE piPostJsonObj:
                     RETURN "NOK".
                 END.
 /**/
-                OUTPUT TO c:\temp\jsonaltforn1.json.
+                OUTPUT TO VALUE ("C:\temp\integracao\ariba\jsonalterafornecedor-2" + STRING(TIME) + ".json").
                 EXPORT c-json.
                 OUTPUT CLOSE.
 /**/                
