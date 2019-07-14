@@ -31,8 +31,20 @@
 {ccp/ccapi203.i}
 {ccp/ccapi205.i}
 {ccp/ccapi207.i}
+/* ini bisneto 07/10/2019 
+DEFINE TEMP-TABLE tt-aux-cotacao-item NO-UNDO LIKE movind.cotacao-item
+       field r-rowid as rowid.
+fim bisneto 07/10/2019 */
 
 //{include/i-prgvrs.i paymentTerms 2.00.00.000} /*** 010000 ***/
+DEFINE TEMP-TABLE tt-item-fornec NO-UNDO LIKE item-fornec
+       field r-rowid as rowid.
+DEFINE TEMP-TABLE tt-retorno-erro NO-UNDO
+       FIELD number    AS INTEGER
+       FIELD descricao AS CHARACTER
+       FIELD ajuda     AS CHARACTER
+       INDEX i-seq IS PRIMARY number.
+
 DEFINE TEMP-TABLE tt-versao-integr 
     FIELD cod-versao-integracaoo AS INTEGER
     FIELD ind-origem-msg         AS INTEGER.
@@ -69,7 +81,6 @@ DEF TEMP-TABLE tt-imp-pedido-compr NO-UNDO SERIALIZE-NAME "Pedido_Compra"
     FIELD num-sequencia         AS INTEGER FORMAT "999999"
     FIELD ind-tipo-movto        AS INTEGER FORMAT "99" INITIAL 1.
 
-
 DEF TEMP-TABLE tt-imp-ordem-compra NO-UNDO SERIALIZE-NAME "Ordem_Compra"
     FIELD  Numero-ordem    AS INT
     FIELD  sequencia       AS INT
@@ -105,7 +116,8 @@ DEF TEMP-TABLE tt-imp-ordem-compra NO-UNDO SERIALIZE-NAME "Ordem_Compra"
     FIELD  Usuario         AS CHAR
     FIELD num-processo     AS INTEGER FORMAT "999999999"
     FIELD num-sequencia    AS INTEGER FORMAT "999999"
-    FIELD ind-tipo-movto   AS INTEGER FORMAT "99".
+    FIELD ind-tipo-movto   AS INTEGER FORMAT "99"
+    FIELD item-do-forn     AS char     /* bisneto 8/7/2019 */. 
 
 DEF TEMP-TABLE tt-imp-prazo-compra NO-UNDO SERIALIZE-NAME "Prazo_Compra"
     FIELD Numero-ordem          AS INT
@@ -278,10 +290,15 @@ DEFINE TEMP-TABLE ttError      SERIALIZE-NAME "Retorno"
 
 DEFINE BUFFER estabelec-entrega     FOR estabelec.
 DEFINE BUFFER estabelec-faturamento FOR estabelec.
+DEFINE BUFFER bf-item               FOR item.        /* bisneto 8/7/2019 */
+DEFINE BUFFER bf-emitente           FOR emitente.    /* bisneto 8/7/2019 */
+DEFINE BUFFER bf-item-fornec        FOR item-fornec. /* bisneto 8/7/2019 */
+
 
 
 DEFINE NEW GLOBAL SHARED VARIABLE c-seg-usuario AS CHAR FORMAT "x(12)" NO-UNDO.
 
+DEF    VAR      h-boin178 AS HANDLE NO-UNDO.
 DEFINE VARIABLE h-acomp AS HANDLE NO-UNDO.
 DEFINE VARIABLE iNumNewPedido AS INTEGER NO-UNDO.
 DEFINE VARIABLE i-num-pedido AS INTEGER NO-UNDO.
@@ -369,7 +386,7 @@ DEFINE VARIABLE client      AS COM-HANDLE NO-UNDO.
 &ANALYZE-SUSPEND _CREATE-WINDOW
 /* DESIGN Window definition (used by the UIB) 
   CREATE WINDOW Procedure ASSIGN
-         HEIGHT             = 15.29
+         HEIGHT             = 15.71
          WIDTH              = 60.
 /* END WINDOW DEFINITION */
                                                                         */
@@ -800,7 +817,10 @@ PROCEDURE pi-05-geraOrdemCompra :
 ------------------------------------------------------------------------------*/
 
     DEF BUFFER b-tt-ordem-compra FOR tt-ordem-compra.
-    
+    /* bisneton10/07/2019 */
+    /* MESSAGE "tt-imp-ordem-compra.pre-unit-for: " + STRING(tt-imp-ordem-compra.pre-unit-for) + " - tt-imp-ordem-compra.preco-fornec: " + STRING(tt-imp-ordem-compra.preco-fornec). */
+    MESSAGE "====> tt-imp-pedido-compr.num-pedido-totvs: " + STRING(tt-imp-pedido-compr.num-pedido-totvs). 
+    /* bisneton10/07/2019 */
     CREATE tt-ordem-compra.
     ASSIGN tt-ordem-compra.num-pedido     = tt-imp-pedido-compr.num-pedido-totvs
            tt-ordem-compra.sequencia      = tt-imp-ordem-compra.sequencia
@@ -826,9 +846,10 @@ PROCEDURE pi-05-geraOrdemCompra :
            tt-ordem-compra.natureza       = tt-imp-ordem-compra.natureza    
            tt-ordem-compra.num-ord-inv    = tt-imp-ordem-compra.num-ord-inv 
            /** comentado a pedido do CPAS - 25.06
-           tt-ordem-compra.pre-unit-for   = tt-imp-ordem-compra.pre-unit-for
+           tt-ordem-compra.pre-unit-for   = tt-imp-ordem-compra.pre-unit-for yyy
            **/
-           tt-ordem-compra.pre-unit-for   =  tt-imp-ordem-compra.preco-fornec                                                     //25-06 Leandro Policarpo
+           
+           tt-ordem-compra.pre-unit-for   = tt-imp-ordem-compra.preco-fornec // 25-06 Leandro Policarpo 
            tt-ordem-compra.mo-codigo      = INT(tt-imp-ordem-compra.mo-codigo)
            tt-ordem-compra.Codigo-ipi     = tt-imp-ordem-compra.Codigo-ipi  
            tt-ordem-compra.aliquota-ipi   = IF tt-imp-ordem-compra.Aliquota-ipi = ? THEN 0 ELSE tt-imp-ordem-compra.Aliquota-ipi  //27-06 Leandro Policarpo 
@@ -840,6 +861,22 @@ PROCEDURE pi-05-geraOrdemCompra :
            tt-ordem-compra.requisitante   = tt-imp-ordem-compra.requisitante
            tt-ordem-compra.usuario        = tt-imp-ordem-compra.requisitante
            tt-ordem-compra.narrativa      = tt-imp-ordem-compra.narrativa.
+
+    /* ini bisneto 11/07/2019 */
+    DEF VAR de-valor AS DEC NO-UNDO. 
+    
+    IF tt-ordem-compra.aliquota-ipi > 0 THEN
+    DO:
+      ASSIGN
+        de-valor = (tt-ordem-compra.preco-unit * tt-ordem-compra.aliquota-ipi) / 100.
+        tt-ordem-compra.preco-unit = tt-ordem-compra.preco-unit + de-valor.
+
+      MESSAGE "(2Prc Base)????>" + STRING(tt-ordem-compra.preco-unit).
+      MESSAGE "(2Aliq IPI)????>" + STRING(tt-ordem-compra.aliquota-ipi).
+   
+    END.
+
+    /* ini bisneto 11/07/2019 */
 
     FIND FIRST item-uni-estab WHERE
                item-uni-estab.it-codigo   = tt-imp-ordem-compra.it-codigo   AND 
@@ -869,6 +906,11 @@ PROCEDURE pi-05-geraOrdemCompra :
 
 
     END.
+
+    RUN pi-11-item-fornec(
+      INPUT tt-imp-pedido-compr.cod-emitente,
+      INPUT tt-imp-ordem-compra.it-codigo,
+      INPUT tt-imp-ordem-compra.item-do-forn).
 
     IF tt-imp-ordem-compra.Aliquota-ipi > 0 THEN
         ASSIGN tt-ordem-compra.codigo-ipi     = NO
@@ -969,6 +1011,11 @@ PROCEDURE pi-07-geraCotacaoItem :
   Parameters:  <none>
   Notes:       
 ------------------------------------------------------------------------------*/
+/* ini bisneto 10/07/2019 
+def var hboin082ca                  as handle              no-undo.   
+EMPTY TEMP-TABLE tt-aux-cotacao-item.
+fim bisneto 10/07/2019 */
+
 FIND FIRST tt-ordem-compra WHERE
            tt-ordem-compra.numero-ordem = tt-imp-ordem-compra.numero-ordem NO-LOCK NO-ERROR.
 
@@ -985,7 +1032,7 @@ ASSIGN tt-cotacao-item.numero-ordem = tt-imp-ordem-compra.numero-ordem
        tt-cotacao-item.mo-codigo    = INT(tt-imp-ordem-compra.mo-codigo)
        tt-cotacao-item.data-cotacao = TODAY
        tt-cotacao-item.preco-unit   = tt-imp-ordem-compra.preco-fornec       //25-06 Leandro Policarpo
-       tt-cotacao-item.pre-unit-for = tt-imp-ordem-compra.preco-fornec       //25-06 Leandro Policarpo 
+       tt-cotacao-item.pre-unit-for = tt-imp-ordem-compra.preco-fornec       // 25-06 Leandro Policarpo 
        //tt-cotacao-item.preco-unit   = tt-imp-ordem-compra.pre-unit-for  
        /** comentado a pedido do CPAS - 25.06
        tt-cotacao-item.pre-unit-for = tt-imp-ordem-compra.pre-unit-for
@@ -1005,7 +1052,63 @@ ASSIGN tt-cotacao-item.numero-ordem = tt-imp-ordem-compra.numero-ordem
        tt-cotacao-item.cot-aprovada = YES.
 
 IF tt-cotacao-item.Valor-frete > 0 THEN
-    ASSIGN tt-cotacao-item.Frete = YES.
+    ASSIGN tt-cotacao-item.Frete = YES.    
+
+/* ini bisneto 10/07/2019 
+CREATE tt-aux-cotacao-item.
+assign 
+  tt-aux-cotacao-item.numero-ordem = tt-cotacao-item.numero-ordem
+  tt-aux-cotacao-item.cod-emitente = tt-cotacao-item.cod-emitente
+  tt-aux-cotacao-item.it-codigo    = tt-cotacao-item.it-codigo
+  tt-aux-cotacao-item.preco-fornec = tt-cotacao-item.preco-fornec
+  tt-aux-cotacao-item.codigo-ipi   = tt-cotacao-item.codigo-ipi   
+  tt-aux-cotacao-item.aliquota-ipi = tt-cotacao-item.aliquota-ipi. 
+
+/*--- Calcula o pre-unit-for ---*/
+run inbo/boin082ca.p persistent set hboin082ca.
+run calculaPrecoUnitFornecedorCotacao in hBoin082ca (
+  input YES,
+  input tt-aux-cotacao-item.numero-ordem,
+  input-output table tt-aux-cotacao-item).
+delete procedure hBoin082ca.
+                 hBoin082ca = ?.
+FIND FIRST tt-cotacao-item     NO-ERROR.
+find first tt-aux-cotacao-item NO-ERROR.
+IF  AVAIL tt-cotacao-item
+AND AVAIL tt-aux-cotacao-item THEN
+DO:
+  MESSAGE "(6)####>" + STRING(tt-aux-cotacao-item.pre-unit-for).
+  MESSAGE "(7)####>" + STRING(tt-aux-cotacao-item.aliquota-ipi).
+
+  ASSIGN tt-cotacao-item.pre-unit-for = tt-aux-cotacao-item.pre-unit-for.
+END.
+fim bisneto 10/07/2019 */
+/*
+tt-cotacao-item.preco-unit ---------------- 100
+de-calc                    ---------------- tt-aux-cotacao-item.aliquota-ipi
+
+de-calc = (tt-cotacao-item.preco-unit * tt-aux-cotacao-item.aliquota-ipi) / 100.
+
+  
+  
+*/
+DEF VAR de-calc AS DEC NO-UNDO. 
+MESSAGE "(1Prc Base)::::>" + STRING(tt-cotacao-item.preco-unit).
+MESSAGE "(1Aliq IPI)::::>" + STRING(tt-cotacao-item.aliquota-ipi).
+MESSAGE "(1Pre Uni For Calc)::::>" + STRING(tt-cotacao-item.pre-unit-for).
+IF tt-cotacao-item.aliquota-ipi > 0 THEN
+DO:
+    ASSIGN
+      de-calc = (tt-cotacao-item.preco-unit * tt-cotacao-item.aliquota-ipi) / 100.
+      tt-cotacao-item.pre-unit-for = tt-cotacao-item.preco-unit + de-calc.
+
+    MESSAGE "(2Prc Base)::::>" + STRING(tt-cotacao-item.preco-unit).
+    MESSAGE "(2Aliq IPI)::::>" + STRING(tt-cotacao-item.aliquota-ipi).
+    MESSAGE "(2Pre Uni For Calc)::::>" + STRING(tt-cotacao-item.pre-unit-for).
+
+
+
+END.
 
 END PROCEDURE.
 
@@ -1117,6 +1220,104 @@ FOR EACH ordem-compra WHERE
            p-total-pedido = p-total-pedido + ordem-compra.preco-fornec.
 
 END.
+
+
+
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ENDIF
+
+&IF DEFINED(EXCLUDE-pi-11-item-fornec) = 0 &THEN
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE pi-11-item-fornec Procedure 
+PROCEDURE pi-11-item-fornec :
+/*pi-11-item-fornec*/
+  /*------------------------------------------------------------------------------*/
+  DEF INPUT PARAM p-cod-emitente   LIKE emitente.cod-emitente            NO-UNDO.
+  DEF INPUT PARAM p-it-codigo      LIKE tt-imp-ordem-compra.it-codigo    NO-UNDO.
+  DEF INPUT PARAM p-item-do-fornec LIKE item-fornec.item-do-forn         NO-UNDO.
+  /*------------------------------------------------------------------------------*/
+  FIND bf-item 
+    NO-LOCK
+    WHERE bf-item.it-codigo = p-it-codigo
+    NO-ERROR.
+  FIND bf-emitente
+    NO-LOCK
+    WHERE bf-emitente.cod-emitente = p-cod-emitente
+    NO-ERROR.
+  /*------------------------------------------------------------------------------*/
+  IF  AVAIL bf-item 
+  AND AVAIL bf-emitente THEN
+  DO:
+    FIND bf-item-fornec
+      NO-LOCK
+      WHERE bf-item-fornec.it-codigo    = bf-item.it-codigo
+      AND   bf-item-fornec.cod-emitente = bf-emitente.cod-emitente
+      NO-ERROR.
+    IF NOT AVAIL bf-item-fornec THEN
+    DO:
+      DO TRANSACTION ON ERROR UNDO, RETRY ON ENDKEY UNDO, RETRY ON STOP UNDO, RETRY:
+        EMPTY TEMP-TABLE tt-item-fornec.
+        EMPTY TEMP-TABLE tt-retorno-erro.
+        CREATE tt-item-fornec.
+        ASSIGN 
+          tt-item-fornec.cod-emitente     = p-cod-emitente
+          tt-item-fornec.it-codigo        = p-it-codigo
+          tt-item-fornec.item-do-forn     = p-item-do-fornec
+          tt-item-fornec.fator-conver     = bf-item.fator-conver
+          tt-item-fornec.un               = bf-item.un.
+        /*-----------------------------------------------------------*/
+        RUN emptyRowErrors  IN h-boin178.
+        RUN openQueryStatic IN h-boin178(INPUT "Main").
+        RUN getRowErrors    IN h-boin178(OUTPUT TABLE RowErrors).
+        
+        RUN setRecord       IN h-boin178(INPUT TABLE tt-item-fornec).
+        RUN createRecord    IN h-boin178.
+        
+        RUN getRowErrors    IN h-boin178(OUTPUT TABLE RowErrors).
+        
+        IF CAN-FIND(FIRST RowErrors) THEN DO:     
+           FOR EACH RowErrors NO-LOCK:
+               CREATE tt-retorno-erro.
+               ASSIGN tt-retorno-erro.number    = RowErrors.ErrorNumber
+                      tt-retorno-erro.descricao = RowErrors.ErrorDescription
+                      tt-retorno-erro.ajuda     = RowErrors.ErrorHelp.
+               /*
+               MESSAGE tt-retorno-erro.descricao SKIP tt-retorno-erro.ajuda
+                   VIEW-AS ALERT-BOX INFO BUTTONS OK.
+               */    
+           END.     
+        END.
+        ELSE
+        DO:
+          /* depuracao
+          FIND FIRST tt-item-fornec NO-LOCK NO-ERROR.
+        
+          FIND FIRST item-fornec 
+            NO-LOCK 
+            WHERE item-fornec.it-codigo     = tt-item-fornec.it-codigo 
+            AND   item-fornec.cod-emitente  = tt-item-fornec.cod-emitente  
+            NO-ERROR.
+          
+          IF AVAIL item-fornec THEN
+            DISP
+              item-fornec.it-codigo   
+              item-fornec.cod-emitente.
+          depuracao */    
+        END.
+        /*-----------------------------------------------------------*/
+      END. /* bl-trans: DO TRANSACTION ON ERROR UNDO, RETRY ON ENDKEY UNDO, RETRY ON STOP UNDO, RETRY: */
+    END.
+
+  END.
+
+
+
+
 
 
 
