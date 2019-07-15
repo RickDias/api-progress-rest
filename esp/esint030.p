@@ -30,11 +30,11 @@ DEFINE VARIABLE iCountSec        AS INTEGER    NO-UNDO.
 DEFINE VARIABLE cprop            AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE m-json           AS MEMPTR     NO-UNDO.
 DEFINE VARIABLE myParser         AS ObjectModelParser NO-UNDO. 
+DEFINE VARIABLE iSeqItem         AS INTEGER    NO-UNDO.
 
 /* ------- Definiá∆o de Temp-Tables e Datasets ------ */
 //{esp\esint030.i}
 {esp\esint030a.i}
-
 /*------------------------------ Main Begin ----------------------------*/
 ASSIGN c-erro = "".
 
@@ -59,12 +59,16 @@ COPY-LOB m-json TO cLongJson NO-CONVERT.
 
  /* ---- Là propriedade Principal ---- */        
 oJsonArrayMain = pJsonInput:GetJsonArray("ContratoFornecedor":U).
-
 //Preciso Criar a tabela de parametros para os dados/informaá‰es que n∆o consta no Ariba
 //depois que cirar o 
 FIND FIRST tt-es-api-param-contr NO-LOCK NO-ERROR.
 
+  EMPTY TEMP-TABLE ttCapaContrato. //Limpa a tabela antes de ser populada pelo Json       
+  EMPTY TEMP-TABLE tt-imp-contrato-for.                                                   
+
  //Coltar aqui as Validaá‰es e Carregar as tamp-tables  
+ CREATE ttCapaContrato.
+ 
  DO iCountMain = 1 TO oJsonArrayMain:LENGTH:
 
       oJsonObjectMain =  oJsonArrayMain:GetJsonObject(iCountMain).
@@ -80,14 +84,11 @@ FIND FIRST tt-es-api-param-contr NO-LOCK NO-ERROR.
 
  END.
 
- RUN pi-processa.  //chama a a pi-processa do esint030a.p
+ RUN pi-processa.  //chama a a pi-processa do esint030a.i
 
 
  PROCEDURE pi-criaTTContrato.
-
-     EMPTY TEMP-TABLE ttCapaContrato. //Limpa a tabela antes de ser populada pelo Json 
-
-     CREATE ttCapaContrato.                                                                                                                         
+                                                                                                                              
      IF oJsonObjectMain:Has("nr-contrato")              THEN ttCapaContrato.des-contrat          = oJsonObjectMain:GetCharacter("nr-contrato")      NO-ERROR.
      IF	oJsonObjectMain:Has("cod-emitente ")            THEN ttCapaContrato.cod-emitente         = oJsonObjectMain:GetCharacter("cod-emitentte")    NO-ERROR.
      IF	oJsonObjectMain:Has("dt-ini-validade")          THEN ttCapaContrato.dt-ini-validade      = oJsonObjectMain:GetCharacter("dt-ini-validade")  NO-ERROR.
@@ -101,7 +102,7 @@ FIND FIRST tt-es-api-param-contr NO-LOCK NO-ERROR.
      IF	oJsonObjectMain:Has("mo-codigo")            	THEN ttCapaContrato.mo-codigo            = oJsonObjectMain:GetCharacter("mo-codigo")        NO-ERROR.
 
        ASSIGN i-num-contrato = 0.
-
+       
        FIND FIRST param-contrat NO-LOCK NO-ERROR.
 
        FIND LAST contrato-for 
@@ -111,13 +112,13 @@ FIND FIRST tt-es-api-param-contr NO-LOCK NO-ERROR.
        IF AVAIL contrato-for THEN 
            ASSIGN i-num-contrato = contrato-for.nr-contrato + 1.  
 
-       MESSAGE "####-GERANDO CONTRATO: " STRING(i-num-contrato).
+       MESSAGE "####-CAPA DO CONTRATO - NUMERO: " STRING(i-num-contrato).
 
        FIND FIRST ttCapaContrato NO-LOCK NO-ERROR.
        IF AVAIL ttCapaContrato THEN
        DO:
            MESSAGE "ttCapaContrato.des-contrat       " ttCapaContrato.des-contrat         .
-           MESSAGE "ttCapaContrato.cod-emitente      " ttCapaContrato.cod-emitente        .
+           MESSAGE "ttCapaContrato.cod-emitente      (" ttCapaContrato.cod-emitente ")"   .
            MESSAGE "ttCapaContrato.dt-ini-validade   " ttCapaContrato.dt-ini-validade     .
            MESSAGE "ttCapaContrato.dt-ter-validade   " ttCapaContrato.dt-ter-validade     .
            MESSAGE "ttCapaContrato.cod-comprado      " ttCapaContrato.cod-comprado        .
@@ -127,62 +128,34 @@ FIND FIRST tt-es-api-param-contr NO-LOCK NO-ERROR.
            MESSAGE "ttCapaContrato.val-fatur-minimo  " ttCapaContrato.val-fatur-minimo    .
            MESSAGE "ttCapaContrato.acum-val-pago     " ttCapaContrato.acum-val-pago       .
            MESSAGE "ttCapaContrato.mo-codigo         " ttCapaContrato.mo-codigo           .
-          
+
 
            CREATE tt-imp-contrato-for.
            ASSIGN tt-imp-contrato-for.nr-contrato     = i-num-contrato
                   tt-imp-contrato-for.des-contrat     = ttCapaContrato.des-contrat
-                  tt-imp-contrato-for.cod-emitente    = IF ttCapaContrato.cod-emitente    = "" THEN 604328 ELSE INT(ttCapaContrato.cod-emitente)
-                  tt-imp-contrato-for.dt-ini-validade = IF ttCapaContrato.dt-ini-validade = "" THEN TODAY ELSE DATE(ttCapaContrato.dt-ini-validade)
-                  tt-imp-contrato-for.dt-ter-validade = DATE(ttCapaContrato.dt-ter-validade)
+                  //esta vindo embranco na integracao, fixado para testes
+                  tt-imp-contrato-for.cod-emitente    = 534187  //IF TRIM(ttCapaContrato.cod-emitente) = "" THEN 604328 ELSE INT(TRIM(ttCapaContrato.cod-emitente))
+                  tt-imp-contrato-for.dt-ini-validade = TODAY
+                  tt-imp-contrato-for.dt-ter-validade = ADD-INTERVAL(TODAY,3,"month")
                   tt-imp-contrato-for.ind-tipo-movto  = 1
+                  tt-imp-contrato-for.ind-sit-contrat = 1 /*NAO EMITIDO*/
                .
+
+           /*------------------------
+            validar com igor da summit os sequinte campos
+            cod-emitente    - campo emitente esta vindo em branco
+            dt-ini-validade - campos datas est∆o vindo errados
+            dt-ter-validade - campos datas est∆o vindo errados
+           
+           */
        END.
          
       
 
-  //   IF	oJsonObjectMain:Has("dt-contrato")              THEN ttj-contrato-for.dt-contrato         	= oJsonObjectMain:Getdate("dt-contrato")                     NO-ERROR.
-  //   IF	oJsonObjectMain:Has("via-transp")               THEN ttj-contrato-for.via-transp          	= int(oJsonObjectMain:GetCharacter("via-transp"))            NO-ERROR.
-  //   if	oJsonObjectMain:Has("cod-transp")               THEN ttj-contrato-for.cod-transp          	= int(oJsonObjectMain:GetCharacter("cod-transp"))            NO-ERROR.
-  //   IF	oJsonObjectMain:Has("tp-fornecim")         	    THEN ttj-contrato-for.tp-fornecim         	= int(oJsonObjectMain:GetCharacter("tp-fornecim"))           NO-ERROR.
-  //   IF	oJsonObjectMain:Has("frete")        	        THEN ttj-contrato-for.frete               	= int(oJsonObjectMain:GetCharacter("frete"))                 NO-ERROR.
-  //   IF	oJsonObjectMain:Has("natureza")     	        THEN ttj-contrato-for.natureza            	= int(oJsonObjectMain:GetCharacter("natureza"))              NO-ERROR.
-  //   IF	oJsonObjectMain:Has("moeda")                  	THEN ttj-contrato-for.moeda               	= int(oJsonObjectMain:GetCharacter("moeda"))                 NO-ERROR.
-  //   IF	oJsonObjectMain:Has("contato")                	THEN ttj-contrato-for.contato             	= oJsonObjectMain:GetCharacter("contato")                    NO-ERROR.
-  //   IF	oJsonObjectMain:Has("impr-contrat")           	THEN ttj-contrato-for.impr-contrat        	= logical(oJsonObjectMain:GetCharacter("impr-contrat"))      NO-ERROR.
-  //   IF	oJsonObjectMain:Has("cod-tipo-contrat")        	THEN ttj-contrato-for.cod-tipo-contrat    	= int(oJsonObjectMain:GetCharacter("cod-tipo-contrat"))      NO-ERROR.
-  //   IF	oJsonObjectMain:Has("gestor-tecnico")          	THEN ttj-contrato-for.gestor-tecnico      	= oJsonObjectMain:GetCharacter("gestor-tecnico")             NO-ERROR.
-  //   IF	oJsonObjectMain:Has("variacao-qtd")          	THEN ttj-contrato-for.variacao-qtd        	= decimal(oJsonObjectMain:GetCharacter("variacao-qtd"))      NO-ERROR.
-  //   IF oJsonObjectMain:Has("variacao-preco")          	THEN ttj-contrato-for.variacao-preco      	= int(oJsonObjectMain:GetCharacter("variacao-preco"))        NO-ERROR.
-  //   IF	oJsonObjectMain:Has("cod-estab-orig")       	THEN ttj-contrato-for.cod-estab-orig      	= oJsonObjectMain:GetCharacter("cod-estab-orig")             NO-ERROR.
-  //   if	oJsonObjectMain:Has("cod-estab-cobr")          	THEN ttj-contrato-for.cod-estab-cobr      	= oJsonObjectMain:GetCharacter("cod-estab-cobr")             NO-ERROR.
-
-  //   if	oJsonObjectMain:Has("cod-estab-entr")          	THEN ttj-contrato-for.cod-estab-entr      	= oJsonObjectMain:GetCharacter("cod-estab-entr")             NO-ERROR.
-  //   if	oJsonObjectMain:Has("qtd-total")            	THEN ttj-contrato-for.qtd-total           	= decimal(oJsonObjectMain:GetCharacter("qtd-total"))         NO-ERROR.
-  //   if	oJsonObjectMain:Has("sld-qtd")                	THEN ttj-contrato-for.sld-qtd             	= decimal(oJsonObjectMain:GetCharacter("sld-qtd"))           NO-ERROR.
-  //   if	oJsonObjectMain:Has("sld-val")                 	THEN ttj-contrato-for.sld-val             	= decimal(oJsonObjectMain:GetCharacter("sld-val"))           NO-ERROR.
-  //   if	oJsonObjectMain:Has("acum-rec-qtd")           	THEN ttj-contrato-for.acum-rec-qtd        	= decimal(oJsonObjectMain:GetCharacter("acum-rec-qtd"))      NO-ERROR.
-  //   //if	oJsonObjectMain:Has("acum-rec-val")           	THEN ttj-contrato-for.acum-rec-val        	= DECIMAL(oJsonObjectMain:GetCharacter("acum-rec-val"))      NO-ERROR.
-     //if	oJsonObjectMain:Has("sld-qtd-liber")         	THEN ttj-contrato-for.sld-qtd-liber       	= decimal(oJsonObjectMain:GetCharacter("sld-qtd-liber"))     NO-ERROR.
-     //if	oJsonObjectMain:Has("sld-val-liber")         	THEN ttj-contrato-for.sld-val-liber       	= decimal(oJsonObjectMain:GetCharacter("sld-val-liber"))     NO-ERROR.
-
-     //if	oJsonObjectMain:Has("des-contrat")          	THEN ttj-contrato-for.des-contrat         	= oJsonObjectMain:GetCharacter("des-contrat")                NO-ERROR.
-
-     //if	oJsonObjectMain:Has("log-libera")            	THEN ttj-contrato-for.log-libera          	= logical(oJsonObjectMain:GetCharacter("log-libera"))        NO-ERROR.
-     //if	oJsonObjectMain:Has("sld-qtd-med")          	THEN ttj-contrato-for.sld-qtd-med         	= decimal(oJsonObjectMain:GetCharacter("sld-qtd-med"))       NO-ERROR.
-     //if	oJsonObjectMain:Has("sal-qtd-liber-med")       	THEN ttj-contrato-for.sal-qtd-liber-med   	= decimal(oJsonObjectMain:GetCharacter("sal-qtd-liber-med")) NO-ERROR.
-     //if	oJsonObjectMain:Has("sld-val-med")          	THEN ttj-contrato-for.sld-val-med         	= decimal(oJsonObjectMain:GetCharacter("sld-val-med"))       NO-ERROR.
-     //if	oJsonObjectMain:Has("sld-val-liber-med")      	THEN ttj-contrato-for.sld-val-liber-med   	= decimal(oJsonObjectMain:GetCharacter("sld-val-liber-med")) NO-ERROR.
-     //if	oJsonObjectMain:Has("cod-projeto")             	THEN ttj-contrato-for.cod-projeto         	= oJsonObjectMain:GetCharacter("cod-projeto")                NO-ERROR.
-     //if	oJsonObjectMain:Has("ind-sit-contrat")          THEN ttj-contrato-for.ind-sit-contrat     	= int(oJsonObjectMain:GetCharacter("ind-sit-contrat"))       NO-ERROR.
-     //if	oJsonObjectMain:Has("narrat-contrat")       	THEN ttj-contrato-for.narrat-contrat      	= oJsonObjectMain:GetCharacter("narrat-contrat")             NO-ERROR.
-     //if	oJsonObjectMain:Has("ind-preco")         	    THEN ttj-contrato-for.ind-preco           	= int(oJsonObjectMain:GetCharacter("ind-preco"))             NO-ERROR.
-     //if	oJsonObjectMain:Has("sc-codigo")             	THEN ttj-contrato-for.sc-codigo           	= oJsonObjectMain:GetCharacter("sc-codigo")                  NO-ERROR.
-     //if	oJsonObjectMain:Has("ct-codigo")            	THEN ttj-contrato-for.ct-codigo           	= oJsonObjectMain:GetCharacter("cod-emitentte")              NO-ERROR.
-
-     IF oJsonObjectMain:Has("ItensContrato") THEN DO:
-         RUN pi-criaTTJItemContrato.
-     END.
+      /** Removido pq est† sendo chamado em duplicidade**/
+     //IF oJsonObjectMain:Has("ItensContrato") THEN DO:
+     //    RUN pi-criaTTJItemContrato.
+     //END.
 
 
      //Comentei a Criaá∆o da Matriz de Rateio
@@ -194,108 +167,105 @@ FIND FIRST tt-es-api-param-contr NO-LOCK NO-ERROR.
  END PROCEDURE.
 
 
- PROCEDURE pi-criaTTJItemContrato.
+ PROCEDURE pi-criaTTJItemContrato:
 
-     EMPTY TEMP-TABLE ttj-itenscontrato-for.  //Limpa a tabela antes de de ser populada pelo Json 
+     MESSAGE "#####-ITENS DO CONTRATO --".
+     
+     IF oJsonObjectMain:Has("ItensContrato") THEN DO:
 
-            oJsonArraySec = oJsonObjectMain:GetJsonArray("ItensContrato").
-            CREATE  ttj-itenscontrato-for.
-            DO iCountSec = 1 TO oJsonArraySec:LENGTH: 
+         oJsonArraySec = oJsonObjectMain:GetJsonArray("ItensContrato").
+       
+         DO iCountSec = 1 TO oJsonArraySec:LENGTH: 
+    
+             CREATE  ttItensContrato.
+    
+             oJsonObjectSec =  oJsonArraySec:GetJsonObject(iCountSec). 
+             //ASSIGN fld-rel = iCountSec.
+    
+             IF oJsonObjectSec:Has("nr-contrato")       THEN ttItensContrato.nr-contrato             = oJsonObjectSec:GetCharacter("nr-contrato")    NO-ERROR.   
+             IF oJsonObjectSec:Has("cod-emitente ")     THEN ttItensContrato.cod-emitente            = oJsonObjectSec:GetCharacter("cod-emitentte")  NO-ERROR.   
+             IF oJsonObjectSec:Has("preco-unit")        THEN ttItensContrato.preco-unit              = oJsonObjectSec:GetCharacter("preco-unit")     NO-ERROR.   
+             IF oJsonObjectSec:Has("it-codigo")         THEN ttItensContrato.it-codigo               = oJsonObjectSec:GetCharacter("it-codigo")      NO-ERROR.   
+             IF oJsonObjectSec:Has("narrat-item")       THEN ttItensContrato.narrat-item             = oJsonObjectSec:GetCharacter("narrat-item")    NO-ERROR.   
+             IF oJsonObjectSec:Has("preco-fornec")      THEN ttItensContrato.preco-fornec            = oJsonObjectSec:GetCharacter("preco-fornec")   NO-ERROR.   
+             IF oJsonObjectSec:Has("val-frete")         THEN ttItensContrato.val-frete               = oJsonObjectSec:GetCharacter("val-frete")      NO-ERROR.
+    
+             IF AVAIL ttItensContrato THEN
+             DO:
+                 MESSAGE "####-IMPRINDO DADOS DO ITEM DO CONTRATO".
+                 MESSAGE "ttItensContrato.nr-contrato   " string(ttItensContrato.nr-contrato )  .
+                 MESSAGE "ttItensContrato.cod-emitente  " string(ttItensContrato.cod-emitente)  .
+                 MESSAGE "ttItensContrato.preco-unit    " string(ttItensContrato.preco-unit  )  .
+                 MESSAGE "ttItensContrato.it-codigo     " string(ttItensContrato.it-codigo   )  .
+                 MESSAGE "ttItensContrato.narrat-item   " string(ttItensContrato.narrat-item )  .
+                 MESSAGE "ttItensContrato.preco-fornec  " string(ttItensContrato.preco-fornec)  .
+                 MESSAGE "ttItensContrato.val-frete     " string(ttItensContrato.val-frete   )  .
+                 MESSAGE "NUMERO DO CONTRATO            " STRING(i-num-contrato).
+             
+             END.
+             
+             
+             
+             CREATE tt-imp-item-contrato.
+             ASSIGN tt-imp-item-contrato.nr-contrato    = i-num-contrato
+                    tt-imp-item-contrato.num-seq-item   = iCountSec
+                    tt-imp-item-contrato.cod-emitente   = INT(ttItensContrato.cod-emitente) 
+                    tt-imp-item-contrato.preco-unit     = DEC(REPLACE(REPLACE(ttItensContrato.preco-unit,"$",""),"BRL",""))     
+                    //codigo do item est† vindo em branco
+                    tt-imp-item-contrato.it-codigo      = "19598" //ttItensContrato.it-codigo     
+                    tt-imp-item-contrato.narrat-compra  = ttItensContrato.narrat-item   
+                    tt-imp-item-contrato.pre-unit-for   = 0
+                    tt-imp-item-contrato.preco-fornec   = DEC(REPLACE(REPLACE(ttItensContrato.preco-fornec,"$",""),"BRL",""))    
+                    tt-imp-item-contrato.val-frete      = DEC(REPLACE(REPLACE(ttItensContrato.val-frete,"$",""),"BRL","")).
 
-                oJsonObjectSec =  oJsonArraySec:GetJsonObject(iCountSec). 
-                //ASSIGN fld-rel = iCountSec.
-
-                IF oJsonObjectSec:Has("nr-contrato")       THEN ttj-itenscontrato-for.nr-contrato             = INT(oJsonObjectSec:GetCharacter("nr-contrato"))               NO-ERROR.
-                IF oJsonObjectSec:Has("cod-emitente ")     THEN ttj-itenscontrato-for.cod-emitente            = INT(oJsonObjectSec:GetCharacter("cod-emitentte"))             NO-ERROR.
-                IF oJsonObjectSec:Has("preco-unit")        THEN ttj-itenscontrato-for.preco-unit              = DECIMAL(oJsonObjectSec:GetCharacter("preco-unit"))            NO-ERROR.
-                IF oJsonObjectSec:Has("it-codigo")         THEN ttj-itenscontrato-for.it-codigo               = oJsonObjectSec:GetCharacter("it-codigo")                      NO-ERROR.
-                IF oJsonObjectSec:Has("narrat-item")       THEN ttj-itenscontrato-for.narrat-item             = oJsonObjectSec:GetCharacter("narrat-item")                    NO-ERROR.
-                IF oJsonObjectSec:Has("preco-fornec")      THEN ttj-itenscontrato-for.preco-fornec            = decimal(oJsonObjectSec:GetCharacter("preco-fornec"))          NO-ERROR.
-                IF oJsonObjectSec:Has("val-frete")         THEN ttj-itenscontrato-for.val-frete               = DECIMAL(oJsonObjectSec:GetCharacter("val-frete"))             NO-ERROR.
-
-                //IF oJsonObjectSec:Has("qtd-minima")        THEN ttj-itenscontrato-for.qtd-minima              = DECIMAL(oJsonObjectSec:GetCharacter("qtd-monimat"))           NO-ERROR.
-                //IF oJsonObjectSec:Has("sld-val")           THEN ttj-itenscontrato-for.sld-val                 = DECIMAL(oJsonObjectSec:GetCharacter("sld-val"))               NO-ERROR.
-                //IF oJsonObjectSec:Has("mo-codigo")         THEN ttj-itenscontrato-for.mo-codigo               = DECIMAL(oJsonObjectSec:GetCharacter("mo-codigo"))             NO-ERROR.
-                //IF oJsonObjectSec:HAS("val-total")         THEN ttj-itenscontrato-for.val-total               = DECIMAL(oJsonObjectSec:GetCharacter("val-total"))             NO-ERROR.
-                //IF oJsonObjectSec:Has("codigo-icm")        THEN ttj-itenscontrato-for.codigo-icm              = INT(oJsonObjectSec:GetCharacter("codigo-icm"))                NO-ERROR.                                                                                                                                             
-                //IF oJsonObjectSec:Has("un")                THEN ttj-itenscontrato-for.un                      = oJsonObjectSec:GetCharacter("un")                             NO-ERROR.
-                //IF oJsonObjectSec:Has("contato ")          THEN ttj-itenscontrato-for.contato                 = oJsonObjectSec:GetCharacter("contato")                        NO-ERROR.
-                //IF oJsonObjectSec:Has("num-seq-item")      THEN ttj-itenscontrato-for.num-seq-item            = INT(oJsonObjectSec:GetCharacter("num-seq-item"))              NO-ERROR.
-                //IF oJsonObjectSec:Has("frequencia")        THEN ttj-itenscontrato-for.frequencia              = INT(oJsonObjectSec:GetCharacter("frequentcia"))               NO-ERROR.
-                //IF oJsonObjectSec:Has("qtd-total")         THEN ttj-itenscontrato-for.qtd-total               = DECIMAL(oJsonObjectSec:GetCharacter("qtd-total"))             NO-ERROR.
-                //IF oJsonObjectSec:Has("ind-un-contrato")   THEN ttj-itenscontrato-for.ind-un-contrato         = DECIMAL(oJsonObjectSec:GetCharacter("ind-un-contrato"))       NO-ERROR.
-                //IF oJsonObjectSec:HAS("sld-qtd")           THEN ttj-itenscontrato-for.sld-qtd                 = decimal(oJsonObjectSec:GetCharacter("sld-qtd"))               NO-ERROR.
-                //IF oJsonObjectSec:Has("acum-rec-val")      THEN ttj-itenscontrato-for.acum-rec-val            = DECIMAL(oJsonObjectSec:GetCharacter("acum-rec-val"))          NO-ERROR.                                                                                                                                               
-                //IF oJsonObjectSec:Has("log-control-event") THEN ttj-itenscontrato-for.log-control-event       = logical(oJsonObjectSec:GetCharacter("log-control-envent"))    NO-ERROR. 
-                //IF oJsonObjectSec:Has("log-obrig-item")    THEN ttj-itenscontrato-for.log-obrig-item          = logical(oJsonObjectSec:GetCharacter("log-obrig-item"))        NO-ERROR.      
-                //IF oJsonObjectSec:Has("preco-unit")        THEN ttj-itenscontrato-for.preco-unit              = DECIMAL(oJsonObjectSec:GetCharacter("preco-unit"))            NO-ERROR.           
-                //IF oJsonObjectSec:Has("log-ind-multa")     THEN ttj-itenscontrato-for.log-ind-multa           = LOGICAL(oJsonObjectSec:GetCharacter("log-ind-multa"))         NO-ERROR.
-                //IF oJsonObjectSec:Has("perc-multa-dia")    THEN ttj-itenscontrato-for.perc-multa-dia          = DECIMAL(oJsonObjectSec:GetCharacter("per-multa-dia"))         NO-ERROR.
-                //IF oJsonObjectSec:Has("perc-multa-limite") THEN ttj-itenscontrato-for.perc-multa-limite       = DECIMAL(oJsonObjectSec:GetCharacter("log-obrig-item"))        NO-ERROR.
-                //IF oJsonObjectSec:HAS("cod-depos")         THEN ttj-itenscontrato-for.cod-depos               = oJsonObjectSec:GetCharacter("cod-depos")                      NO-ERROR.
-                //IF oJsonObjectSec:Has("aliquota-icm")      THEN ttj-itenscontrato-for.aliquota-icm            = DECIMAL(oJsonObjectSec:GetCharacter("aliquota-icm"))          NO-ERROR.                                        
-                //IF oJsonObjectSec:Has("aliquota-ipi")      THEN ttj-itenscontrato-for.aliquota-ipi            = INT(oJsonObjectSec:GetCharacter("aliquota-ipi"))              NO-ERROR.
-                //IF oJsonObjectSec:Has("tp-despesa ")       THEN ttj-itenscontrato-for.tp-despesa              = int(oJsonObjectSec:GetCharacter("tp-despesa"))                NO-ERROR.
-                //IF oJsonObjectSec:Has("cod-cond-pag")      THEN ttj-itenscontrato-for.cod-cond-pag            = int(oJsonObjectSec:GetCharacter("cod-cond-pag"))              NO-ERROR.
-                //IF oJsonObjectSec:Has("prazo-ent")         THEN ttj-itenscontrato-for.prazo-ent               = INT(oJsonObjectSec:GetCharacter("prazo-ent"))                 NO-ERROR.
-                //IF oJsonObjectSec:Has("preco-base")        THEN ttj-itenscontrato-for.preco-base              = DECIMAL(oJsonObjectSec:GetCharacter("preco-base"))            NO-ERROR.
-                //IF oJsonObjectSec:HAS("cod-comprado")      THEN ttj-itenscontrato-for.cod-comprado            = oJsonObjectSec:GetCharacter("cod-comprado")                   NO-ERROR.
-                //IF oJsonObjectSec:Has("perc-desconto")     THEN ttj-itenscontrato-for.perc-desconto           = decimal(oJsonObjectSec:GetCharacter("perc-desconto"))         NO-ERROR.
-                //IF oJsonObjectSec:Has("narrat-compra")     THEN ttj-itenscontrato-for.narrat-compra           = oJsonObjectSec:GetCharacter("narrat-compra")                  NO-ERROR.
-                //IF oJsonObjectSec:Has("pre-unit-for")      THEN ttj-itenscontrato-for.pre-unit-for            = DECIMAL(oJsonObjectSec:GetCharacter("pre-unit-for"))          NO-ERROR.
-                //IF oJsonObjectSec:Has("sld-qtd-receb")     THEN ttj-itenscontrato-for.sld-qtd-receb           = DECIMAL(oJsonObjectSec:GetCharacter("sld-qtd-receb"))         NO-ERROR.
-                //IF oJsonObjectSec:Has("sld-val-receb")     THEN ttj-itenscontrato-for.sld-val-receb           = DECIMAL(oJsonObjectSec:GetCharacter("sld-val-receb"))         NO-ERROR.
-
-
-                IF AVAIL ttj-itens-contrato-for THEN
-                DO:
-                    MESSAGE "####-IMPRINDO DADOS DO ITEM DO CONTRATO".
-                    MESSAGE "ttj-itenscontrato-for.nr-contrato   " string(ttj-itenscontrato-for.nr-contrato )  .
-                    MESSAGE "ttj-itenscontrato-for.cod-emitente  " string(ttj-itenscontrato-for.cod-emitente)  .
-                    MESSAGE "ttj-itenscontrato-for.preco-unit    " string(ttj-itenscontrato-for.preco-unit  )  .
-                    MESSAGE "ttj-itenscontrato-for.it-codigo     " string(ttj-itenscontrato-for.it-codigo   )  .
-                    MESSAGE "ttj-itenscontrato-for.narrat-item   " string(ttj-itenscontrato-for.narrat-item )  .
-                    MESSAGE "ttj-itenscontrato-for.preco-fornec  " string(ttj-itenscontrato-for.preco-fornec)  .
-                    MESSAGE "ttj-itenscontrato-for.val-frete     " string(ttj-itenscontrato-for.val-frete   )  .
-
-                END.
+             /*
+                Precisa tratar os campos de valor com o cara do apigee
+                preco-fornec
+                val-frete
+                preco-unit
+                
+                Est† vindo em branco
+                it-codigo
+             
+             */
+                    
 
 
-
-                CREATE tt-imp-item-contrato.
-                ASSIGN tt-imp-item-contrato.cod-emitente   = ttj-itenscontrato-for.cod-emitente  
-                       tt-imp-item-contrato.preco-unit     = ttj-itenscontrato-for.preco-unit      
-                       tt-imp-item-contrato.it-codigo      = ttj-itenscontrato-for.it-codigo     
-                       tt-imp-item-contrato.narrat-compra  = ttj-itenscontrato-for.narrat-item   
-                       tt-imp-item-contrato.pre-unit-for   = ttj-itenscontrato-for.preco-fornec  
-                       tt-imp-item-contrato.val-frete      = ttj-itenscontrato-for.val-frete.
-                       
-
-            END.
+    
+        END.
+     END.
 
  END PROCEDURE. 
 
 
-PROCEDURE pi-criaTTJMatrizItemContrato.
+PROCEDURE pi-criaTTJMatrizItemContrato:
 
     EMPTY TEMP-TABLE ttj-Matrizitenscontrato-for.  //Limpa a tabela antes de ser populada pelo Json
 
-       oJsonArrayMat = oJsonObjectMain:GetJsonArray("MatrizItemContrato").
-       CREATE  ttj-Matrizitenscontrato-for.
+    IF oJsonObjectMain:Has("MatrizItemContrato") THEN
+    DO:
+        oJsonArrayMat = oJsonObjectMain:GetJsonArray("MatrizItemContrato").
+        CREATE  ttj-Matrizitenscontrato-for.
 
-       DO iCountSec = 1 TO oJsonArrayMat:LENGTH:
+        DO iCountSec = 1 TO oJsonArrayMat:LENGTH:
 
-            oJsonObjectMat =  oJsonArrayMat:GetJsonObject(iCountSec). 
+             oJsonObjectMat =  oJsonArrayMat:GetJsonObject(iCountSec). 
 
-            IF oJsonObjectMat:HAS("nr-contrato")     THEN ttj-Matrizitenscontrato-for.nr-contrato      = INT(oJsonObjectMat:GetCharacter("nr-contrato"))      NO-ERROR.
-            IF oJsonObjectMat:HAS("ct-codigo")       THEN ttj-Matrizitenscontrato-for.ct-codigo        = oJsonObjectMat:GetCharacter("ct-codigo")             NO-ERROR.
-            IF oJsonObjectMat:HAS("sc-codigo")       THEN ttj-Matrizitenscontrato-for.sc-codigo        = oJsonObjectMat:GetCharacter("sc-codigo")             NO-ERROR.
-            IF oJsonObjectMat:HAS("perc-rateio")     THEN ttj-Matrizitenscontrato-for.perc-rateio      = DECIMAL(oJsonObjectMat:GetCharacter("perc-rateio"))  NO-ERROR.
-            IF oJsonObjectMat:HAS("cod-unid-negoc")  THEN ttj-Matrizitenscontrato-for.cod-unid-negoc   = oJsonObjectMat:GetCharacter("cod-unid-negoc")        NO-ERROR.
+             IF oJsonObjectMat:HAS("nr-contrato")     THEN ttj-Matrizitenscontrato-for.nr-contrato      = INT(oJsonObjectMat:GetCharacter("nr-contrato"))      NO-ERROR.
+             IF oJsonObjectMat:HAS("ct-codigo")       THEN ttj-Matrizitenscontrato-for.ct-codigo        = oJsonObjectMat:GetCharacter("ct-codigo")             NO-ERROR.
+             IF oJsonObjectMat:HAS("sc-codigo")       THEN ttj-Matrizitenscontrato-for.sc-codigo        = oJsonObjectMat:GetCharacter("sc-codigo")             NO-ERROR.
+             IF oJsonObjectMat:HAS("perc-rateio")     THEN ttj-Matrizitenscontrato-for.perc-rateio      = DECIMAL(oJsonObjectMat:GetCharacter("perc-rateio"))  NO-ERROR.
+             IF oJsonObjectMat:HAS("cod-unid-negoc")  THEN ttj-Matrizitenscontrato-for.cod-unid-negoc   = oJsonObjectMat:GetCharacter("cod-unid-negoc")        NO-ERROR.
 
-           // IF oJsonObjectMat:HAS("num-seq-item")    THEN ttj-Matrizitenscontrato-for.num-seq-item     = INT(oJsonObjectMat:GetCharacter("num-seq-item"))     NO-ERROR.
-           // IF oJsonObjectMat:HAS("it-codigo")       THEN ttj-Matrizitenscontrato-for.it-codigo        = oJsonObjectMat:GetCharacter("it-codigo")             NO-ERROR.
+             /*
+             cria a tabela de rateio do item do contrato
+             
+             */
+            
 
-       END.
+        END.
+    END.
+
 
 END PROCEDURE.
+

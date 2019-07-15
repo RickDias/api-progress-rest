@@ -31,7 +31,7 @@ PROCEDURE pi-processa.
 
     MESSAGE "###-PI-PROCESSA-GERANDO CONTRATO".
 
-    FOR EACH tt-imp-contrato-for EXCLUSIVE-LOCK:
+    FOR EACH tt-imp-contrato-for NO-LOCK:
         CASE tt-imp-contrato-for.ind-tipo-movto:
             WHEN 1 THEN RUN pi-geraContratoFor.
             WHEN 2 THEN RUN pi-geraContratoFor.
@@ -39,7 +39,7 @@ PROCEDURE pi-processa.
         END CASE.
 
          FOR EACH tt-imp-item-contrato                                                                
-             WHERE tt-imp-item-contrato.nr-contrato = tt-imp-contrato-for.nr-contrato EXCLUSIVE-LOCK: 
+             WHERE tt-imp-item-contrato.nr-contrato = tt-imp-contrato-for.nr-contrato NO-LOCK: 
                                                                                                       
              CASE tt-imp-contrato-for.ind-tipo-movto:                                                 
                  WHEN 1 THEN RUN pi-geraItemContrato.                                                 
@@ -54,9 +54,11 @@ END PROCEDURE.
 
 
 PROCEDURE pi-geraContratoFor.
+
+    MESSAGE "####-GERANDO A CAPA DO CONTRATO " tt-imp-contrato-for.nr-contrato.
  
     CREATE contrato-for.
-    ASSIGN contrato-for.nr-contrato         = INT(tt-imp-contrato-for.nr-contrato)
+    ASSIGN contrato-for.nr-contrato         = tt-imp-contrato-for.nr-contrato
            contrato-for.des-contrat         = "SAP ARIBA : " + string(tt-imp-contrato-for.des-contrat)
            contrato-for.cod-emitente        = tt-imp-contrato-for.cod-emitente
            contrato-for.dt-contrato         = TODAY //tt-imp-contrato-for.dt-contrato
@@ -64,12 +66,12 @@ PROCEDURE pi-geraContratoFor.
            contrato-for.dt-ter-validade     = tt-imp-contrato-for.dt-ter-validade
            contrato-for.cod-comprado        = "01MDGCUNHA"
            contrato-for.cod-cond-pag        = IF tt-imp-contrato-for.cod-cond-pag = 0 THEN 1 ELSE tt-imp-contrato-for.cod-cond-pag
-           contrato-for.via-transp          = 1 /*1-Rodoviÿrio*/
+           contrato-for.via-transp          = 1 /*1-Rodoviario*/
            contrato-for.cod-transp          = 0 
            contrato-for.tp-fornecim         = 1 /*1-reposicao*/
            contrato-for.frete               = 1 /*1-Pago ou 2-A Pagar*/
            contrato-for.natureza            = 1 /*1-Compra*/
-           contrato-for.moeda               = tt-imp-contrato-for.mo-codigo
+           contrato-for.moeda               = 0 /*alterado para zero, pq est  vindo brl na integracao ‚ preciso tratar isso  tt-imp-contrato-for.mo-codigo*/
            contrato-for.cod-estabel         = "01"
            contrato-for.contato             = tt-imp-contrato-for.contato
            contrato-for.impr-contrat        = YES 
@@ -90,28 +92,30 @@ PROCEDURE pi-geraContratoFor.
            contrato-for.sld-qtd-liber       = 0                                                                                                     //tt-imp-contrato-for.sld-qtd-liber
            contrato-for.sld-val-liber       = 0                                                                                                     //tt-imp-contrato-for.sld-val-liber
            contrato-for.val-fatur-minimo    = 0                                                                                                     //tt-imp-contrato-for.val-fatur-minimo
-           contrato-for.des-contrat         = tt-imp-contrato-for.des-contrat
+           contrato-for.des-contrat         = tt-imp-contrato-for.des-contrat                                                                       
            contrato-for.acum-val-pago       = 0                                                                                                     //tt-imp-contrato-for.acum-val-pago
-           contrato-for.mo-codigo           = 1                                                                                                     //tt-imp-contrato-for.mo-codigo
-/*         contrato-for.log-libera          = tt-imp-contrato-for.log-libera  */
+           contrato-for.mo-codigo           = 0 /*-fixado como real, at‚ vir correto na integra‡Æo*/                                                //tt-imp-contrato-for.mo-codigo
+/*         contrato-for.log-libera          = tt-imp-contrato-for.log-libera  */                                                                    
            contrato-for.sld-qtd-med         = 0                                                                                                     //tt-imp-contrato-for.sld-qtd-med
            contrato-for.sal-qtd-liber-med   = 0                                                                                                     //tt-imp-contrato-for.sal-qtd-liber-med
            contrato-for.sld-val-med         = 0                                                                                                     //tt-imp-contrato-for.sld-val-med
-           contrato-for.sld-val-liber-med   = 0                                                                                                     //tt-imp-contrato-for.sld-val-liber-med
-           contrato-for.cod-projeto         = string(ttj-contrato-for.nr-contrato) //tt-imp-contrato-for.cod-projeto
+           contrato-for.sld-val-liber-med   = 0                                                                                                     
+           /*este campo s¢ pode ser preenchido quando houver Ordem de Investimento*/                                                                //tt-imp-contrato-for.sld-val-liber-med
+           contrato-for.cod-projeto         = "" //string(tt-imp-contrato-for.nr-contrato) //tt-imp-contrato-for.cod-projeto
            contrato-for.ind-sit-contrat     = tt-imp-contrato-for.ind-sit-contrat
            contrato-for.narrat-contrat      = tt-imp-contrato-for.narrat-contrat
            contrato-for.ind-preco           = 1
            contrato-for.sc-codigo           = tt-imp-contrato-for.sc-codigo
            contrato-for.ct-codigo           = tt-imp-contrato-for.ct-codigo
+           contrato-for.log-libera          = YES
            .
 
-    IF tt-imp-contrato-for.log-libera = "S" THEN DO:
-        ASSIGN contrato-for.log-libera = YES.
-    END.
-    ELSE DO:
-        ASSIGN contrato-for.log-libera = NO.
-    END.
+    //IF tt-imp-contrato-for.log-libera = "S" THEN DO:
+    //    ASSIGN contrato-for.log-libera = YES.
+    //END.
+    //ELSE DO:
+    //    ASSIGN contrato-for.log-libera = NO.
+    //END.
 
     FIND FIRST emitente USE-INDEX codigo
         WHERE emitente.cod-emitente = tt-imp-contrato-for.cod-emitente
@@ -134,7 +138,7 @@ PROCEDURE pi-geraContratoFor.
            matriz-rat-contr.perc-rateio         = tt-imp-contrato-for.perc-rateio
            matriz-rat-contr.cod-unid-negoc      = tt-imp-contrato-for.cod-unid-negoc.
 
-  //  RUN pi-geraPedidoContrato.
+  RUN pi-geraPedidoContrato.
 
 END PROCEDURE.
 
@@ -189,21 +193,24 @@ PROCEDURE pi-geraItemContrato.
            item-contrat.narrat-compra           = tt-imp-item-contrato.narrat-compra
            item-contrat.pre-unit-for            = tt-imp-item-contrato.pre-unit-for
            item-contrat.sld-qtd-receb           = tt-imp-item-contrato.sld-qtd-receb
-           item-contrat.sld-val-receb           = tt-imp-item-contrato.sld-val-receb.
+           item-contrat.sld-val-receb           = tt-imp-item-contrato.sld-val-receb
+           item-contrat.log-libera              = YES
+           item-contrat.frete                   = YES
+           .
 
-    IF tt-imp-item-contrato.log-libera = "S" THEN DO:
-        ASSIGN item-contrat.log-libera = YES.
-    END.
-    ELSE DO:
-        ASSIGN item-contrat.log-libera = NO.
-    END.
-
-    IF tt-imp-item-contrato.frete = "S" THEN DO:
-        ASSIGN item-contrat.frete = YES.
-    END.
-    ELSE DO:
-        ASSIGN item-contrat.frete = NO.
-    END.
+   // IF tt-imp-item-contrato.log-libera = "S" THEN DO:
+   //     ASSIGN item-contrat.log-libera = YES.
+   // END.
+   // ELSE DO:
+   //     ASSIGN item-contrat.log-libera = NO.
+   // END.
+   //
+   // IF tt-imp-item-contrato.frete = "S" THEN DO:
+   //     ASSIGN item-contrat.frete = YES.
+   // END.
+   // ELSE DO:
+   //     ASSIGN item-contrat.frete = NO.
+   // END.
 
     /*Matriz-rat-item*/
     CREATE matriz-rat-item.
@@ -223,11 +230,45 @@ PROCEDURE pi-geraPedidoContrato.
 
     ASSIGN i-num-pedido = 0.
 
-      IF NOT VALID-HANDLE(h-boin295) THEN
-        RUN inbo/boin295.p PERSISTENT SET h-boin295.
+    IF NOT VALID-HANDLE(h-boin295) THEN
+    RUN inbo/boin295.p PERSISTENT SET h-boin295.
 
-       RUN geraNumeroPedidoCompra IN h-boin295 (OUTPUT i-num-pedido).
+    RUN geraNumeroPedidoCompra IN h-boin295 (OUTPUT i-num-pedido).
 
+    IF VALID-HANDLE(h-boin295) THEN DO:       
+        DELETE PROCEDURE h-boin295.           
+        ASSIGN h-boin295 = ?.                 
+    END. 
+
+    CREATE pedido-compr.
+    assign pedido-compr.num-pedido    = i-num-pedido  
+           pedido-compr.natureza      = 1
+           pedido-compr.cod-emitente  = tt-imp-contrato-for.cod-emitente
+           pedido-compr.cod-emit-terc = tt-imp-contrato-for.cod-emitente
+           pedido-compr.cod-cond-pag = IF tt-imp-contrato-for.cod-cond-pag = 0 THEN 1 ELSE tt-imp-contrato-for.cod-cond-pag
+           pedido-compr.data-pedido  = TODAY
+           pedido-compr.situacao     = 2 //NÆo Impresso
+           pedido-compr.responsavel  = "01mdgcunha"
+           pedido-compr.end-entrega  = "01"
+           pedido-compr.end-cobranca = "01"
+           pedido-compr.frete        = 1 //Pago      
+           pedido-compr.cod-transp   = 99999  
+           pedido-compr.via-transp   = 1      
+           pedido-compr.cod-mensagem = 100    
+           pedido-compr.impr-pedido  = YES    
+           pedido-compr.emergencial  = YES    
+           pedido-compr.nr-prox-ped  = 1
+           pedido-compr.contr-forn   = NO
+           pedido-compr.nr-processo  = 0
+           pedido-compr.cod-estabel  = "01"
+           pedido-compr.nr-contrato  = tt-imp-contrato-for.nr-contrato. 
+
+    RELEASE pedido-compr.
+
+
+
+
+    /*********************************** comentado
     CREATE tt-pedido-compr.
     ASSIGN tt-pedido-compr.num-pedido              =  i-num-pedido
            tt-pedido-compr.nr-contrato             =  int(tt-imp-contrato-for.nr-contrato)
@@ -266,11 +307,12 @@ PROCEDURE pi-geraPedidoContrato.
 
 //    ASSIGN tt-imp-pedido-compr.num-pedido-totvs = i-num-pedido.
 //‚ preciso chara a bo para criar o pedido de Compras
+************************************************/
     
-    IF VALID-HANDLE(h-boin295) THEN DO:
-        DELETE PROCEDURE h-boin295.
-        ASSIGN h-boin295 = ?.
-    END.
+    
+    
+    
+    
 END PROCEDURE. 
 
 

@@ -186,7 +186,7 @@ PROCEDURE pi-gera-status:
            sfa-import-log.des-log        = IF c-erro = "" THEN "Registro integrado com sucesso" ELSE c-erro
            sfa-import-log.nr-seq         = i-nr-seq.
 
-    FIND FIRST contrato-for NO-LOCK WHERE contrato-for.nr-contrato = int(sfa-import.chave) NO-ERROR.
+    FIND LAST contrato-for NO-LOCK NO-ERROR.
 
     //Verificar a tabela de retorno para informa o erro contrato-for
     CREATE ttRetorno.
