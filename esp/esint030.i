@@ -44,15 +44,19 @@ DEFINE TEMP-TABLE ttCapaContrato NO-UNDO SERIALIZE-NAME "ContratoFornecedor"
     FIELD val-fatur-minimo      AS CHARACTER SERIALIZE-NAME "val-fatur-minimo"
     FIELD acum-val-pago         AS CHARACTER SERIALIZE-NAME "acum-val-pago"
     FIELD mo-codigo             AS CHARACTER SERIALIZE-NAME "mo-codigo".
-    
-    
-    
-    
-    
-    
 
 
 
+DEFINE TEMP-TABLE ttItensContrato NO-UNDO SERIALIZE-NAME "ItensContrato"
+    FIELD nr-contrato   AS CHARACTER SERIALIZE-NAME "nr-contrato"   
+    FIELD cod-emitente  AS CHARACTER SERIALIZE-NAME "cod-emitente" 
+    FIELD preco-unit    AS CHARACTER SERIALIZE-NAME "preco-unit "   
+    FIELD it-codigo     AS CHARACTER SERIALIZE-NAME "it-codigo  "   
+    FIELD narrat-item   AS CHARACTER SERIALIZE-NAME "narrat-item"   
+    FIELD preco-fornec  AS CHARACTER SERIALIZE-NAME "preco-fornec" 
+    FIELD val-frete     AS CHARACTER SERIALIZE-NAME "val-frete  "   
+    .
+    
 /*********************************************************************************
  definicao das temp-tables para resgatar os atributos do json - fim
 *********************************************************************************/
