@@ -1,5 +1,5 @@
 /*----------------------------------------------------------------------------------------------/
- Programa..: esint020ae.p
+ Programa..: esint021ae.p
  Objetivo..: Interface Chamada B2E Fornecedores PJ Ariba
  Data......: 29/05/2019
  Autor.....: Marcelo Brasil

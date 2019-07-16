@@ -71,18 +71,6 @@ PROCEDURE pi-create:
     THEN RETURN. /*-----tratar erro */
    
 
-    FILE-INFO:FILE-NAME = SEARCH("integracao/api/B2E/callbackfornecedor.r").
-    MESSAGE "***** " FILE-INFO:PATHNAME  FILE-INFO:FILE-CREATE-DATE STRING(INT(FILE-INFO:FILE-CREATE-TIME),"hh:mm:ss") FILE-INFO:FILE-MOD-DATE STRING(INT(FILE-INFO:FILE-MOD-TIME),"hh:mm:ss") 
-        VIEW-AS ALERT-BOX INFO BUTTONS OK.
-
-    FILE-INFO:FILE-NAME = SEARCH(es-api-param.programa-integr).
-    MESSAGE "***** " FILE-INFO:PATHNAME  FILE-INFO:FILE-CREATE-DATE STRING(INT(FILE-INFO:FILE-CREATE-TIME),"hh:mm:ss") FILE-INFO:FILE-MOD-DATE STRING(INT(FILE-INFO:FILE-MOD-TIME),"hh:mm:ss") 
-        VIEW-AS ALERT-BOX INFO BUTTONS OK.
-
-    FILE-INFO:FILE-NAME = SEARCH(REPLACE(es-api-param.programa-integr,".p",".r")).
-    MESSAGE "***** " FILE-INFO:PATHNAME  FILE-INFO:FILE-CREATE-DATE STRING(INT(FILE-INFO:FILE-CREATE-TIME),"hh:mm:ss") FILE-INFO:FILE-MOD-DATE STRING(INT(FILE-INFO:FILE-MOD-TIME),"hh:mm:ss") 
-        VIEW-AS ALERT-BOX INFO BUTTONS OK.
-    
     /* ------ Executa progama espec¡fico para o tipo de integra‡Æo ------ */
     RUN VALUE( es-api-param.programa-integr ) (INPUT ROWID(sfa-import),
                                                OUTPUT c-erro,

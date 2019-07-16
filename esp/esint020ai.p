@@ -46,19 +46,7 @@ DEF VAR i                   AS i   NO-UNDO.
 {method/dbotterr.i}
 
 
-DEF TEMP-TABLE tt-sf-pedido              NO-UNDO 
-          LIKE geo-pedido.
-DEF TEMP-TABLE tt-sf-item-pedido         NO-UNDO 
-          LIKE geo-item_pedido.
-DEF TEMP-TABLE tt-pedido-erro NO-UNDO
-         FIELD cd-pedido-palm LIKE tt-sf-pedido.cd_pedido_palm
-         FIELD cd-vendedor    LIKE tt-sf-pedido.cd_vendedor
-         FIELD cod-msg        AS INT
-         FIELD msg-erro       AS CHAR
-         FIELD msg-padrao     AS LOG
-         FIELD cd-cliente     AS INT.
-
-
+ 
 /*------------------------------ Main Begin ----------------------------*/
 ASSIGN c-erro = "".
 
@@ -77,188 +65,101 @@ THEN DO:
        /* ---- Là propriedade Principal ---- */        
        oJsonArrayMain = pJsonInput:GetJsonObject("payload":U)
                                   :GetJsonArray("req":U).     
-       CREATE tt-sf-pedido.
-       blk: DO iCountMain = 1 TO oJsonArrayMain:LENGTH:
+       //CREATE tt-sf-pedido.
+       blk: 
+       DO iCountMain = 1 TO oJsonArrayMain:LENGTH:
            oJsonObjectMain =  oJsonArrayMain:GetJsonObject(iCountMain).
 
-           CREATE tt-integra.
-           IF oJsonObjectMain:Has("CNPJ")                    THEN ASSIGN tt-integra.CNPJ                   = oJsonObjectMain:GetCharacter("CNPJ"                  ). 
-           MESSAGE "***** CNPJ: " tt-integra.CNPJ. 
-
-           IF oJsonObjectMain:Has("Raz∆oSocial")             THEN ASSIGN tt-integra.RazaoSocial            = oJsonObjectMain:GetCharacter("RazaoSocial"           ). 
-           MESSAGE "***** RazaoSocial: " tt-integra.RazaoSocial.  
-
-           IF oJsonObjectMain:Has("NaturezaJuridica")        THEN ASSIGN tt-integra.NaturezaJuridica       = oJsonObjectMain:GetCharacter("NaturezaJuridica"      ). 
-           MESSAGE "***** NaturezaJuridica: " tt-integra.NaturezaJuridica. 
-
-           IF oJsonObjectMain:Has("CEP")                     THEN ASSIGN tt-integra.CEP                    = oJsonObjectMain:GetCharacter("CEP"                   ). 
-           MESSAGE "***** CEP: " tt-integra.CEP. 
-
-           IF oJsonObjectMain:Has("LOGRADOURO")              THEN ASSIGN tt-integra.LOGRADOURO             = oJsonObjectMain:GetCharacter("LOGRADOURO"            ). 
-           MESSAGE "***** LOGRADOURO: " tt-integra.LOGRADOURO. 
-
-           IF oJsonObjectMain:Has("COMPLEMENTO")             THEN ASSIGN tt-integra.COMPLEMENTO            = oJsonObjectMain:GetCharacter("COMPLEMENTO"           ). 
-           MESSAGE "***** COMPLEMENTO: " tt-integra.COMPLEMENTO. 
-
-           IF oJsonObjectMain:Has("CIDADE")                  THEN ASSIGN tt-integra.CIDADE                 = oJsonObjectMain:GetCharacter("CIDADE"                ). 
-           MESSAGE "***** CIDADE: " tt-integra.CIDADE. 
-
-           IF oJsonObjectMain:Has("BAIRRO")                  THEN ASSIGN tt-integra.BAIRRO                 = oJsonObjectMain:GetCharacter("BAIRRO"                ). 
-           MESSAGE "***** BAIRRO: " tt-integra.BAIRRO. 
-
-           IF oJsonObjectMain:Has("UF")                      THEN ASSIGN tt-integra.UF                     = oJsonObjectMain:GetCharacter("UF"                    ).
-           MESSAGE "***** UF: " tt-integra.UF.
-
-           IF oJsonObjectMain:Has("SintegraAtivo")           THEN ASSIGN tt-integra.SintegraAtivo          = oJsonObjectMain:GetCharacter("SintegraAtivo"         ).
-           MESSAGE "***** SintegraAtivo: " tt-integra.SintegraAtivo.
-
-           IF oJsonObjectMain:Has("CNPJAtivo")               THEN ASSIGN tt-integra.CNPJAtivo              = oJsonObjectMain:GetCharacter("CNPJAtivo"             ).
-           MESSAGE "***** CNPJAtivo: " tt-integra.CNPJAtivo.
-
-           IF oJsonObjectMain:Has("OptanteSimplesNacional")  THEN ASSIGN tt-integra.OptanteSimplesNacional = oJsonObjectMain:GetCharacter("OptanteSimplesNacional").
-           MESSAGE "***** OptanteSimplesNacional: " tt-integra.OptanteSimplesNacional.
-
-           IF oJsonObjectMain:Has("CPF")                     THEN ASSIGN tt-integra.CPF                    = oJsonObjectMain:GetCharacter("CPF"                   ).
-           MESSAGE "***** CPF: " tt-integra.CPF.
-
-           IF oJsonObjectMain:Has("NOME")                    THEN ASSIGN tt-integra.NOME                   = oJsonObjectMain:GetCharacter("NOME"                  ).
-           MESSAGE "***** NOME: " tt-integra.NOME.
-
-           IF oJsonObjectMain:Has("CPFAtivo")                THEN ASSIGN tt-integra.CPFAtivo               = oJsonObjectMain:GetCharacter("CPFAtivo"              ). 
-           MESSAGE "***** CPFAtivo: " tt-integra.CPFAtivo. 
-
-           IF oJsonObjectMain:Has("InscricaoEstadual")       THEN ASSIGN tt-integra.InscricaoEstadual      = oJsonObjectMain:GetCharacter("InscricaoEstadual"     ). 
-           MESSAGE "***** InscricaoEstadual: " tt-integra.InscricaoEstadual. 
-
-           IF oJsonObjectMain:Has("CNAE")                    THEN ASSIGN tt-integra.CNAE                   = oJsonObjectMain:GetCharacter("CNAE"                  ). 
-           MESSAGE "***** CNAE: " tt-integra.CNAE. 
-
-           IF oJsonObjectMain:Has("Mensagem")                THEN ASSIGN tt-integra.Mensagem               = oJsonObjectMain:GetCharacter("Mensagem"              ). 
-           MESSAGE "***** Mensagem: " tt-integra.Mensagem. 
-
-           IF oJsonObjectMain:Has("Parecer")                 THEN ASSIGN tt-integra.Parecer                = oJsonObjectMain:GetCharacter("Parecer"               ). 
-           MESSAGE "***** Parecer: " tt-integra.Parecer. 
-
-           IF oJsonObjectMain:Has("Motivo")                  THEN ASSIGN tt-integra.Motivo                 = oJsonObjectMain:GetCharacter("Motivo"                ). 
-           MESSAGE "***** Motivo: " tt-integra.Motivo. 
-
-           IF oJsonObjectMain:Has("CodigoPropostaCliente")   THEN ASSIGN tt-integra.CodigoPropostaCliente  = oJsonObjectMain:GetCharacter("CodigoPropostaCliente" ). 
-
-           IF tt-integra.CodigoPropostaCliente = ""
-           THEN ASSIGN tt-integra.CodigoPropostaCliente  = "???". 
-           MESSAGE "***** CodigoPropostaCliente: " tt-integra.CodigoPropostaCliente. 
+           CREATE ttRetfornecedores.
+           IF oJsonObjectMain:Has("CodigoPropostaCliente")        THEN ASSIGN ttRetfornecedores.CodigoPropostaCliente        = oJsonObjectMain:GetCharacter("CodigoPropostaCliente")        NO-ERROR.
+           IF oJsonObjectMain:Has("CNPJ")                         THEN ASSIGN ttRetfornecedores.CNPJ                         = oJsonObjectMain:GetCharacter("CNPJ")                         NO-ERROR.
+           IF oJsonObjectMain:Has("RazaoSocial")                  THEN ASSIGN ttRetfornecedores.RazaoSocial                  = oJsonObjectMain:GetCharacter("RazaoSocial")                  NO-ERROR.
+           IF oJsonObjectMain:Has("NaturezaJuridica")             THEN ASSIGN ttRetfornecedores.NaturezaJuridica             = oJsonObjectMain:GetCharacter("NaturezaJuridica ")            NO-ERROR.
+           IF oJsonObjectMain:Has("CNPJAtivo")                    THEN ASSIGN ttRetfornecedores.CNPJAtivo                    = oJsonObjectMain:GetCharacter("CNPJAtivo")                    NO-ERROR.
+           IF oJsonObjectMain:Has("OptanteSimplesNacional")       THEN ASSIGN ttRetfornecedores.OptanteSimplesNacional       = oJsonObjectMain:GetCharacter("OptanteSimplesNacional")       NO-ERROR.
+           IF oJsonObjectMain:Has("InscricaoEstadual")            THEN ASSIGN ttRetfornecedores.InscricaoEstadual            = oJsonObjectMain:GetCharacter("InscricaoEstadual")            NO-ERROR.
+           IF oJsonObjectMain:Has("Cnae")                         THEN ASSIGN ttRetfornecedores.Cnae                         = oJsonObjectMain:GetCharacter("Cnae")                         NO-ERROR.
+           IF oJsonObjectMain:Has("Cep")                          THEN ASSIGN ttRetfornecedores.CEP                          = oJsonObjectMain:GetCharacter("Cep")                          NO-ERROR.
+           IF oJsonObjectMain:Has("Logradouro")                   THEN ASSIGN ttRetfornecedores.Logradouro                   = oJsonObjectMain:GetCharacter("Logradouro")                   NO-ERROR.
+           IF oJsonObjectMain:Has("Complemento")                  THEN ASSIGN ttRetfornecedores.Complemento                  = oJsonObjectMain:GetCharacter("Complemento")                  NO-ERROR.
+           IF oJsonObjectMain:Has("Cidade")                       THEN ASSIGN ttRetfornecedores.Cidade                       = oJsonObjectMain:GetCharacter("Cidade")                       NO-ERROR.
+           IF oJsonObjectMain:Has("Bairro")                       THEN ASSIGN ttRetFornecedores.Bairro                       = oJsonObjectMain:GetCharacter("Bairro")                       NO-ERROR.
+           IF oJsonObjectMain:Has("Uf")                           THEN ASSIGN ttRetFornecedores.UF                           = oJsonObjectMain:GetCharacter("Uf")                           NO-ERROR.
+           IF oJsonObjectMain:Has("SintegraAtivo")                THEN ASSIGN ttRetFornecedores.SintegraAtivo                = oJsonObjectMain:GetCharacter("SintegraAtivo")                NO-ERROR.
+           IF oJsonObjectMain:Has("Mensagem")                     THEN ASSIGN ttRetFornecedores.Mensagem                     = oJsonObjectMain:GetCharacter("Mensagem")                     NO-ERROR.  
+           IF oJsonObjectMain:Has("Parecer")                      THEN ASSIGN ttRetFornecedores.Parecer                      = oJsonObjectMain:GetCharacter("Parecer")                      NO-ERROR.  
+           IF oJsonObjectMain:Has("Motivo")                       THEN ASSIGN ttRetFornecedores.Motivo                       = oJsonObjectMain:GetCharacter("Motivo")                       NO-ERROR.  
+           IF oJsonObjectMain:Has("ValidacaoSintegra")            THEN ASSIGN ttRetFornecedores.ValidacaoSintegra            = oJsonObjectMain:GetCharacter("ValidacaoSintegra")            NO-ERROR.
+           IF oJsonObjectMain:Has("CepIsncricaoEstadual")         THEN ASSIGN ttRetFornecedores.CepIsncricaoEstadual         = oJsonObjectMain:GetCharacter("CepIsncricaoEstadual")         NO-ERROR.
+           IF oJsonObjectMain:Has("LogradouroIsncricaoEstadual")  THEN ASSIGN ttRetFornecedores.LogradouroIsncricaoEstadual  = oJsonObjectMain:GetCharacter("LogradouroIsncricaoEstadual")  NO-ERROR.
+           IF oJsonObjectMain:Has("ComplementoIsncricaoEstadual") THEN ASSIGN ttRetFornecedores.ComplementoIsncricaoEstadual = oJsonObjectMain:GetCharacter("ComplementoIsncricaoEstadual") NO-ERROR.
+           IF oJsonObjectMain:Has("CidadeIsncricaoEstadual")      THEN ASSIGN ttRetFornecedores.CidadeIsncricaoEstadual      = oJsonObjectMain:GetCharacter("CidadeIsncricaoEstadual")      NO-ERROR.
+           IF oJsonObjectMain:Has("BairroIsncricaoEstadual")      THEN ASSIGN ttRetFornecedores.BairroIsncricaoEstadual      = oJsonObjectMain:GetCharacter("BairroIsncricaoEstadual")      NO-ERROR.
+           IF oJsonObjectMain:Has("UfIsncricaoEstadual")          THEN ASSIGN ttRetFornecedores.UfIsncricaoEstadual          = oJsonObjectMain:GetCharacter("UfIsncricaoEstadual")          NO-ERROR.
+           
        
        END.
 
-       MESSAGE "***** Buscando Fornecedor " STRING(tt-integra.CodigoPropostaCliente).  
+       MESSAGE "***** Buscando Fornecedor " STRING(ttRetfornecedores.CodigoPropostaCliente).  
 
        FIND FIRST es-fornecedor-ariba EXCLUSIVE-LOCK
-            WHERE es-fornecedor-ariba.cod-proposta-b2e = tt-integra.CodigoPropostaCliente
-            NO-ERROR.
+            WHERE es-fornecedor-ariba.cod-proposta-b2e = ttRetfornecedores.CodigoPropostaCliente
+       NO-ERROR.
 
-       IF NOT AVAIL es-fornecedor-ariba
-       THEN DO:
-          ASSIGN
-             c-erro = "N∆o foi encontrada proposta de n£mero: " + REPLACE(tt-integra.CodigoPropostaCliente,"???",""). 
+       IF NOT AVAIL es-fornecedor-ariba THEN
+       DO:
+          ASSIGN c-erro = "N∆o foi encontrada proposta de n£mero: " + REPLACE(ttRetfornecedores.CodigoPropostaCliente,"???",""). 
           MESSAGE "***** Erro: " c-erro. 
        END.
-       ELSE DO:
-           /*
-           IF tt-integra.sintegra = ""
-           THEN DO:
-                 es-fornecedor-ariba.sintegraativo = ?
+       ELSE 
+       DO:
 
-                 c-erro = "Sem retorno do SINTEGRA". 
-              MESSAGE "***** " c-erro.
-              MESSAGE "***** callback " es-fornecedor-ariba.callback-b2e.
-              RETURN.
-           END.
-           */
-           ASSIGN 
-              es-fornecedor-ariba.callback-b2e = YES
-              es-fornecedor-ariba.mensagem     = tt-integra.mensagem             
-              es-fornecedor-ariba.parecer      = tt-integra.parecer              
-              es-fornecedor-ariba.motivo       = tt-integra.motivo.              
+           MESSAGE "ttRetfornecedores.mensagem            " ttRetfornecedores.mensagem            skip
+                   "ttRetfornecedores.parecer             " ttRetfornecedores.parecer             skip
+                   "ttRetfornecedores.motivo              " ttRetfornecedores.motivo              skip
+                   "ttRetfornecedores.cnae                " ttRetfornecedores.cnae                skip
+                   "ttRetfornecedores.uf                  " ttRetfornecedores.uf                  skip
+                   "ttRetfornecedores.logradouro          " ttRetfornecedores.logradouro          skip
+                   "ttRetfornecedores.complemento         " ttRetfornecedores.complemento         skip
+                   "ttRetfornecedores.cidade              " ttRetfornecedores.cidade              skip
+                   "ttRetfornecedores.bairro              " ttRetfornecedores.bairro              skip
+                   "ttRetfornecedores.cep                 " ttRetfornecedores.cep                 skip
+                   "ttRetfornecedores.InscricaoEstadual   " ttRetfornecedores.InscricaoEstadual   skip.
+                  
+                  
+
+
+
+           ASSIGN es-fornecedor-ariba.callback-b2e      = YES
+                  es-fornecedor-ariba.mensagem          = ttRetfornecedores.mensagem             
+                  es-fornecedor-ariba.parecer           = ttRetfornecedores.parecer              
+                  es-fornecedor-ariba.motivo            = ttRetfornecedores.motivo
+                  es-fornecedor-ariba.CNAE-principal    = ttRetfornecedores.cnae
+                  es-fornecedor-ariba.Street            = ttRetfornecedores.logradouro                                                  
+                  es-fornecedor-ariba.Complement        = ttRetfornecedores.complemento                                                 
+                  es-fornecedor-ariba.Municipality      = ttRetfornecedores.cidade                                                      
+                  es-fornecedor-ariba.District          = ttRetfornecedores.bairro                                                      
+                  es-fornecedor-ariba.ie                = ttRetfornecedores.InscricaoEstadual                                           
+                  es-fornecedor-ariba.Simples-Nacional  = IF ttRetfornecedores.OptanteSimplesNacional = "S" THEN YES ELSE NO            
+                  es-fornecedor-ariba.CNPJAtivo         = IF ttRetFornecedores.CNPJAtivo = "ATIVA" THEN YES ELSE NO                         
+                  es-fornecedor-ariba.SintegraAtivo     = IF ttRetFornecedores.SintegraAtivo = "S" THEN YES ELSE NO.
+
+           IF ttRetfornecedores.uf <> "" THEN
+               ASSIGN es-fornecedor-ariba.State             = ttRetfornecedores.uf.
+
+           IF ttRetfornecedores.cep = ""  THEN
+               ASSIGN es-fornecedor-ariba.Zip-Code          = ttRetfornecedores.cep.
     
-           IF YES //tt-integra.parecer MATCHES "*APROVADO*"
-           AND c-erro            = ""
-           THEN DO:
-              MESSAGE "**** Iniciando criaá∆o de fornecedor".
-    /*****/
-              ASSIGN
-    /*
-                 es-fornecedor-ariba.Number             =                                 
-                 es-fornecedor-ariba.cod-emitente       =                                 
-                 es-fornecedor-ariba.CNPJ               =                                 
-                 es-fornecedor-ariba.CPF                =                                 
-                 es-fornecedor-ariba.PIS-Number         =                                 
-                 es-fornecedor-ariba.NIS-Number         =                                 
-    */             
-    
-    /*           es-fornecedor-ariba.IE                 = tt-integra.InscricaoEstadual    ******/
+           RUN esp/esint020aif.p ("",
+                                  ROWID(es-fornecedor-ariba),
+                                  OUTPUT c-erro).
 
-    /*
-
-                 es-fornecedor-ariba.State              = tt-integra.uf                   
-                 es-fornecedor-ariba.Street             = tt-integra.logradouro
-
-                 es-fornecedor-ariba.Complement         = tt-integra.complemento         
-
-                 es-fornecedor-ariba.Municipality       = tt-integra.cidade               
-                 es-fornecedor-ariba.District           = tt-integra.bairro               
-                 es-fornecedor-ariba.Zip-Code           = tt-integra.cep                  
-    
-    */
-
-                 es-fornecedor-ariba.Country            = "Brasil"                        
-                 es-fornecedor-ariba.Pais               = "Brasil"                        
-    
-                 es-fornecedor-ariba.CNAE-principal     = tt-integra.cnae                 
-                 
-                 
-    /*
-                 es-fornecedor-ariba.Nome-Responsavel   =
-                 es-fornecedor-ariba.Date-Birth         =
-                 es-fornecedor-ariba.Codigo-Pais        =
-                 es-fornecedor-ariba.Codigo-area        =
-                 es-fornecedor-ariba.Numero-Telefone    =
-                 es-fornecedor-ariba.E-mail             =
-                 es-fornecedor-ariba.Banco              =
-                 es-fornecedor-ariba.Agencia            =
-                 es-fornecedor-ariba.Dig-Agencia        =
-                 es-fornecedor-ariba.Conta-corrente     =
-                 es-fornecedor-ariba.Dig-conta-corrente =
-    */             
-    
-    /*             es-fornecedor-ariba.aprovado-b2e       =*/
-                 
-                 es-fornecedor-ariba.Simples-Nacional   = IF tt-integra.OptanteSimplesNacional = "S" THEN YES ELSE NO .
-
-                 /********es-fornecedor-ariba.SintegraAtivo      = tt-integra.SintegraAtivo        ********/
-    /*             es-fornecedor-ariba.SimplesAtivo       =*/
-                 
-                 .
-    /***/         
-              ASSIGN
-                 es-fornecedor-ariba.callback-b2e       = YES.                             
-    /***
-              IF tt-integra.cpf > ""
-              THEN ASSIGN
-                 es-fornecedor-ariba.Corporate-Name = tt-integra.nome.
-    ***/                 
-    
-              RUN esp/esint020aif.p ("",
-                                     ROWID(es-fornecedor-ariba),
-                                     OUTPUT c-erro).
-
-           END.
+           
        END.
        MESSAGE "**** Finalizando criaá∆o de fornecedor".
     END.
-    IF AVAIL api-import-for
-    THEN RELEASE api-import-for.
-    IF AVAIL es-fornecedor-ariba
-    THEN RELEASE es-fornecedor-ariba.
+    IF AVAIL api-import-for THEN RELEASE api-import-for.
+    IF AVAIL es-fornecedor-ariba THEN RELEASE es-fornecedor-ariba.
 
 END.
 
