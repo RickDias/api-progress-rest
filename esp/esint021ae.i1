@@ -1,10 +1,9 @@
-/*
+
 MESSAGE "**** piSendB2E "          SKIP 
         {&Tabela}.number SKIP 
         {&Tabela}.cnpj   SKIP
         {&Tabela}.ie
     VIEW-AS ALERT-BOX INFO BUTTONS OK.
-*/
 
 /*
    OUTPUT TO c:\temp\cargafornec.lst.

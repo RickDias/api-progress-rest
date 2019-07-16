@@ -1,24 +1,32 @@
-DEF TEMP-TABLE tt-integra NO-UNDO
-    FIELD CNPJ                   AS c
-    FIELD RazaoSocial            AS c
-    FIELD NaturezaJuridica       AS c
-    FIELD CEP                    AS c
-    FIELD LOGRADOURO             AS c
-    FIELD COMPLEMENTO            AS c
-    FIELD CIDADE                 AS c
-    FIELD BAIRRO                 AS c
-    FIELD UF                     AS c
-    FIELD SintegraAtivo          AS c
-    FIELD CNPJAtivo              AS c
-    FIELD OptanteSimplesNacional AS c
-    FIELD CPF                    AS c
-    FIELD NOME                   AS c
-    FIELD CPFAtivo               AS c
-    FIELD InscricaoEstadual      AS c
-    FIELD CNAE                   AS c
-    FIELD Mensagem               AS c
-    FIELD Parecer                AS c
-    FIELD Motivo                 AS c
-    FIELD CodigoPropostaCliente  AS c.
+DEF TEMP-TABLE ttRetfornecedores NO-UNDO
+    FIELD CodigoPropostaCliente        AS CHAR 
+    FIELD CNPJ                         AS CHAR 
+    FIELD RazaoSocial                  AS CHAR 
+    FIELD NaturezaJuridica             AS CHAR 
+    FIELD CNPJAtivo                    AS CHAR 
+    FIELD OptanteSimplesNacional       AS CHAR 
+    FIELD InscricaoEstadual            AS CHAR 
+    FIELD Cnae                         AS CHAR 
+    FIELD CEP                          AS CHAR 
+    FIELD Logradouro                   AS CHAR 
+    FIELD Complemento                  AS CHAR 
+    FIELD Cidade                       AS CHAR 
+    FIELD Bairro                       AS CHAR 
+    FIELD UF                           AS CHAR
+    FIELD SintegraAtivo                AS CHAR 
+    FIELD Mensagem                     AS CHAR 
+    FIELD Parecer                      AS CHAR 
+    FIELD Motivo                       AS CHAR 
+    FIELD ValidacaoSintegra            AS CHAR 
+    FIELD CepIsncricaoEstadual         AS CHAR 
+    FIELD LogradouroIsncricaoEstadual  AS CHAR 
+    FIELD ComplementoIsncricaoEstadual AS CHAR 
+    FIELD CidadeIsncricaoEstadual      AS CHAR
+    FIELD BairroIsncricaoEstadual      AS CHAR
+    FIELD UfIsncricaoEstadual          AS CHAR.
+                                               
+                                                   
+                                                       
+                                                           
 
 

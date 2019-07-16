@@ -7,6 +7,29 @@ DEF TEMP-TABLE tt_fornecedor_b2e NO-UNDO
     FIELD nascimento             AS c serialize-name "Data de nascimento"
     FIELD tipo-fornecedor        AS c serialize-name "Descri‡Æo tipo Fornecedor".
 
+
+
+
+DEFINE TEMP-TABLE ttPropostaFornecePJ NO-UNDO
+    FIELD cod-proposta    AS CHAR SERIALIZE-NAME "CodigoPropostaCliente"
+    FIELD cod-instituicao AS CHAR SERIALIZE-NAME "CodigoInstituicao".
+
+DEFINE TEMP-TABLE ttProponente NO-UNDO
+    FIELD razao-social AS CHAR SERIALIZE-NAME "RazaoSocial"
+    FIELD cnpj         AS CHAR SERIALIZE-NAME "CNPJ"
+    FIELD ins-estadual AS CHAR SERIALIZE-NAME "InscricaoEstadual".
+
+DEFINE TEMP-TABLE ttInfoAdicionais NO-UNDO 
+    FIELD grupo AS CHAR SERIALIZE-NAME "Grupo"
+    FIELD Nome  AS CHAR SERIALIZE-NAME "Nome"
+    FIELD valor AS CHAR SERIALIZE-NAME "Valor".
+
+
+
+
+
+
+
 /*
 {
   "CodigoPropostaCliente":"0005",

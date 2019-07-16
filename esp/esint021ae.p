@@ -797,32 +797,33 @@ PROCEDURE piAtualizaFornecedor:
        END.
 
 
-       //IF lSendB2E THEN
-       //
-       //MESSAGE "####-status de consultas" SKIP
-       //        "lSendB2E" lSendB2E SKIP
-       //        "lSendBOFornecedor" lSendBOFornecedor
-       //    VIEW-AS ALERT-BOX INFORMATION BUTTONS OK.
+       IF lSendB2E THEN
+       
+       MESSAGE "####-status de consultas" SKIP
+               "lSendB2E" lSendB2E SKIP
+               "lSendBOFornecedor" lSendBOFornecedor
+           VIEW-AS ALERT-BOX INFORMATION BUTTONS OK.
        //
        /* IF YES // es-fornecedor-ariba.cpf = "571.279.888-38"                                                */
        /*    //es-fornecedor-ariba.corporate-name = "TESTE INT34HK EST"                                       */
        /* THEN DO:                                                                                            */
        /*                                                                                                     */
-      /*      MESSAGE                                                                                            */
-      /*          "***** "                                                                                       */
-      /*          "es-fornecedor-ariba.cpf" es-fornecedor-ariba.cpf                                SKIP          */
-      /*          "es-fornecedor-ariba.corporate-name" es-fornecedor-ariba.corporate-name          SKIP          */
-      /*          "lSendB2E"  lSendB2E                                                             SKIP          */
-      /*          "es-fornecedor-ariba.enviado-b2e" es-fornecedor-ariba.enviado-b2e                SKIP(1)       */
-      /*          "lSendBOFornecedor" lSendBOFornecedor                                            SKIP          */
-      /*          "es-fornecedor-ariba.ind-atualizado-ems" es-fornecedor-ariba.ind-atualizado-ems  SKIP          */
-      /*          "es-fornecedor-ariba.ind-inativado" es-fornecedor-ariba.ind-inativado            SKIP          */
-      /*          VIEW-AS ALERT-BOX INFO BUTTONS OK.                                                             */
+           MESSAGE
+               "***** "
+               "es-fornecedor-ariba.cpf" es-fornecedor-ariba.cpf                                SKIP
+               "es-fornecedor-ariba.corporate-name" es-fornecedor-ariba.corporate-name          SKIP
+               "lSendB2E"  lSendB2E                                                             SKIP
+               "es-fornecedor-ariba.enviado-b2e" es-fornecedor-ariba.enviado-b2e                SKIP(1)
+               "lSendBOFornecedor" lSendBOFornecedor                                            SKIP
+               "es-fornecedor-ariba.ind-atualizado-ems" es-fornecedor-ariba.ind-atualizado-ems  SKIP
+               "es-fornecedor-ariba.ind-inativado" es-fornecedor-ariba.ind-inativado            SKIP
+               VIEW-AS ALERT-BOX INFO BUTTONS OK.
        /*                                                                                                     */
        /*                                                                                                     */
        IF  lSendB2E                               =  YES
-       AND es-fornecedor-ariba.enviado-b2e        =  NO
-       THEN RUN piBOFornecedor. //RUN piSendB2E.
+       AND es-fornecedor-ariba.enviado-b2e        =  NO THEN 
+           RUN piSendB2E. //RUN piBOFornecedor. 
+           
    
        IF   lSendBOFornecedor                      =  YES
        AND  lSendB2E                               =  NO

@@ -1,6 +1,6 @@
 /*----------------------------------------------------------------------------------------------/
  Programa..: esint020ae.p
- Objetivo..: Interface Chamada B2E Fornecedores PJ Ariba
+ Objetivo..: Interface Avaliaá∆o de Fornecedor PJ B2E
  Data......: 29/05/2019
  Autor.....: Marcelo Brasil
  Vers∆o....: 1.000.000
@@ -98,22 +98,8 @@ THEN DO:
         FIND FIRST api-export-b2e-pj OF sfa-export NO-ERROR.
         IF AVAIL api-export-b2e-pj THEN 
         DO:
-            //Ponto novo incluido para testes - CPAS
-            /******** Inicio *****************
-            CREATE sfa-export.                                                                                    
-            ASSIGN sfa-export.ind-tipo-trans          = es-api-param.ind-tipo-trans                               
-                   sfa-export.id-movto                = api-export-b2e-pj.id-movto                                   
-                   sfa-export.cd-tipo-integr          = es-api-param.cd-tipo-integr.cd-tipo-integr                             
-                   sfa-export.chave                   = STRING(api-import-for.id-movto)                           
-                   sfa-export.cod-status              = 0      /* ---- sem status ----*/                          
-                   sfa-export.data-fim                = ?                                                         
-                   sfa-export.data-inicio             = ?                                                         
-                   sfa-export.data-movto              = NOW                                                       
-                   sfa-export.ind-situacao            = 1      /*---- Pendente -----*/.  
-
-            ******* FIM ******************/
-
-            RUN piGravaTTFornecedor (OUTPUT c-json,
+            //criar temp-table com serialize e montar estrutura
+            RUN piGravaTTFornecedor (OUTPUT c-json, //transformar em objeto
                                      OUTPUT c-erro).
             
             ASSIGN api-export-b2e-pj.c-json = c-Json.
@@ -123,10 +109,16 @@ THEN DO:
                                           INPUT rowid(es-api-param),
                                           OUTPUT lResp,
                                           OUTPUT TABLE RowErrors).
-    /*
-            MESSAGE RETURN-VALUE
-                VIEW-AS ALERT-BOX INFO BUTTONS OK.
-            */
+
+            /**** refatorar para este modelo no futuro   
+            RUN piPostJsonObj IN h-esint002 (INPUT oJsonObjMain,     
+                                          INPUT rowid(es-api-param), 
+                                          OUTPUT lResp,              
+                                          OUTPUT TABLE RowErrors,    
+                                          OUTPUT c-retorno).   
+                                          
+            ****************************************************/      
+            
             ASSIGN api-export-b2e-pj.text-retorno = RETURN-VALUE
                    sfa-export.text-retorno        = RETURN-VALUE.
             /*
@@ -219,36 +211,62 @@ PROCEDURE piGravaTTFornecedor:
                        + "-" 
                        + STRING(  DAY(es-fornecedor-ariba.date-birth))
                        + 'T00:00:00.000Z"'.
-    ASSIGN
-       es-fornecedor-ariba.cod-proposta-b2e = STRING (api-export-b2e-pj.id-movto).
 
-    pTemp = '~{
+    ASSIGN es-fornecedor-ariba.cod-proposta-b2e = STRING (api-export-b2e-pj.id-movto).
+
+    /* pTemp = '~{                                                                       */
+    /*           "CodigoPropostaCliente":"' + STRING (api-export-b2e-pj.id-movto) + '",  */
+    /*           "CodigoInstituicao'":"' + es-ariba-b2e-param.insitituicao-b2b-pj + '",  */
+    /*           "Proponente":~{                                                         */
+    /*              "RazaoSocial":"' + es-fornecedor-ariba.corporate-name + '",          */
+    /*              "CNPJ":"' + es-fornecedor-ariba.cnpj + '",                           */
+    /*              "Enderecos":[                                                        */
+    /*                 ~{                                                                */
+    /*                    "UF":"' + es-fornecedor-ariba.state + '",                      */
+    /*                    "Tipo": "COMERCIAL"                                            */
+    /*                 ~}                                                                */
+    /*              ]                                                                    */
+    /*           ~},                                                                     */
+    /*           "InformacoesAdicionais": [                                              */
+    /*             ~{                                                                    */
+    /*               "Grupo": null,                                                      */
+    /*               "Nome": "Mercado_Interno",                                          */
+    /*               "Valor": ""                                                         */
+    /*             ~}                                                                    */
+    /*           ],                                                                      */
+    /*           "TipoFornecedor":"Mercado_Interno"                                      */
+    /*         ~}'.                                                                      */
+
+
+    pTemp = '~{  
               "CodigoPropostaCliente":"' + STRING (api-export-b2e-pj.id-movto) + '",
-              "CodigoInstituicao":"' + es-ariba-b2e-param.insitituicao-b2b-pj + '",
-              "Proponente":~{
-                 "RazaoSocial":"' + es-fornecedor-ariba.corporate-name + '",
-                 "CNPJ":"' + es-fornecedor-ariba.cnpj + '",
+               "CodigoInstituicao":"' + es-ariba-b2e-param.insitituicao-b2b-pj + '",
+               "Proponente":~{
+                 "Nome":"' + es-fornecedor-ariba.corporate-name + '",
+                 "CPF":"' + es-fornecedor-ariba.cnpj + '",
+                 "DataNascimento": "' + cDataNascimento + '",
                  "Enderecos":[
                     ~{
                        "UF":"' + es-fornecedor-ariba.state + '",
-                       "Tipo": "COMERCIAL"
+                       "Tipo": "Residencial"
                     ~}
-                 ]
-              ~},
-              "InformacoesAdicionais": [
-                ~{
-                  "Grupo": null,
-                  "Nome": "Mercado_Interno",
-                  "Valor": ""
+                  ],
+                  "inscricao_estadual": "'+ es-fornecedor-ariba.ie + '"
                 ~}
-              ],
-              "TipoFornecedor":"Mercado_Interno"
-            ~}'.
+                 "InformacoesAdicionais": [
+                     ~{
+                         "Grupo": null,
+                         "Nome": "tipo_fornecedor",
+                         "Valor": "C2302010"
+                     ~},
+                     ~{
+                        "Grupo": null,      
+                        "Nome": "Reenvio",  
+                        "Valor": "N"   
+                     ~}
+                 ]
+             ~}'.
 
-   /*
-   MESSAGE STRING(pTemp)
-      VIEW-AS ALERT-BOX INFO BUTTONS OK.
-   CLIPBOARD:VALUE = STRING(pTemp).
-   */
+
 END PROCEDURE.
 

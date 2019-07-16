@@ -133,10 +133,9 @@ FIND FIRST tt-es-api-param-contr NO-LOCK NO-ERROR.
            CREATE tt-imp-contrato-for.
            ASSIGN tt-imp-contrato-for.nr-contrato     = i-num-contrato
                   tt-imp-contrato-for.des-contrat     = ttCapaContrato.des-contrat
-                  //esta vindo embranco na integracao, fixado para testes
-                  tt-imp-contrato-for.cod-emitente    = 534187  //IF TRIM(ttCapaContrato.cod-emitente) = "" THEN 604328 ELSE INT(TRIM(ttCapaContrato.cod-emitente))
+                  tt-imp-contrato-for.cod-emitente    = INT(TRIM(ttCapaContrato.cod-emitente))
                   tt-imp-contrato-for.dt-ini-validade = TODAY
-                  tt-imp-contrato-for.dt-ter-validade = ADD-INTERVAL(TODAY,3,"month")
+                  tt-imp-contrato-for.dt-ter-validade = DATE(ttCapaContrato.dt-ter-validade)
                   tt-imp-contrato-for.ind-tipo-movto  = 1
                   tt-imp-contrato-for.ind-sit-contrat = 1 /*NAO EMITIDO*/
                .
@@ -210,13 +209,13 @@ FIND FIRST tt-es-api-param-contr NO-LOCK NO-ERROR.
              ASSIGN tt-imp-item-contrato.nr-contrato    = i-num-contrato
                     tt-imp-item-contrato.num-seq-item   = iCountSec
                     tt-imp-item-contrato.cod-emitente   = INT(ttItensContrato.cod-emitente) 
-                    tt-imp-item-contrato.preco-unit     = DEC(REPLACE(REPLACE(ttItensContrato.preco-unit,"$",""),"BRL",""))     
+                    tt-imp-item-contrato.preco-unit     = DEC(ttItensContrato.preco-unit)     
                     //codigo do item est  vindo em branco
-                    tt-imp-item-contrato.it-codigo      = "19598" //ttItensContrato.it-codigo     
+                    tt-imp-item-contrato.it-codigo      = ttItensContrato.it-codigo     
                     tt-imp-item-contrato.narrat-compra  = ttItensContrato.narrat-item   
                     tt-imp-item-contrato.pre-unit-for   = 0
-                    tt-imp-item-contrato.preco-fornec   = DEC(REPLACE(REPLACE(ttItensContrato.preco-fornec,"$",""),"BRL",""))    
-                    tt-imp-item-contrato.val-frete      = DEC(REPLACE(REPLACE(ttItensContrato.val-frete,"$",""),"BRL","")).
+                    tt-imp-item-contrato.preco-fornec   = DEC(ttItensContrato.preco-fornec)    
+                    tt-imp-item-contrato.val-frete      = DEC(ttItensContrato.val-frete).
 
              /*
                 Precisa tratar os campos de valor com o cara do apigee
