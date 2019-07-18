@@ -149,6 +149,9 @@ PROCEDURE pi-gera-status:
            sfa-import-log.des-log        = c-erro
            sfa-import-log.nr-seq         = i-nr-seq.
 
+    RELEASE sfa-import-log.
+
+
     FIND FIRST emitente NO-LOCK 
          WHERE emitente.cod-emitente = INT(sfa-import.chave) 
          NO-ERROR.

@@ -89,42 +89,39 @@ THEN DO:
            AND es-api-param.cd-tipo-integr = sfa-export.cd-tipo-integr 
          NO-ERROR. 
 
-    FIND FIRST api-export-b2e-pf 
-            OF sfa-export 
-         NO-ERROR.
-    IF AVAIL api-export-b2e-pf 
-    THEN DO:
+    FIND FIRST api-export-b2e-pf OF sfa-export NO-ERROR.
+    IF AVAIL api-export-b2e-pf THEN 
+    DO:
         RUN piGravaTTFornecedor (OUTPUT c-json,
                                  OUTPUT c-erro).
         
-        ASSIGN 
-            api-export-b2e-pf.c-json = c-Json.
+        ASSIGN api-export-b2e-pf.c-json = c-Json.
         /* ------------ Envia Objeto Json --------- */
         RUN piPostJson IN h-esint002 (INPUT c-Json,
                                       INPUT rowid(es-api-param),
                                       OUTPUT lResp,
                                       OUTPUT TABLE RowErrors).
+
         MESSAGE "**** esint020be " RETURN-VALUE 
             VIEW-AS ALERT-BOX INFO BUTTONS OK.
-        ASSIGN 
-           api-export-b2e-pf.text-retorno = RETURN-VALUE
-           sfa-export.text-retorno        = RETURN-VALUE.
-        /*
-        IF RETURN-VALUE > ""
-        THEN DO:
-            myParser = NEW ObjectModelParser().
-            oJson = CAST(myParser:Parse(RETURN-VALUE), JsonObject).
-            IF oJson:Has("Sucesso") 
-            THEN ASSIGN
-               cSucesso = oJson:GetLogical("Sucesso").
-            IF oJson:Has("Mensagens") 
-            THEN DO:  
-                ASSIGN	
-                    c-erro = c-erro
-                           + oJsonObjectSec:GetCharacter("Descricao").
-            END.      
-        END.
-        */
+
+
+        ASSIGN api-export-b2e-pf.text-retorno = RETURN-VALUE
+               sfa-export.text-retorno        = RETURN-VALUE.
+        
+        //IF RETURN-VALUE > "" THEN 
+        //DO:
+        //    myParser = NEW ObjectModelParser().
+        //    oJson = CAST(myParser:Parse(RETURN-VALUE), JsonObject).
+        //    IF oJson:Has("Sucesso") 
+        //    THEN ASSIGN cSucesso = oJson:GetLogical("Sucesso").
+        //    IF oJson:Has("Mensagens") 
+        //    THEN 
+        //    DO:  
+        //        ASSIGN  c-erro = c-erro + oJsonObjectSec:GetCharacter("Descricao").
+        //    END.      
+        //END.
+        
         IF TEMP-TABLE rowErrors:HAS-RECORDS 
         THEN DO:
             FOR EACH rowErrors:
@@ -134,17 +131,15 @@ THEN DO:
             END.
         END.     
     END.
-    ELSE ASSIGN 
-       c-erro = c-erro
-              + "Registro tabela do fornecedor nÆo localizada".
-    IF c-erro > ""
-    THEN RETURN "NOK".
+    ELSE 
+        ASSIGN c-erro = c-erro + "Registro tabela do fornecedor nÆo localizada".
+    IF c-erro > "" THEN RETURN "NOK".
 
-    FIND FIRST es-fornecedor-ariba 
+    FIND FIRST es-fornecedor-ariba EXCLUSIVE-LOCK
          WHERE es-fornecedor-ariba.chave = STRING(api-export-b2e-pf.id-movto)
-         NO-ERROR.
-    ASSIGN
-       es-fornecedor-ariba.enviado-b2e = YES.
+    NO-ERROR.
+    ASSIGN es-fornecedor-ariba.enviado-b2e = YES.
+    FIND CURRENT es-fornecedor-ariba NO-LOCK NO-ERROR.
 END.
 
 IF VALID-HANDLE(h-esint002) 

@@ -17,6 +17,7 @@ MESSAGE PROGRAM-NAME(1)
 
 {include/i-prgvrs.i ESINT020BE 1.00.00.000} 
 
+
 /* ------- Defini‡Æo de Parƒmetros ----- */
 DEFINE INPUT  PARAMETER r-table AS ROWID     NO-UNDO.
 DEFINE OUTPUT PARAMETER c-erro  AS CHARACTER NO-UNDO.
@@ -43,6 +44,8 @@ DEF         VAR iCountSec         AS i                 NO-UNDO.
 DEF         VAR myParser          AS ObjectModelParser NO-UNDO.
 
 DEF         VAR cSucesso          AS l                 NO-UNDO.
+
+DEF VAR l-debug AS LOG INIT YES NO-UNDO.
 
 
 DEF BUFFER pais FOR mgcad.pais.
@@ -103,6 +106,9 @@ THEN DO:
                                      OUTPUT c-erro).
             
             ASSIGN api-export-b2e-pj.c-json = c-Json.
+
+            IF l-debug THEN
+            MESSAGE STRING(c-json) VIEW-AS ALERT-BOX.
             
             /* ------------ Envia Objeto Json --------- */
             RUN piPostJson IN h-esint002 (INPUT c-Json,
@@ -121,7 +127,21 @@ THEN DO:
             
             ASSIGN api-export-b2e-pj.text-retorno = RETURN-VALUE
                    sfa-export.text-retorno        = RETURN-VALUE.
-            /*
+
+
+            IF l-debug THEN
+            MESSAGE "###0-lResp " lResp VIEW-AS ALERT-BOX.
+
+
+            IF l-debug THEN
+            MESSAGE "###1-esint020ae - Return-value" RETURN-VALUE VIEW-AS ALERT-BOX.
+
+            IF l-debug THEN
+            MESSAGE "###2-esint020ae.-------------" VIEW-AS ALERT-BOX.
+            
+
+
+            
             IF RETURN-VALUE > ""
             THEN DO:
                 myParser = NEW ObjectModelParser().
@@ -141,7 +161,7 @@ THEN DO:
                     END.
                 END.      
             END.
-            */
+           
             IF TEMP-TABLE rowErrors:HAS-RECORDS 
             THEN DO:
                 FOR EACH rowErrors:
@@ -155,13 +175,19 @@ THEN DO:
         MESSAGE c-erro SKIP(2)
             RETURN-VALUE
             VIEW-AS ALERT-BOX INFO BUTTONS OK.
-    */        
+    */      
+
+        IF l-debug THEN
+        MESSAGE c-erro SKIP RETURN-VALUE VIEW-AS ALERT-BOX.
+
+
         IF c-erro > "" THEN RETURN "NOK".
     
-        FIND FIRST es-fornecedor-ariba 
+        FIND FIRST es-fornecedor-ariba EXCLUSIVE-LOCK
              WHERE es-fornecedor-ariba.chave = STRING(api-export-b2e-pj.id-movto) 
-             NO-ERROR.
+        NO-ERROR.
         ASSIGN es-fornecedor-ariba.enviado-b2e = YES.
+        FIND CURRENT es-fornecedor-ariba NO-LOCK NO-ERROR.
     END. //es-api-param
 
 END.
@@ -242,25 +268,25 @@ PROCEDURE piGravaTTFornecedor:
               "CodigoPropostaCliente":"' + STRING (api-export-b2e-pj.id-movto) + '",
                "CodigoInstituicao":"' + es-ariba-b2e-param.insitituicao-b2b-pj + '",
                "Proponente":~{
-                 "Nome":"' + es-fornecedor-ariba.corporate-name + '",
-                 "CPF":"' + es-fornecedor-ariba.cnpj + '",
+                 "RazaoSocial":"' + es-fornecedor-ariba.corporate-name + '",
+                 "CNPJ":"' + es-fornecedor-ariba.cnpj + '",
                  "DataNascimento": "' + cDataNascimento + '",
                  "Enderecos":[
                     ~{
                        "UF":"' + es-fornecedor-ariba.state + '",
-                       "Tipo": "Residencial"
+                       "Tipo": "Comercial"
                     ~}
                   ],
-                  "inscricao_estadual": "'+ es-fornecedor-ariba.ie + '"
-                ~}
+                  "inscricao_estadual": "' + es-fornecedor-ariba.ie + '"
+                ~},
                  "InformacoesAdicionais": [
                      ~{
-                         "Grupo": null,
+                         "Grupo": "",
                          "Nome": "tipo_fornecedor",
                          "Valor": "C2302010"
                      ~},
                      ~{
-                        "Grupo": null,      
+                        "Grupo": "",      
                         "Nome": "Reenvio",  
                         "Valor": "N"   
                      ~}

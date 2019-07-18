@@ -807,9 +807,28 @@ PROCEDURE piAtualizaFornecedor:
        /* IF YES // es-fornecedor-ariba.cpf = "571.279.888-38"                                                */
        /*    //es-fornecedor-ariba.corporate-name = "TESTE INT34HK EST"                                       */
        /* THEN DO:                                                                                            */
-       /*                                                                                                     */
+
+
+       IF es-fornecedor-ariba.cnpj <> "" THEN
+       DO:
            MESSAGE
-               "***** "
+               "***** esint0021ae "
+               "es-fornecedor-ariba.cnpj" es-fornecedor-ariba.cnpj                                SKIP
+               "es-fornecedor-ariba.corporate-name" es-fornecedor-ariba.corporate-name          SKIP
+               "lSendB2E"  lSendB2E                                                             SKIP
+               "es-fornecedor-ariba.enviado-b2e" es-fornecedor-ariba.enviado-b2e                SKIP(1)
+               "lSendBOFornecedor" lSendBOFornecedor                                            SKIP
+               "es-fornecedor-ariba.ind-atualizado-ems" es-fornecedor-ariba.ind-atualizado-ems  SKIP
+               "es-fornecedor-ariba.ind-inativado" es-fornecedor-ariba.ind-inativado            SKIP
+               VIEW-AS ALERT-BOX INFO BUTTONS OK.
+       END.
+
+
+       IF es-fornecedor-ariba.cpf <> ""  THEN
+       DO:
+
+           MESSAGE
+               "***** esint0021ae "
                "es-fornecedor-ariba.cpf" es-fornecedor-ariba.cpf                                SKIP
                "es-fornecedor-ariba.corporate-name" es-fornecedor-ariba.corporate-name          SKIP
                "lSendB2E"  lSendB2E                                                             SKIP
@@ -818,6 +837,21 @@ PROCEDURE piAtualizaFornecedor:
                "es-fornecedor-ariba.ind-atualizado-ems" es-fornecedor-ariba.ind-atualizado-ems  SKIP
                "es-fornecedor-ariba.ind-inativado" es-fornecedor-ariba.ind-inativado            SKIP
                VIEW-AS ALERT-BOX INFO BUTTONS OK.
+       END.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
        /*                                                                                                     */
        /*                                                                                                     */
        IF  lSendB2E                               =  YES

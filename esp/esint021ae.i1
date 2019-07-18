@@ -43,7 +43,7 @@ THEN DO:
          {&Tabela}.cod-proposta-b2e = STRING(api-export-b2e-pj.id-movto).
    END.
 END.
-IF {&Tabela}.cpf > ""
+ELSE IF {&Tabela}.cpf > ""
 THEN DO:
    FIND FIRST es-api-param NO-LOCK                               
         WHERE es-api-param.ind-tipo-trans = 2  /*---- Saida ----*/
