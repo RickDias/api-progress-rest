@@ -291,10 +291,10 @@ DEFINE TEMP-TABLE ttError      SERIALIZE-NAME "Retorno"
 DEFINE BUFFER estabelec-entrega     FOR estabelec.
 DEFINE BUFFER estabelec-faturamento FOR estabelec.
 DEFINE BUFFER bf-item               FOR item.        /* bisneto 8/7/2019 */
+DEFINE BUFFER bf2-item              FOR item.        /* bisneto 17/7/2019 */
 DEFINE BUFFER bf-emitente           FOR emitente.    /* bisneto 8/7/2019 */
 DEFINE BUFFER bf-item-fornec        FOR item-fornec. /* bisneto 8/7/2019 */
-
-
+DEFINE BUFFER bf2-item-fornec       FOR item-fornec. /* bisneto 17/7/2019 */
 
 DEFINE NEW GLOBAL SHARED VARIABLE c-seg-usuario AS CHAR FORMAT "x(12)" NO-UNDO.
 
@@ -603,7 +603,7 @@ DO TRANSACTION ON ERROR UNDO, RETURN ON STOP UNDO, RETURN:
            tt-versao-integr.ind-origem-msg        = 01.
 
     FOR FIRST tt-imp-pedido-compr EXCLUSIVE-LOCK:
-
+        MESSAGE "(pi-02)bisneto====> tt-imp-pedido-compr.num-pedido-totvs: " + STRING(tt-imp-pedido-compr.num-pedido-totvs). 
         EMPTY TEMP-TABLE tt-pedido-compr.
         EMPTY TEMP-TABLE tt-prazo-compra.
         EMPTY TEMP-TABLE tt-ordem-compra.
@@ -819,7 +819,7 @@ PROCEDURE pi-05-geraOrdemCompra :
     DEF BUFFER b-tt-ordem-compra FOR tt-ordem-compra.
     /* bisneton10/07/2019 */
     /* MESSAGE "tt-imp-ordem-compra.pre-unit-for: " + STRING(tt-imp-ordem-compra.pre-unit-for) + " - tt-imp-ordem-compra.preco-fornec: " + STRING(tt-imp-ordem-compra.preco-fornec). */
-    MESSAGE "====> tt-imp-pedido-compr.num-pedido-totvs: " + STRING(tt-imp-pedido-compr.num-pedido-totvs). 
+    MESSAGE "(pi-05)Bisneto====> tt-imp-pedido-compr.num-pedido-totvs: " + STRING(tt-imp-pedido-compr.num-pedido-totvs). 
     /* bisneton10/07/2019 */
     CREATE tt-ordem-compra.
     ASSIGN tt-ordem-compra.num-pedido     = tt-imp-pedido-compr.num-pedido-totvs
@@ -875,7 +875,6 @@ PROCEDURE pi-05-geraOrdemCompra :
       MESSAGE "(2Aliq IPI)????>" + STRING(tt-ordem-compra.aliquota-ipi).
    
     END.
-
     /* ini bisneto 11/07/2019 */
 
     FIND FIRST item-uni-estab WHERE
@@ -906,11 +905,31 @@ PROCEDURE pi-05-geraOrdemCompra :
 
 
     END.
-
+    MESSAGE "0ooo-----> tt-imp-ordem-compra.item-do-forn: " + STRING(tt-imp-ordem-compra.item-do-forn).
     RUN pi-11-item-fornec(
       INPUT tt-imp-pedido-compr.cod-emitente,
       INPUT tt-imp-ordem-compra.it-codigo,
       INPUT tt-imp-ordem-compra.item-do-forn).
+    
+    /*----------------------------------------------------
+    // ini bisneto 17/07/2019
+    FIND bf2-item
+      NO-LOCK
+      WHERE bf2-item.it-codigo = tt-imp-ordem-compra.it-codigo
+      NO-ERROR.
+    FIND FIRST bf2-item-fornec 
+      NO-LOCK
+      where  bf2-item-fornec.it-codigo    =  bf2-item.it-codigo 
+      AND    bf2-item-fornec.cod-emitente =  INT(tt-imp-pedido-compr.cod-emitente)
+      and    bf2-item-fornec.ativo        =  yes
+      NO-ERROR.
+    IF avail bf2-item-fornec and bf2-item-fornec.unid-med-for <> bf2-item.un THEN
+    DO:
+      ASSIGN 
+        tt-ordem-compra.qt-solic = tt-ordem-compra.qt-solic * bf2-item-fornec.fator-conver.
+    END.
+    // fim bisneto 17/07/2019
+    ----------------------------------------------------*/
 
     IF tt-imp-ordem-compra.Aliquota-ipi > 0 THEN
         ASSIGN tt-ordem-compra.codigo-ipi     = NO
@@ -980,6 +999,15 @@ PROCEDURE pi-06-geraPrazoCompra :
 
     FIND FIRST tt-ordem-compra WHERE
                tt-ordem-compra.numero-ordem = tt-imp-ordem-compra.numero-ordem   NO-LOCK NO-ERROR.
+    
+    /* ini bisneto 12/07/2019 
+    FIND FIRST item-fornec
+      NO-LOCK
+      WHERE item-fornec.it-codigo    = tt-imp-prazo-compra.it-codigo
+      AND   item-fornec.cod-emitente = tt-ordem-compra.cod-emitente
+      NO-ERROR.
+    ASSIGN tt-imp-prazo-compra.un = item-fornec.unid-med-for.
+    ini bisneto 12/07/2019 */
 
     CREATE tt-prazo-compra.
     ASSIGN tt-prazo-compra.Numero-ordem  = tt-ordem-compra.numero-ordem
@@ -992,6 +1020,7 @@ PROCEDURE pi-06-geraPrazoCompra :
            tt-prazo-compra.quant-saldo   = tt-imp-prazo-compra.quantidade  
            tt-prazo-compra.quantid-orig  = tt-imp-prazo-compra.quantidade 
            tt-prazo-compra.qtd-sal-forn  = tt-imp-prazo-compra.quantidade
+           tt-prazo-compra.qtd-do-forn   = tt-imp-prazo-compra.quantidade
            //tt-prazo-compra.qtd-do-forn   = tt-imp-prazo-compra.quantidade
            tt-prazo-compra.situacao      = 2.
 
@@ -1241,6 +1270,8 @@ PROCEDURE pi-11-item-fornec :
   DEF INPUT PARAM p-it-codigo      LIKE tt-imp-ordem-compra.it-codigo    NO-UNDO.
   DEF INPUT PARAM p-item-do-fornec LIKE item-fornec.item-do-forn         NO-UNDO.
   /*------------------------------------------------------------------------------*/
+  MESSAGE "(1)%%%% p-cod-emitente " + STRING(p-cod-emitente) + " p-it-codigo " + STRING(p-it-codigo).
+      
   FIND bf-item 
     NO-LOCK
     WHERE bf-item.it-codigo = p-it-codigo
@@ -1253,6 +1284,7 @@ PROCEDURE pi-11-item-fornec :
   IF  AVAIL bf-item 
   AND AVAIL bf-emitente THEN
   DO:
+    MESSAGE "(2)%%%%".
     FIND bf-item-fornec
       NO-LOCK
       WHERE bf-item-fornec.it-codigo    = bf-item.it-codigo
@@ -1260,17 +1292,21 @@ PROCEDURE pi-11-item-fornec :
       NO-ERROR.
     IF NOT AVAIL bf-item-fornec THEN
     DO:
-      DO TRANSACTION ON ERROR UNDO, RETRY ON ENDKEY UNDO, RETRY ON STOP UNDO, RETRY:
+      MESSAGE "(3)%%%% > p-it-codigo: " + STRING(p-it-codigo) + " - p-item-do-fornec: " + STRING(p-item-do-fornec).      
+                          
+      /* DO TRANSACTION ON ERROR UNDO, RETRY ON ENDKEY UNDO, RETRY ON STOP UNDO, RETRY: */
         EMPTY TEMP-TABLE tt-item-fornec.
         EMPTY TEMP-TABLE tt-retorno-erro.
         CREATE tt-item-fornec.
         ASSIGN 
           tt-item-fornec.cod-emitente     = p-cod-emitente
           tt-item-fornec.it-codigo        = p-it-codigo
-          tt-item-fornec.item-do-forn     = p-item-do-fornec
+          tt-item-fornec.item-do-forn     = p-item-do-fornec 
           tt-item-fornec.fator-conver     = bf-item.fator-conver
           tt-item-fornec.un               = bf-item.un.
         /*-----------------------------------------------------------*/
+        IF NOT VALID-HANDLE(h-boin178) THEN
+          RUN inbo/boin178.r PERSISTENT SET h-boin178 NO-ERROR.
         RUN emptyRowErrors  IN h-boin178.
         RUN openQueryStatic IN h-boin178(INPUT "Main").
         RUN getRowErrors    IN h-boin178(OUTPUT TABLE RowErrors).
@@ -1290,10 +1326,12 @@ PROCEDURE pi-11-item-fornec :
                MESSAGE tt-retorno-erro.descricao SKIP tt-retorno-erro.ajuda
                    VIEW-AS ALERT-BOX INFO BUTTONS OK.
                */    
+               MESSAGE "(4)%%%% Erro: " + tt-retorno-erro.descricao + "//" + tt-retorno-erro.ajuda.
            END.     
         END.
         ELSE
         DO:
+          MESSAGE "(4)%%%% Sem Erro. ".
           /* depuracao
           FIND FIRST tt-item-fornec NO-LOCK NO-ERROR.
         
@@ -1309,17 +1347,13 @@ PROCEDURE pi-11-item-fornec :
               item-fornec.cod-emitente.
           depuracao */    
         END.
+        IF VALID-HANDLE(h-boin178) THEN
+          DELETE PROCEDURE h-boin178.
         /*-----------------------------------------------------------*/
-      END. /* bl-trans: DO TRANSACTION ON ERROR UNDO, RETRY ON ENDKEY UNDO, RETRY ON STOP UNDO, RETRY: */
+      /* END. */ /* bl-trans: DO TRANSACTION ON ERROR UNDO, RETRY ON ENDKEY UNDO, RETRY ON STOP UNDO, RETRY: */
     END.
 
   END.
-
-
-
-
-
-
 
 END PROCEDURE.
 
