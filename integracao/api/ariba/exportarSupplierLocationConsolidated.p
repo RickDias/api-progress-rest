@@ -149,12 +149,6 @@ DEFINE VARIABLE h-boin274sd AS HANDLE NO-UNDO.
 
 
 /* ***************************  Main Block  *************************** */
-
-RUN btb/btapi910ze.p   (INPUT "tcpasilva", /*USUARIO*/
-                        INPUT "",          /*SENHA*/
-                        INPUT "1",         /*EMPRESA*/
-                        OUTPUT TABLE tt-erros). /*RETORNO DE ERROSl*/
-
 {utp/ut-api-action.i pi-00-get GET /~*}
 {utp/ut-api-notfound.i}
 
@@ -249,6 +243,10 @@ FOR EACH es-fornecedor-ariba NO-LOCK
         ASSIGN cLocale = "en_US".
 
 
+    MESSAGE "Criando tabela - SupplierLocationConsolidated".
+    MESSAGE "Emitente " STRING(emitente.cod-emitente).
+
+
     CREATE SupplierLocationConsolidated.
     ASSIGN SupplierLocationConsolidated.vendorID     = STRING(emitente.cod-emitente)
            SupplierLocationConsolidated.NAME         = emitente.nome-emit
@@ -271,13 +269,11 @@ FOR EACH es-fornecedor-ariba NO-LOCK
                SupplierLocationConsolidated.ContactName  = es-fornecedor-ariba.nome-responsavel.
     
     
-    
-    
     /*-- incluido para atualizar o status do registro --*/
     FIND FIRST b-es-fornecedor-ariba EXCLUSIVE-LOCK
          WHERE ROWID(b-es-fornecedor-ariba) = ROWID(es-fornecedor-ariba)  NO-ERROR.
     IF AVAIL b-es-fornecedor-ariba THEN
-        ASSIGN es-fornecedor-ariba.enviado-SupplierLocationConsolid = YES.
+        ASSIGN b-es-fornecedor-ariba.enviado-SupplierLocationConsolid = YES.
     
     FIND CURRENT b-es-fornecedor-ariba NO-LOCK NO-ERROR.
 

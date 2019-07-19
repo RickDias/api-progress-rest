@@ -174,11 +174,6 @@ DEFINE BUFFER b-es-fornecedor-ariba FOR es-fornecedor-ariba.
 
 /* ***************************  Main Block  *************************** */
 
-RUN btb/btapi910ze.p   (INPUT "tcpasilva", /*USUARIO*/
-                        INPUT "",          /*SENHA*/
-                        INPUT "1",         /*EMPRESA*/
-                        OUTPUT TABLE tt-erros). /*RETORNO DE ERROSl*/
-
 {utp/ut-api-action.i pi-00-get GET /~*}
 {utp/ut-api-notfound.i}
 
@@ -321,6 +316,7 @@ FOR EACH es-fornecedor-ariba NO-LOCK
         ASSIGN b-es-fornecedor-ariba.enviado-SupplierConsolidated = YES.
     
     FIND CURRENT b-es-fornecedor-ariba NO-LOCK NO-ERROR.
+    
 
 END.
 
