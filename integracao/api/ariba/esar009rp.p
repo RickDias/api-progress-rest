@@ -144,8 +144,6 @@ find first tt-param no-lock no-error.
 RUN pi-inicializar IN h-prog (INPUT "Envia Faixa de Aprova‡Æo MLA").
 
 
-
-
 FIND FIRST es-api-param NO-LOCK WHERE es-api-param.ind-tipo-trans = 2 /*---- Saida ----*/
                                   AND es-api-param.cd-tipo-integr = 29 /*---- Integra‡Æo MLA  ------*/ NO-ERROR.
 IF AVAIL es-api-param THEN 
@@ -172,14 +170,18 @@ DO:
         RELEASE sfa-export-mla.
         RELEASE sfa-export.
 
+        RUN pi-processa (INPUT es-api-param.ind-tipo-trans, INPUT es-api-param.cd-tipo-integr).
 
-        RUN integracao\api\ariba\aribalevelapprovalmla.p.
+
+        //RUN integracao\api\ariba\aribalevelapprovalmla.p.
 
 
 
     END.
 END.
 
+
+{esp\esint001rp.i}
 
 
 RUN pi-finalizar IN h-prog.
