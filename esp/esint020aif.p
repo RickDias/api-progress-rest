@@ -12,7 +12,7 @@
 {esp/esint0020.i}
 
 /*603833*/
-DEF VAR l-debug AS LOG INIT YES NO-UNDO.
+DEF VAR l-debug AS LOG INIT NO NO-UNDO.
 
 &GLOBAL-DEFINE ROW-NUM-DEFINED YES
 
@@ -473,9 +473,7 @@ DO TRANS:
           end.           
           /* Retorna c¢digo para o Ariba */
           IF l-debug THEN 
-            MESSAGE "".    
-          MESSAGE "***** Enviando c¢digo para o Ariba" es-fornecedor-ariba.cod-emitente es-fornecedor-ariba.number VIEW-AS ALERT-BOX.
-          
+            MESSAGE "***** Enviando c¢digo para o Ariba" es-fornecedor-ariba.cod-emitente es-fornecedor-ariba.number VIEW-AS ALERT-BOX.
           RUN integracao/api/ariba/alterarfornecedorariba.p (emitente.cod-emitente).
           
       END.

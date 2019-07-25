@@ -41,7 +41,7 @@ DEF VAR i                   AS i   NO-UNDO.
 
 /* ------- Defini‡Æo de Temp-Tables e Datasets ------ */
 
-{esp\esint020ai.i}
+{esp/esint020ai.i}
 /*{esp\esapi007.i}*/
 {method/dbotterr.i}
 
@@ -54,7 +54,7 @@ FIND FIRST sfa-import NO-LOCK WHERE ROWID(sfa-import) = r-table NO-ERROR.
 IF AVAIL sfa-import 
 THEN DO:
     /* ------- Grava clob para longchar ----- */
-    FIND FIRST api-import-for EXCLUSIVE-LOCK OF sfa-import NO-ERROR.
+    FIND FIRST api-import-for NO-LOCK OF sfa-import NO-ERROR.
     IF AVAIL api-import-for 
     THEN DO:
 
@@ -76,6 +76,7 @@ THEN DO:
            IF oJsonObjectMain:Has("RazaoSocial")                  THEN ASSIGN ttRetfornecedores.RazaoSocial                  = oJsonObjectMain:GetCharacter("RazaoSocial")                  NO-ERROR.
            IF oJsonObjectMain:Has("NaturezaJuridica")             THEN ASSIGN ttRetfornecedores.NaturezaJuridica             = oJsonObjectMain:GetCharacter("NaturezaJuridica ")            NO-ERROR.
            IF oJsonObjectMain:Has("CNPJAtivo")                    THEN ASSIGN ttRetfornecedores.CNPJAtivo                    = oJsonObjectMain:GetCharacter("CNPJAtivo")                    NO-ERROR.
+           //IF oJsonObjectMain:Has("CpfAtivo")                     THEN ASSIGN ttRetfornecedores.CpfAtivo                     = oJsonObjectMain:GetCharacter("CpfAtivo")                     NO-ERROR.
            IF oJsonObjectMain:Has("OptanteSimplesNacional")       THEN ASSIGN ttRetfornecedores.OptanteSimplesNacional       = oJsonObjectMain:GetCharacter("OptanteSimplesNacional")       NO-ERROR.
            IF oJsonObjectMain:Has("InscricaoEstadual")            THEN ASSIGN ttRetfornecedores.InscricaoEstadual            = oJsonObjectMain:GetCharacter("InscricaoEstadual")            NO-ERROR.
            IF oJsonObjectMain:Has("Cnae")                         THEN ASSIGN ttRetfornecedores.Cnae                         = oJsonObjectMain:GetCharacter("Cnae")                         NO-ERROR.
@@ -125,30 +126,45 @@ THEN DO:
                    "ttRetfornecedores.bairro              " ttRetfornecedores.bairro              skip
                    "ttRetfornecedores.cep                 " ttRetfornecedores.cep                 skip
                    "ttRetfornecedores.InscricaoEstadual   " ttRetfornecedores.InscricaoEstadual   skip.
-                  
-                  
 
 
+           ASSIGN es-fornecedor-ariba.callback-b2e                    = YES                                                                
+                  es-fornecedor-ariba.mensagem                        = ttRetfornecedores.mensagem                                         
+                  es-fornecedor-ariba.parecer                         = ttRetfornecedores.parecer                                          
+                  es-fornecedor-ariba.motivo                          = ttRetfornecedores.motivo                                           
+                  es-fornecedor-ariba.Simples-Nacional                = IF ttRetfornecedores.OptanteSimplesNacional = "S" THEN YES ELSE NO 
+                  es-fornecedor-ariba.CNPJAtivo                       = IF ttRetFornecedores.CNPJAtivo = "ATIVA" THEN YES ELSE NO   
+                  es-fornecedor-ariba.SintegraAtivo                   = IF ttRetFornecedores.SintegraAtivo = "S" THEN YES ELSE NO
+                  es-fornecedor-ariba.enviado-SupplierConsolidated    = NO
+                  es-fornecedor-ariba.enviado-SupplierLocationConsol  = NO
+                  es-fornecedor-ariba.enviado-csv                     = NO.
 
-           ASSIGN es-fornecedor-ariba.callback-b2e      = YES
-                  es-fornecedor-ariba.mensagem          = ttRetfornecedores.mensagem             
-                  es-fornecedor-ariba.parecer           = ttRetfornecedores.parecer              
-                  es-fornecedor-ariba.motivo            = ttRetfornecedores.motivo
-                  es-fornecedor-ariba.CNAE-principal    = ttRetfornecedores.cnae
-                  es-fornecedor-ariba.Street            = ttRetfornecedores.logradouro                                                  
-                  es-fornecedor-ariba.Complement        = ttRetfornecedores.complemento                                                 
-                  es-fornecedor-ariba.Municipality      = ttRetfornecedores.cidade                                                      
-                  es-fornecedor-ariba.District          = ttRetfornecedores.bairro                                                      
-                  es-fornecedor-ariba.ie                = ttRetfornecedores.InscricaoEstadual                                           
-                  es-fornecedor-ariba.Simples-Nacional  = IF ttRetfornecedores.OptanteSimplesNacional = "S" THEN YES ELSE NO            
-                  es-fornecedor-ariba.CNPJAtivo         = IF ttRetFornecedores.CNPJAtivo = "ATIVA" THEN YES ELSE NO                         
-                  es-fornecedor-ariba.SintegraAtivo     = IF ttRetFornecedores.SintegraAtivo = "S" THEN YES ELSE NO.
 
-           IF ttRetfornecedores.uf <> "" THEN
-               ASSIGN es-fornecedor-ariba.State             = ttRetfornecedores.uf.
+           /*-- quando os campos retornar em branco da B2e, manter o que foi informado no ARIBA --*/
+           IF ttRetfornecedores.logradouro <> "" THEN
+               ASSIGN es-fornecedor-ariba.Street         = ttRetfornecedores.logradouro.
 
-           IF ttRetfornecedores.cep = ""  THEN
+           IF ttRetfornecedores.complemento <> "" THEN   
+               ASSIGN  es-fornecedor-ariba.Complement    = ttRetfornecedores.complemento.
+
+           IF ttRetfornecedores.cidade <> "" THEN        
+               ASSIGN es-fornecedor-ariba.Municipality   = ttRetfornecedores.cidade.
+
+           IF ttRetfornecedores.bairro <> "" THEN        
+               ASSIGN es-fornecedor-ariba.District       = ttRetfornecedores.bairro.
+
+           IF ttRetfornecedores.InscricaoEstadual <> "" THEN
+               ASSIGN es-fornecedor-ariba.ie             = ttRetfornecedores.InscricaoEstadual.
+           
+           IF ttRetfornecedores.cnae <> "" THEN
+               ASSIGN es-fornecedor-ariba.CNAE-principal = ttRetfornecedores.cnae.
+
+           IF ttRetfornecedores.uf <> "" THEN                                         
+               ASSIGN es-fornecedor-ariba.State             = ttRetfornecedores.uf.   
+                                                                                      
+           IF ttRetfornecedores.cep <> ""  THEN                                        
                ASSIGN es-fornecedor-ariba.Zip-Code          = ttRetfornecedores.cep.
+           
     
            RUN esp/esint020aif.p ("",
                                   ROWID(es-fornecedor-ariba),
@@ -158,7 +174,6 @@ THEN DO:
        END.
        MESSAGE "**** Finalizando cria‡Æo de fornecedor".
     END.
-    IF AVAIL api-import-for THEN RELEASE api-import-for.
     IF AVAIL es-fornecedor-ariba THEN RELEASE es-fornecedor-ariba.
 
 END.

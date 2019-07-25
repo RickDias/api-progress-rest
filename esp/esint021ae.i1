@@ -76,6 +76,7 @@ ASSIGN
    {&Tabela}.enviado-b2e = YES.
 
 RUN pi-processa (es-api-param.ind-tipo-trans,
-                 es-api-param.cd-tipo-integr
-                 ).  
+                 es-api-param.cd-tipo-integr).  
+                 
+
 

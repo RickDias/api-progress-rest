@@ -4,6 +4,7 @@ DEF TEMP-TABLE ttRetfornecedores NO-UNDO
     FIELD RazaoSocial                  AS CHAR 
     FIELD NaturezaJuridica             AS CHAR 
     FIELD CNPJAtivo                    AS CHAR 
+    //FIELD CpfAtivo                     AS CHAR
     FIELD OptanteSimplesNacional       AS CHAR 
     FIELD InscricaoEstadual            AS CHAR 
     FIELD Cnae                         AS CHAR 

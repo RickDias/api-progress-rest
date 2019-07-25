@@ -1,6 +1,6 @@
 /*----------------------------------------------------------------------------------------------/
  Programa..: esint021ae.p
- Objetivo..: Interface Chamada B2E Fornecedores PJ Ariba
+ Objetivo..: Interface Consulta Fornecedores ARIBA
  Data......: 29/05/2019
  Autor.....: Marcelo Brasil
  Vers∆o....: 1.000.000
@@ -48,6 +48,7 @@ DEFINE VARIABLE lEnviou           AS LOGICAL           NO-UNDO.
 DEFINE VARIABLE c-arq-json        AS CHARACTER         NO-UNDO.
 DEFINE VARIABLE lresp             AS LOGICAL           NO-UNDO.
 DEFINE VARIABLE cLongJson         AS LONGCHAR          NO-UNDO.
+DEFINE VARIABLE cReturnErro       AS CHARACTER         NO-UNDO.
 
 DEF         VAR ojsonRet          AS jsonobject        NO-UNDO.
 
@@ -684,11 +685,6 @@ PROCEDURE piAtualizaFornecedor:
 
    FOR EACH cadastro-fornecedor NO-LOCK:
 
-//       IF cadastro-fornecedor.CNPJ + cadastro-fornecedor.CPF + cadastro-fornecedor.IE = ""
-//       THEN NEXT.
-
-       //MESSAGE "####-Tag PollingMessage: " string(cadastro-fornecedor.PollingMessage).
-
        IF cadastro-fornecedor.PollingMessage = "" THEN NEXT.
 
        FIND FIRST es-fornecedor-ariba EXCLUSIVE-LOCK
@@ -704,8 +700,6 @@ PROCEDURE piAtualizaFornecedor:
                  es-fornecedor-ariba.dt-consulta        = daDtConsulta.
        END.
 
-//       IF es-fornecedor-ariba.ind-inativado = 9
-//       THEN NEXT.
 
        ASSIGN es-fornecedor-ariba.Corporate-Name         = cadastro-fornecedor.Corporate-Name    
               es-fornecedor-ariba.Trading-name           = cadastro-fornecedor.Trading-name      
@@ -752,108 +746,64 @@ PROCEDURE piAtualizaFornecedor:
        
        ASSIGN es-ariba-b2e-param.PollingMessage = MAX(es-ariba-b2e-param.PollingMessage,INT64(cadastro-fornecedor.PollingMessage)).
 
-      
-
-       IF cadastro-fornecedor.Simples-Nacional = "yes" THEN 
-           ASSIGN es-fornecedor-ariba.Simples-Nacional = YES.
-       ELSE ASSIGN es-fornecedor-ariba.Simples-Nacional = NO.
-
-       FIND  LAST bf-fornecedor-ariba NO-LOCK
-            WHERE bf-fornecedor-ariba.number        = es-fornecedor-ariba.number
-              AND bf-fornecedor-ariba.dt-consulta   < daDtConsulta
-              AND bf-fornecedor-ariba.ind-inativado < 9
-            NO-ERROR.
-       IF NOT AVAIL bf-fornecedor-ariba
-       THEN DO:
-          IF  es-fornecedor-ariba.cnpj + es-fornecedor-ariba.cpf > ""
-          THEN ASSIGN
-             lSendB2E          = YES.
-          ELSE ASSIGN
-             lSendBOFornecedor = YES.
-       END.
-       ELSE DO:
-          FIND FIRST emitente NO-LOCK
-               WHERE emitente.cod-emitente = bf-fornecedor-ariba.cod-emitente
-               NO-ERROR.
-          IF AVAIL emitente
-          THEN DO:
-             IF emitente.nome-emit  <> es-fornecedor-ariba.Corporate-Name
-             OR emitente.estado     <> es-fornecedor-ariba.state
-             OR emitente.pais       <> es-fornecedor-ariba.country
-             THEN ASSIGN
-                lSendB2E          = YES.
-             ELSE ASSIGN
-                lSendBOFornecedor = YES.
-             ASSIGN
-                es-fornecedor-ariba.cod-emitente = bf-fornecedor-ariba.cod-emitente.
-
-             IF es-fornecedor-ariba.BlockedIndicator = "false"
-             THEN ASSIGN
-                es-fornecedor-ariba.ind-inativado = 1.
-             ELSE ASSIGN
-                es-fornecedor-ariba.ind-inativado = 2.
-                
-          END.
-       END.
-
-
-       IF lSendB2E THEN
-       
-       MESSAGE "####-status de consultas" SKIP
-               "lSendB2E" lSendB2E SKIP
-               "lSendBOFornecedor" lSendBOFornecedor
-           VIEW-AS ALERT-BOX INFORMATION BUTTONS OK.
-       //
-       /* IF YES // es-fornecedor-ariba.cpf = "571.279.888-38"                                                */
-       /*    //es-fornecedor-ariba.corporate-name = "TESTE INT34HK EST"                                       */
-       /* THEN DO:                                                                                            */
-
-
-       IF es-fornecedor-ariba.cnpj <> "" THEN
+       IF NOT CAN-FIND(FIRST mgdis.cidade NO-LOCK
+                       WHERE mgdis.cidade.estado = es-fornecedor-ariba.state
+                         AND mgdis.cidade.cidade = es-fornecedor-ariba.Municipality) THEN
        DO:
-           MESSAGE
-               "***** esint0021ae "
-               "es-fornecedor-ariba.cnpj" es-fornecedor-ariba.cnpj                                SKIP
-               "es-fornecedor-ariba.corporate-name" es-fornecedor-ariba.corporate-name          SKIP
-               "lSendB2E"  lSendB2E                                                             SKIP
-               "es-fornecedor-ariba.enviado-b2e" es-fornecedor-ariba.enviado-b2e                SKIP(1)
-               "lSendBOFornecedor" lSendBOFornecedor                                            SKIP
-               "es-fornecedor-ariba.ind-atualizado-ems" es-fornecedor-ariba.ind-atualizado-ems  SKIP
-               "es-fornecedor-ariba.ind-inativado" es-fornecedor-ariba.ind-inativado            SKIP
-               VIEW-AS ALERT-BOX INFO BUTTONS OK.
+           ASSIGN es-fornecedor-ariba.erro = SUBSTITUTE("Cidade &1/Estado &2 Informada n∆o existe no CD0330",
+                                                        es-fornecedor-ariba.Municipality,es-fornecedor-ariba.state).
+
+           ASSIGN c-erro = es-fornecedor-ariba.erro.
+           IF AVAIL es-fornecedor-ariba THEN RELEASE es-fornecedor-ariba.  
+           IF AVAIL es-ariba-b2e-param  THEN RELEASE es-ariba-b2e-param.   
+           
+           RETURN "NOK":U.
        END.
-
-
-       IF es-fornecedor-ariba.cpf <> ""  THEN
+       ELSE
        DO:
+           IF cadastro-fornecedor.Simples-Nacional = "yes" THEN 
+               ASSIGN es-fornecedor-ariba.Simples-Nacional = YES.
+           ELSE ASSIGN es-fornecedor-ariba.Simples-Nacional = NO.
 
-           MESSAGE
-               "***** esint0021ae "
-               "es-fornecedor-ariba.cpf" es-fornecedor-ariba.cpf                                SKIP
-               "es-fornecedor-ariba.corporate-name" es-fornecedor-ariba.corporate-name          SKIP
-               "lSendB2E"  lSendB2E                                                             SKIP
-               "es-fornecedor-ariba.enviado-b2e" es-fornecedor-ariba.enviado-b2e                SKIP(1)
-               "lSendBOFornecedor" lSendBOFornecedor                                            SKIP
-               "es-fornecedor-ariba.ind-atualizado-ems" es-fornecedor-ariba.ind-atualizado-ems  SKIP
-               "es-fornecedor-ariba.ind-inativado" es-fornecedor-ariba.ind-inativado            SKIP
-               VIEW-AS ALERT-BOX INFO BUTTONS OK.
+           FIND  LAST bf-fornecedor-ariba NO-LOCK
+                WHERE bf-fornecedor-ariba.number        = es-fornecedor-ariba.number
+                  AND bf-fornecedor-ariba.dt-consulta   < daDtConsulta
+                  AND bf-fornecedor-ariba.ind-inativado < 9
+                NO-ERROR.
+           IF NOT AVAIL bf-fornecedor-ariba
+           THEN DO:
+              IF  es-fornecedor-ariba.cnpj + es-fornecedor-ariba.cpf > ""
+              THEN ASSIGN
+                 lSendB2E          = YES.
+              ELSE ASSIGN
+                 lSendBOFornecedor = YES.
+           END.
+           ELSE DO:
+              FIND FIRST emitente NO-LOCK
+                   WHERE emitente.cod-emitente = bf-fornecedor-ariba.cod-emitente
+                   NO-ERROR.
+              IF AVAIL emitente
+              THEN DO:
+                 IF emitente.nome-emit  <> es-fornecedor-ariba.Corporate-Name
+                 OR emitente.estado     <> es-fornecedor-ariba.state
+                 OR emitente.pais       <> es-fornecedor-ariba.country
+                 THEN ASSIGN
+                    lSendB2E          = YES.
+                 ELSE ASSIGN
+                    lSendBOFornecedor = YES.
+                 ASSIGN
+                    es-fornecedor-ariba.cod-emitente = bf-fornecedor-ariba.cod-emitente.
+
+                 IF es-fornecedor-ariba.BlockedIndicator = "false"
+                 THEN ASSIGN
+                    es-fornecedor-ariba.ind-inativado = 1.
+                 ELSE ASSIGN
+                    es-fornecedor-ariba.ind-inativado = 2.
+
+              END.
+           END.
        END.
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-       /*                                                                                                     */
-       /*                                                                                                     */
        IF  lSendB2E                               =  YES
        AND es-fornecedor-ariba.enviado-b2e        =  NO THEN 
            RUN piSendB2E. //RUN piBOFornecedor. 
