@@ -13,6 +13,8 @@ DEFINE INPUT  PARAMETER r-table     AS ROWID      NO-UNDO.
 DEFINE OUTPUT PARAMETER c-erro      AS CHARACTER  NO-UNDO.
 DEFINE INPUT  PARAMETER pJsonInput  AS JsonObject NO-UNDO.
 
+CURRENT-LANGUAGE = CURRENT-LANGUAGE.
+
 /* ------- Definiá∆o de Vari†veis ------ */
 DEFINE VARIABLE cLongJson        AS LONGCHAR   NO-UNDO.
 DEFINE VARIABLE lRetJson         AS LOGICAL    NO-UNDO.
@@ -31,7 +33,7 @@ DEFINE VARIABLE cprop            AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE m-json           AS MEMPTR     NO-UNDO.
 DEFINE VARIABLE myParser         AS ObjectModelParser NO-UNDO. 
 DEFINE VARIABLE iSeqItem         AS INTEGER    NO-UNDO.
-
+DEFINE VARIABLE lretOK           AS LOG        NO-UNDO.
 /* ------- Definiá∆o de Temp-Tables e Datasets ------ */
 //{esp\esint030.i}
 {esp\esint030a.i}
@@ -57,68 +59,73 @@ COPY-LOB m-json TO cLongJson NO-CONVERT.
 
  /*---------------------------------------------------------------------------------*/
 
+ pJsonInput:writefile("c:\temp\jsoncontroato.json").
+ 
  /* ---- Là propriedade Principal ---- */        
 oJsonArrayMain = pJsonInput:GetJsonArray("ContratoFornecedor":U).
+
 //Preciso Criar a tabela de parametros para os dados/informaá‰es que n∆o consta no Ariba
 //depois que cirar o 
 FIND FIRST tt-es-api-param-contr NO-LOCK NO-ERROR.
 
   EMPTY TEMP-TABLE ttCapaContrato. //Limpa a tabela antes de ser populada pelo Json       
-  EMPTY TEMP-TABLE tt-imp-contrato-for.                                                   
+  EMPTY TEMP-TABLE tt-imp-contrato-for.
+  EMPTY TEMP-TABLE tt-imp-item-contrato.
+
+
+MESSAGE "Json: " STRING(cLongJson).
+
+
+lretOK = DATASET httContratoCompra:READ-JSON("LONGCHAR", cLongJson, "empty") NO-ERROR.
+
+IF lretOK = NO THEN DO:
+
+    MESSAGE "CONTRATO NOK".
+    
+    CREATE tt-retorno-nok.
+    ASSIGN tt-retorno-nok.data        = NOW
+           tt-retorno-nok.cod-erro    = 0
+           tt-retorno-nok.desc-erro   = "N∆o foi poss°vel fazer o parse do arquivo"
+           tt-retorno-nok.sequencia   = 1.
+    
+END.
+ELSE
+    MESSAGE "CONTRATO OK".
+
 
  //Coltar aqui as Validaá‰es e Carregar as tamp-tables  
  CREATE ttCapaContrato.
- 
  DO iCountMain = 1 TO oJsonArrayMain:LENGTH:
 
       oJsonObjectMain =  oJsonArrayMain:GetJsonObject(iCountMain).
 
       RUN pi-criaTTContrato.
 
-      RUN pi-criaTTJItemContrato.
-
-     // RUN pi-criaTTJMatrizItemContrato.
-
-      /* -- Validaá‰es _____*/
-      // RUN pi-valida-dados.   necess†ri criar as validaá‰es. 
-
- END.
+END.
 
  RUN pi-processa.  //chama a a pi-processa do esint030a.i
 
 
- PROCEDURE pi-criaTTContrato.
-                                                                                                                              
-     IF oJsonObjectMain:Has("nr-contrato")              THEN ttCapaContrato.des-contrat          = oJsonObjectMain:GetCharacter("nr-contrato")      NO-ERROR.
-     IF	oJsonObjectMain:Has("cod-emitente ")            THEN ttCapaContrato.cod-emitente         = oJsonObjectMain:GetCharacter("cod-emitentte")    NO-ERROR.
-     IF	oJsonObjectMain:Has("dt-ini-validade")          THEN ttCapaContrato.dt-ini-validade      = oJsonObjectMain:GetCharacter("dt-ini-validade")  NO-ERROR.
-     IF	oJsonObjectMain:Has("dt-ter-validade")          THEN ttCapaContrato.dt-ter-validade      = oJsonObjectMain:GetCharacter("dt-ter-validade")  NO-ERROR.
-     IF	oJsonObjectMain:Has("cod-comprado")          	THEN ttCapaContrato.cod-comprado         = oJsonObjectMain:GetCharacter("cod-comprado")     NO-ERROR.
-     IF	oJsonObjectMain:Has("cod-cond-pag")       	    THEN ttCapaContrato.cod-cond-pag         = oJsonObjectMain:GetCharacter("cod-cond-pag")     NO-ERROR.
-     IF	oJsonObjectMain:Has("cod-estabel")             	THEN ttCapaContrato.cod-estabel          = oJsonObjectMain:GetCharacter("cod-estabel")      NO-ERROR.
-     if	oJsonObjectMain:Has("val-total")               	THEN ttCapaContrato.val-total            = oJsonObjectMain:GetCharacter("val-total")        NO-ERROR.
-     if	oJsonObjectMain:Has("val-fatur-minimo")     	THEN ttCapaContrato.val-fatur-minimo     = oJsonObjectMain:GetCharacter("val-fatur-minimo") NO-ERROR.
-     If	oJsonObjectMain:Has("acum-val-pago")           	THEN ttCapaContrato.acum-val-pago        = oJsonObjectMain:GetCharacter("acum-val-pago")    NO-ERROR.
-     IF	oJsonObjectMain:Has("mo-codigo")            	THEN ttCapaContrato.mo-codigo            = oJsonObjectMain:GetCharacter("mo-codigo")        NO-ERROR.
+PROCEDURE pi-criaTTContrato.
 
-       ASSIGN i-num-contrato = 0.
-       
-       FIND FIRST param-contrat NO-LOCK NO-ERROR.
+       ASSIGN i-num-contrato = 0. 
+
+       FIND FIRST param-contrat NO-LOCK NO-ERROR. //cn0101 - Parametros do Contrato 
 
        FIND LAST contrato-for 
            WHERE contrato-for.nr-contrato <= param-contrat.num-seq-fim-central 
              AND contrato-for.nr-contrato >= param-contrat.num-seq-ini-central
        NO-LOCK NO-ERROR.
+
        IF AVAIL contrato-for THEN 
            ASSIGN i-num-contrato = contrato-for.nr-contrato + 1.  
 
        MESSAGE "####-CAPA DO CONTRATO - NUMERO: " STRING(i-num-contrato).
 
-       FIND FIRST ttCapaContrato NO-LOCK NO-ERROR.
-       IF AVAIL ttCapaContrato THEN
-       DO:
-           MESSAGE "ttCapaContrato.des-contrat       " ttCapaContrato.des-contrat         .
-           MESSAGE "ttCapaContrato.cod-emitente      (" ttCapaContrato.cod-emitente ")"   .
+    FOR EACH  ttCapaContrato NO-LOCK:
+       
+           MESSAGE "ttCapaContrato.des-contrat       " ttCapaContrato.nr-contrato         .
+           MESSAGE "ttCapaContrato.cod-emitente      " ttCapaContrato.cod-emitente        .
            MESSAGE "ttCapaContrato.dt-ini-validade   " ttCapaContrato.dt-ini-validade     .
            MESSAGE "ttCapaContrato.dt-ter-validade   " ttCapaContrato.dt-ter-validade     .
            MESSAGE "ttCapaContrato.cod-comprado      " ttCapaContrato.cod-comprado        .
@@ -128,143 +135,133 @@ FIND FIRST tt-es-api-param-contr NO-LOCK NO-ERROR.
            MESSAGE "ttCapaContrato.val-fatur-minimo  " ttCapaContrato.val-fatur-minimo    .
            MESSAGE "ttCapaContrato.acum-val-pago     " ttCapaContrato.acum-val-pago       .
            MESSAGE "ttCapaContrato.mo-codigo         " ttCapaContrato.mo-codigo           .
-
+         
 
            CREATE tt-imp-contrato-for.
            ASSIGN tt-imp-contrato-for.nr-contrato     = i-num-contrato
-                  tt-imp-contrato-for.des-contrat     = ttCapaContrato.des-contrat
-                  tt-imp-contrato-for.cod-emitente    = INT(TRIM(ttCapaContrato.cod-emitente))
+                  tt-imp-contrato-for.des-contrat     = ttCapaContrato.nr-contrato
+                  tt-imp-contrato-for.cod-emitente    = int(trim(ttCapaContrato.cod-emitente))    //INT(TRIM(ttCapaContrato.cod-emitente)) - Verificar por que temptable n∆o informa o C¢digo
                   tt-imp-contrato-for.dt-ini-validade = TODAY
                   tt-imp-contrato-for.dt-ter-validade = DATE(ttCapaContrato.dt-ter-validade)
                   tt-imp-contrato-for.ind-tipo-movto  = 1
                   tt-imp-contrato-for.ind-sit-contrat = 1 /*NAO EMITIDO*/
+                  tt-imp-contrato-for.cod-estabel     = (trim(ttCapaContrato.cod-estabel))
+                  tt-imp-contrato-for.val-total       = decimal(trim(ttCapaContrato.val-total))
+                  tt-imp-contrato-for.cod-cond-pag    = INT(trim(ttCapaContrato.cod-cond-pag))
                .
 
-           /*------------------------
-            validar com igor da summit os sequinte campos
-            cod-emitente    - campo emitente esta vindo em branco
-            dt-ini-validade - campos datas est∆o vindo errados
-            dt-ter-validade - campos datas est∆o vindo errados
-           
-           */
-       END.
-         
-      
+           RUN pi-criaTTJItemContrato.
+               
+    END.
 
-      /** Removido pq est† sendo chamado em duplicidade**/
-     //IF oJsonObjectMain:Has("ItensContrato") THEN DO:
-     //    RUN pi-criaTTJItemContrato.
-     //END.
-
-
-     //Comentei a Criaá∆o da Matriz de Rateio
-
-/*      IF oJsonObjectMain:Has("MatrizItemContrato") THEN DO: */
-/*          RUN pi-criaTTJMatrizItemContrato.                 */
-/*      END.                                                  */
-        
- END PROCEDURE.
+END PROCEDURE.
 
 
  PROCEDURE pi-criaTTJItemContrato:
 
-     MESSAGE "#####-ITENS DO CONTRATO --".
-     
-     IF oJsonObjectMain:Has("ItensContrato") THEN DO:
+     //EMPTY TEMP-TABLE ttEstabelecimento.
 
-         oJsonArraySec = oJsonObjectMain:GetJsonArray("ItensContrato").
-       
-         DO iCountSec = 1 TO oJsonArraySec:LENGTH: 
-    
-             CREATE  ttItensContrato.
-    
-             oJsonObjectSec =  oJsonArraySec:GetJsonObject(iCountSec). 
-             //ASSIGN fld-rel = iCountSec.
-    
-             IF oJsonObjectSec:Has("nr-contrato")       THEN ttItensContrato.nr-contrato             = oJsonObjectSec:GetCharacter("nr-contrato")    NO-ERROR.   
-             IF oJsonObjectSec:Has("cod-emitente ")     THEN ttItensContrato.cod-emitente            = oJsonObjectSec:GetCharacter("cod-emitentte")  NO-ERROR.   
-             IF oJsonObjectSec:Has("preco-unit")        THEN ttItensContrato.preco-unit              = oJsonObjectSec:GetCharacter("preco-unit")     NO-ERROR.   
-             IF oJsonObjectSec:Has("it-codigo")         THEN ttItensContrato.it-codigo               = oJsonObjectSec:GetCharacter("it-codigo")      NO-ERROR.   
-             IF oJsonObjectSec:Has("narrat-item")       THEN ttItensContrato.narrat-item             = oJsonObjectSec:GetCharacter("narrat-item")    NO-ERROR.   
-             IF oJsonObjectSec:Has("preco-fornec")      THEN ttItensContrato.preco-fornec            = oJsonObjectSec:GetCharacter("preco-fornec")   NO-ERROR.   
-             IF oJsonObjectSec:Has("val-frete")         THEN ttItensContrato.val-frete               = oJsonObjectSec:GetCharacter("val-frete")      NO-ERROR.
-    
-             IF AVAIL ttItensContrato THEN
-             DO:
-                 MESSAGE "####-IMPRINDO DADOS DO ITEM DO CONTRATO".
-                 MESSAGE "ttItensContrato.nr-contrato   " string(ttItensContrato.nr-contrato )  .
-                 MESSAGE "ttItensContrato.cod-emitente  " string(ttItensContrato.cod-emitente)  .
-                 MESSAGE "ttItensContrato.preco-unit    " string(ttItensContrato.preco-unit  )  .
-                 MESSAGE "ttItensContrato.it-codigo     " string(ttItensContrato.it-codigo   )  .
-                 MESSAGE "ttItensContrato.narrat-item   " string(ttItensContrato.narrat-item )  .
-                 MESSAGE "ttItensContrato.preco-fornec  " string(ttItensContrato.preco-fornec)  .
-                 MESSAGE "ttItensContrato.val-frete     " string(ttItensContrato.val-frete   )  .
-                 MESSAGE "NUMERO DO CONTRATO            " STRING(i-num-contrato).
-             
-             END.
-             
-             
+     MESSAGE "#####-ITENS DO CONTRATO --".
+
+     DEF VAR i-seq-item AS INTEGER.
+     DEF VAR estab-aux  AS CHAR FORMAT "x(05)".
+     DEF VAR estab-aux1 AS CHAR FORMAT "x(05)".
+
+     i-seq-item = 0.           
+     
+     FOR EACH  ttItensContrato WHERE ttItensContrato.nr-contrato = ttCapaContrato.nr-contrato  NO-LOCK:
+            
+            MESSAGE "####-IMPRINDO DADOS DO ITEM DO CONTRATO".
+
+            MESSAGE "ttItensContrato.nr-contrato   " string(ttItensContrato.nr-contrato )  .
+            MESSAGE "ttItensContrato.cod-emitente  " string(ttItensContrato.cod-emitente)  .
+            MESSAGE "ttItensContrato.preco-unit    " string(ttItensContrato.preco-unit  )  .
+            MESSAGE "ttItensContrato.it-codigo     " string(ttItensContrato.it-codigo   )  .
+            MESSAGE "ttItensContrato.narrat-item   " string(ttItensContrato.narrat-item )  .
+            MESSAGE "ttItensContrato.preco-fornec  " string(ttItensContrato.preco-fornec)  .
+            MESSAGE "ttItensContrato.val-frete     " string(ttItensContrato.val-frete   )  .
+            MESSAGE "ttItensContrato.cod-estabel   " STRING(ttItensContrato.cod-estabel)   .
+            MESSAGE "NUMERO DO CONTRATO            " STRING(i-num-contrato).
+            
+             i-seq-item = i-seq-item + 1.
              
              CREATE tt-imp-item-contrato.
              ASSIGN tt-imp-item-contrato.nr-contrato    = i-num-contrato
-                    tt-imp-item-contrato.num-seq-item   = iCountSec
-                    tt-imp-item-contrato.cod-emitente   = INT(ttItensContrato.cod-emitente) 
+                    tt-imp-item-contrato.num-seq-item   = i-seq-item //iCountSec
+                    tt-imp-item-contrato.cod-emitente   = INT(trim(ttItensContrato.cod-emitente)) 
                     tt-imp-item-contrato.preco-unit     = DEC(ttItensContrato.preco-unit)     
-                    //codigo do item est† vindo em branco
                     tt-imp-item-contrato.it-codigo      = ttItensContrato.it-codigo     
                     tt-imp-item-contrato.narrat-compra  = ttItensContrato.narrat-item   
                     tt-imp-item-contrato.pre-unit-for   = 0
                     tt-imp-item-contrato.preco-fornec   = DEC(ttItensContrato.preco-fornec)    
-                    tt-imp-item-contrato.val-frete      = DEC(ttItensContrato.val-frete).
+                    tt-imp-item-contrato.val-frete      = DEC(ttItensContrato.val-frete)
+                    tt-imp-item-contrato.ind-tipo-movto = 1
+                 .
 
-             /*
-                Precisa tratar os campos de valor com o cara do apigee
-                preco-fornec
-                val-frete
-                preco-unit
-                
-                Est† vindo em branco
-                it-codigo
-             
-             */
-                    
+           ASSIGN estab-aux = ttItensContrato.cod-estabel. 
 
+           FIND FIRST ttEstabelecimento WHERE ttEstabelecimento.cod-estabel = estab-aux NO-LOCK NO-ERROR.
 
-    
-        END.
+           IF NOT AVAIL ttEstabelecimento THEN DO:
+
+               CREATE ttEstabelecimento.
+               ASSIGN ttEstabelecimento.cod-estabel = ttItensContrato.cod-estabel.
+               ASSIGN estab-aux = "". 
+
+           END.               
+
+              RUN pi-criaTTJMatrizItemContrato.
+
      END.
-
  END PROCEDURE. 
 
 
 PROCEDURE pi-criaTTJMatrizItemContrato:
 
-    EMPTY TEMP-TABLE ttj-Matrizitenscontrato-for.  //Limpa a tabela antes de ser populada pelo Json
+    FOR EACH ttMaTrizContrato WHERE ttMaTrizContrato.it-codigo = ttItensContrato.it-codigo NO-LOCK.
 
-    IF oJsonObjectMain:Has("MatrizItemContrato") THEN
-    DO:
-        oJsonArrayMat = oJsonObjectMain:GetJsonArray("MatrizItemContrato").
-        CREATE  ttj-Matrizitenscontrato-for.
+        FIND FIRST ITEM WHERE ITEM.it-codigo  = TRIM(ttMaTrizContrato.it-codigo)
+                          AND ITEM.tipo-contr <> 4 NO-ERROR.
 
-        DO iCountSec = 1 TO oJsonArrayMat:LENGTH:
+        IF AVAIL ITEM THEN DO:
+                MESSAGE ">>>>###-PI-PROCESSA-GERANDO MATRIZ 1".
 
-             oJsonObjectMat =  oJsonArrayMat:GetJsonObject(iCountSec). 
+                     MESSAGE  "####-IMPRINDO DADOS DO MATRIZ DE RATEIO CONTRATO".
+                     MESSAGE "ttMaTrizContrato.nr-contrato "    string(i-num-contrato)  .
+                     MESSAGE "ttMaTrizContrato.ct-codigo "      string( ttMaTrizContrato.ct-codigo)  .
+                     MESSAGE "ttMaTrizContrato.sc-codigo "      string(ttMaTrizContrato.sc-codigo).
+                     MESSAGE "ttMaTrizContrato.perc-rateio "    STRING(ttMaTrizContrato.perc-rateio).
+                     MESSAGE "ttMaTrizContrato.cod-unid-negoc " STRING( ttMaTrizContrato.cod-unid-negoc).
 
-             IF oJsonObjectMat:HAS("nr-contrato")     THEN ttj-Matrizitenscontrato-for.nr-contrato      = INT(oJsonObjectMat:GetCharacter("nr-contrato"))      NO-ERROR.
-             IF oJsonObjectMat:HAS("ct-codigo")       THEN ttj-Matrizitenscontrato-for.ct-codigo        = oJsonObjectMat:GetCharacter("ct-codigo")             NO-ERROR.
-             IF oJsonObjectMat:HAS("sc-codigo")       THEN ttj-Matrizitenscontrato-for.sc-codigo        = oJsonObjectMat:GetCharacter("sc-codigo")             NO-ERROR.
-             IF oJsonObjectMat:HAS("perc-rateio")     THEN ttj-Matrizitenscontrato-for.perc-rateio      = DECIMAL(oJsonObjectMat:GetCharacter("perc-rateio"))  NO-ERROR.
-             IF oJsonObjectMat:HAS("cod-unid-negoc")  THEN ttj-Matrizitenscontrato-for.cod-unid-negoc   = oJsonObjectMat:GetCharacter("cod-unid-negoc")        NO-ERROR.
+                     /*matriz-rat-contr*/
+                     CREATE tt-imp-matriz-rat-contrato.
+                     ASSIGN tt-imp-matriz-rat-contrato.nr-contrato         = INT(i-num-contrato)   //ttMaTrizContrato.nr-contrato
+                            tt-imp-matriz-rat-contrato.ct-codigo           = string(ttMaTrizContrato.ct-codigo)
+                            tt-imp-matriz-rat-contrato.sc-codigo           = ttMaTrizContrato.sc-codigo
+                            tt-imp-matriz-rat-contrato.perc-rateio         = decimal(ttMaTrizContrato.perc-rateio)
+                            tt-imp-matriz-rat-contrato.cod-unid-negoc      = string(ttMaTrizContrato.cod-unid-negoc)
+                            tt-imp-matriz-rat-contrato.ind-tipo-movto      = 1
+                          //  tt-imp-matriz-rat-contrato.it-codigo           = ttMaTrizContrato.it-codigo
+                         .
+                MESSAGE ">>>>###-PI-PROCESSA-GERANDO MATRIZ 1 PASSEI".
+        END.
+        ELSE DO: 
 
-             /*
-             cria a tabela de rateio do item do contrato
-             
-             */
-            
+            DEF VAR c-contabil LIKE matriz-rat-item.conta-contabil NO-UNDO.
 
+            ASSIGN c-contabil = string(ttMaTrizContrato.ct-codigo) + STRING(tt-imp-item-contrato.num-seq-item) + ttMaTrizContrato.sc-codigo + ttMaTrizContrato.sc-codigo.
+
+                    //Verificar a matriz do item
+                     CREATE tt-imp-matriz-rat-item.
+                     ASSIGN tt-imp-matriz-rat-item.nr-contrato     = INT(i-num-contrato) 
+                            tt-imp-matriz-rat-item.num-seq-item    = tt-imp-item-contrato.num-seq-item
+                            tt-imp-matriz-rat-item.sc-codigo       = ttMaTrizContrato.sc-codigo
+                            tt-imp-matriz-rat-item.ct-codigo       = string(ttMaTrizContrato.ct-codigo)
+                            tt-imp-matriz-rat-item.perc-rateio     = decimal(ttMaTrizContrato.perc-rateio)
+                            tt-imp-matriz-rat-item.it-codigo       = tt-imp-item-contrato.it-codigo
+                            tt-imp-matriz-rat-item.dec-1           = 0
+                            tt-imp-matriz-rat-item.conta-contabil  = c-contabil
+                         .
         END.
     END.
-
-
 END PROCEDURE.
-

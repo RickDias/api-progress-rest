@@ -6,7 +6,11 @@
  Autor.....: 
  VersÆo....: 1.000.000
 -----------------------------------------------------------------------------------------------*/
-/* ------- Importa‡Æo de Classes ------ */
+
+
+/*********************************************************************************
+ definicao da Variaveis 
+*********************************************************************************/
 
 DEFINE BUFFER estabelec-entrega     FOR estabelec.
 DEFINE BUFFER estabelec-faturamento FOR estabelec.
@@ -18,6 +22,10 @@ DEFINE VARIABLE h-boin295   AS HANDLE     NO-UNDO.
 
 
 DEFINE NEW GLOBAL SHARED VARIABLE c-seg-usuario AS CHAR FORMAT "x(12)" NO-UNDO.
+          
+/*********************************************************************************
+ definicao das temp-tables para retorno de Erros 
+*********************************************************************************/
 
 DEFINE TEMP-TABLE ttError      SERIALIZE-NAME "Retorno"
     FIELD SessionId         AS CHARACTER
@@ -26,15 +34,19 @@ DEFINE TEMP-TABLE ttError      SERIALIZE-NAME "Retorno"
     FIELD descricao         AS CHARACTER
     INDEX idx01 referencia codigo.
 
-
-
+DEF TEMP-TABLE tt-retorno-nok NO-UNDO SERIALIZE-NAME "Retorno"
+    FIELD data                  AS DATETIME
+    FIELD cod-erro              AS INT
+    FIELD sequencia             AS INT     
+    FIELD desc-erro             AS CHAR
+    FIELD UniqueName            AS CHAR.
 
 /*********************************************************************************
  definicao das temp-tables para resgatar os atributos do json - inicio
 *********************************************************************************/
 DEFINE TEMP-TABLE ttCapaContrato NO-UNDO SERIALIZE-NAME "ContratoFornecedor"
-    FIELD des-contrat           AS CHARACTER SERIALIZE-NAME "nr-contrato"
-    FIELD cod-emitente          AS CHARACTER SERIALIZE-NAME "cod-emitentte"
+    FIELD nr-contrato           AS CHARACTER SERIALIZE-NAME "nr-contrato"
+    FIELD cod-emitente          AS CHARACTER SERIALIZE-NAME "cod-emitente"
     FIELD dt-ini-validade       AS CHARACTER SERIALIZE-NAME "dt-ini-validade"
     FIELD dt-ter-validade       AS CHARACTER SERIALIZE-NAME "dt-ter-validade"
     FIELD cod-comprado          AS CHARACTER SERIALIZE-NAME "cod-comprado"
@@ -45,8 +57,6 @@ DEFINE TEMP-TABLE ttCapaContrato NO-UNDO SERIALIZE-NAME "ContratoFornecedor"
     FIELD acum-val-pago         AS CHARACTER SERIALIZE-NAME "acum-val-pago"
     FIELD mo-codigo             AS CHARACTER SERIALIZE-NAME "mo-codigo".
 
-
-
 DEFINE TEMP-TABLE ttItensContrato NO-UNDO SERIALIZE-NAME "ItensContrato"
     FIELD nr-contrato   AS CHARACTER SERIALIZE-NAME "nr-contrato"   
     FIELD cod-emitente  AS CHARACTER SERIALIZE-NAME "cod-emitente" 
@@ -54,23 +64,41 @@ DEFINE TEMP-TABLE ttItensContrato NO-UNDO SERIALIZE-NAME "ItensContrato"
     FIELD it-codigo     AS CHARACTER SERIALIZE-NAME "it-codigo  "   
     FIELD narrat-item   AS CHARACTER SERIALIZE-NAME "narrat-item"   
     FIELD preco-fornec  AS CHARACTER SERIALIZE-NAME "preco-fornec" 
-    FIELD val-frete     AS CHARACTER SERIALIZE-NAME "val-frete  "   
-    .
+    FIELD val-frete     AS CHARACTER SERIALIZE-NAME "val-frete  " 
+    FIELD cod-estabel   AS CHARACTER SERIALIZE-NAME "cod-estabel".
+
+//DEFINE TEMP-TABLE tt-imp-matriz-rat-contrato NO-UNDO
+DEFINE TEMP-TABLE ttMaTrizContrato NO-UNDO SERIALIZE-NAME "MatrizItemContrato"
+    FIELD nr-contrato           AS CHARACTER SERIALIZE-NAME "nr-contrato"
+    FIELD it-codigo             AS CHARACTER SERIALIZE-NAME "it-codigo"    
+    FIELD ct-codigo             AS CHARACTER SERIALIZE-NAME "ct-codigo"
+    FIELD sc-codigo             AS CHARACTER SERIALIZE-NAME "sc-codigo"
+    FIELD perc-rateio           AS CHARACTER SERIALIZE-NAME "perc-rateio"
+    FIELD cod-unid-negoc        AS CHARACTER SERIALIZE-NAME "cod-unid-negoc"
+    FIELD ind-tipo-movto        AS CHARACTER SERIALIZE-NAME "99".
+
     
 /*********************************************************************************
  definicao das temp-tables para resgatar os atributos do json - fim
 *********************************************************************************/
 
+DEFINE TEMP-TABLE ttEstabelecimento NO-UNDO
+    FIELD cod-estabel   LIKE contrato-for.cod-estabel.
 
+DEFINE TEMP-TABLE tt-imp-matriz-rat-item NO-UNDO
+    LIKE matriz-rat-item.
 
-DEFINE TEMP-TABLE ttj-contrato-for  NO-UNDO   //alimenta a informa‡Æo do que vem do json para alimentar a temp-table para tt-imp-contrato-for 
+DEFINE TEMP-TABLE ttj-contrato-for  NO-UNDO                 //alimenta a informa‡Æo do que vem do json para alimentar a temp-table para tt-imp-contrato-for 
     LIKE contrato-for.
 
-DEFINE TEMP-TABLE ttj-itenscontrato-for NO-UNDO  //popula a tabela auxiliar do Json para os itens do Contrato.
+DEFINE TEMP-TABLE ttj-itenscontrato-for NO-UNDO             //popula a tabela auxiliar do Json para os itens do Contrato.
     LIKE item-contrat.
 
-DEFINE TEMP-TABLE ttj-Matrizitenscontrato-for NO-UNDO  //popula o valor das Matrizes de Rateio dos itens 
+DEFINE TEMP-TABLE ttj-Matrizitenscontrato-for NO-UNDO       //popula o valor das Matrizes de Rateio dos itens 
     LIKE matriz-rat-item. 
+
+DEFINE TEMP-TABLE ttj-MatrizRateioContrato NO-UNDO 
+    LIKE matriz-rat-contr. 
                                                                                                          
 DEFINE TEMP-TABLE tt-versao-integr 
     FIELD cod-versao-integracaoo AS INTEGER
@@ -80,7 +108,7 @@ DEFINE TEMP-TABLE tt-erros-integracao   NO-UNDO
             FIELD erro      AS CHAR
             FIELD descricao AS CHAR.
 
-DEFINE TEMP-TABLE tt-contrato-ariba-totvs NO-UNDO 
+DEFINE TEMP-TABLE tt-contrato-ariba-totvs NO-UNDO
     FIELD nr-contrato-ariba  AS CHAR 
     FIELD ped-contrato-ariba AS CHAR
     FIELD it-contrato-ariba  AS CHAR
@@ -169,7 +197,7 @@ DEFINE TEMP-TABLE tt-es-api-param-contr NO-UNDO         //‚ necess rio criar tod
     FIELD sc-codigo         LIKE contrato-for.sc-codigo
     FIELD ct-codigo         LIKE contrato-for.ct-codigo.
 
-DEF TEMP-TABLE tt-imp-contrato-for NO-UNDO // SERIALIZE-NAME 'Contrato_Compra'
+DEF TEMP-TABLE tt-imp-contrato-for NO-UNDO SERIALIZE-NAME "ContratoFornecedor"
     FIELD nr-contrato           AS INT
     FIELD cod-emitente          AS INT
     FIELD des-contrat           AS CHAR
@@ -208,7 +236,7 @@ DEF TEMP-TABLE tt-imp-contrato-for NO-UNDO // SERIALIZE-NAME 'Contrato_Compra'
     FIELD cod-unid-negoc        AS CHAR
     FIELD ind-tipo-movto        AS INTEGER FORMAT "99".
 
-DEF TEMP-TABLE tt-imp-item-contrato NO-UNDO //SERIALIZE-NAME "Item_Contrato"
+DEF TEMP-TABLE tt-imp-item-contrato NO-UNDO SERIALIZE-NAME "ItensContrato"
     /*Codigo do Registro (IC00)*/
     FIELD nr-contrato           AS INT
     FIELD num-seq-item          AS INT
@@ -246,12 +274,23 @@ DEF TEMP-TABLE tt-imp-item-contrato NO-UNDO //SERIALIZE-NAME "Item_Contrato"
     FIELD sld-qtd-receb         AS DEC FORMAT "->>>>>,>>9.9999"
     FIELD sld-val-receb         AS DEC FORMAT "->>>>>,>>9.9999"
     FIELD narrat-item           AS CHAR
+    FIELD cod-estabel           AS CHAR FORMAT "x(05)"
     /*Codigo do Registro (MI00)*/
     FIELD ct-codigo             AS CHAR
     FIELD sc-codigo             AS CHAR
     FIELD perc-rateio           AS DEC FORMAT ">>9.99"
     FIELD cod-unid-negoc        AS CHAR
     FIELD ind-tipo-movto        AS INTEGER FORMAT "99".
+
+DEFINE TEMP-TABLE tt-imp-matriz-rat-contrato NO-UNDO SERIALIZE-NAME "MatrizItemContrato"
+    FIELD it-codigo             LIKE ITEM.it-codigo
+    FIELD nr-contrato           LIKE matriz-rat-contr.nr-contrato
+    FIELD ct-codigo             LIKE matriz-rat-contr.ct-codigo
+    FIELD sc-codigo             LIKE matriz-rat-contr.sc-codigo
+    FIELD perc-rateio           LIKE matriz-rat-contr.perc-rateio
+    FIELD cod-unid-negoc        LIKE matriz-rat-contr.cod-unid-negoc
+    FIELD ind-tipo-movto        AS INTEGER FORMAT "99"
+    .
 
 DEFINE TEMP-TABLE tt-es-api-param-contr-it NO-UNDO      //‚ necess rio criar os campos do item do contrato
     FIELD cod-emitente      LIKE contrato-for.cod-emitente
@@ -350,9 +389,8 @@ DEFINE TEMP-TABLE tt-erros-geral
     FIELD num-processo       AS INTEGER.
 
 
-/* DEFINE DATASET httContratoCompra SERIALIZE-HIDDEN  FOR tt-imp-contrato-for, tt-imp-item-contrato  */
-/*     DATA-RELATION dr-ContratoCompra FOR tt-imp-contrato-for, tt-imp-item-contrato                 */
-/*        RELATION-FIELDS (Nr-Contrato, Nr-Contrato)  NESTED.                                        */
-
-
-
+ DEFINE DATASET httContratoCompra SERIALIZE-HIDDEN  FOR ttCapaContrato, ttItensContrato, ttMaTrizContrato 
+     DATA-RELATION dr-ContratoCompra FOR ttCapaContrato, ttItensContrato                 
+      RELATION-FIELDS (nr-contrato, nr-contrato)  NESTED                                        
+         DATA-RELATION dr-ItemContrato FOR ttItensContrato, ttMaTrizContrato                 
+            RELATION-FIELDS (it-codigo, it-codigo)  NESTED.
