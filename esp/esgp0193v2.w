@@ -13,7 +13,7 @@
 ** parcial ou total por qualquer meio, so podera ser feita mediante
 ** autorizacao expressa.
 *******************************************************************************/
-{include/i-prgvrs.i VESGP0193 2.06.00.001}
+{include/i-prgvrs.i ESGP0193V2 2.09.00.001 } /*** 010001 ***/
 
 /* Create an unnamed pool to store all the widgets created 
      by this procedure. This is a good default which assures
@@ -474,25 +474,25 @@ PROCEDURE local-assign-record :
                                           AND es-api-param.cd-tipo-integr = 7 /*---- Integra‡Æo repres  ------*/ NO-ERROR.
         IF AVAIL es-api-param THEN DO:
         
-            IF NOT CAN-FIND(FIRST sfa-export WHERE sfa-export.chave = string(es-gp-mix-produto.cod-rep)
-                                               AND sfa-export.ind-situacao < 2) THEN DO: 
-                CREATE sfa-export-repres.
-                ASSIGN sfa-export-repres.cd-tipo-integr = es-api-param.cd-tipo-integr
-                       sfa-export-repres.id-movto       = NEXT-VALUE(seq-export)
-                       sfa-export-repres.cod-rep        = es-gp-mix-produto.cod-rep           
-                       sfa-export-repres.data-movto     = NOW
-                       sfa-export-repres.c-json         = ?.
+            IF NOT CAN-FIND(FIRST es-api-export WHERE es-api-export.chave = string(es-gp-mix-produto.cod-rep)
+                                               AND es-api-export.ind-situacao < 2) THEN DO: 
+                CREATE es-api-export-repres.
+                ASSIGN es-api-export-repres.cd-tipo-integr = es-api-param.cd-tipo-integr
+                       es-api-export-repres.id-movto       = NEXT-VALUE(seq-export)
+                       es-api-export-repres.cod-rep        = es-gp-mix-produto.cod-rep           
+                       es-api-export-repres.data-movto     = NOW
+                       es-api-export-repres.c-json         = ?.
             
-                CREATE sfa-export.
-                ASSIGN sfa-export.ind-tipo-trans = es-api-param.ind-tipo-trans
-                       sfa-export.id-movto       = sfa-export-repres.id-movto
-                       sfa-export.cd-tipo-integr = sfa-export-repres.cd-tipo-integr
-                       sfa-export.chave          = string(sfa-export-repres.cod-rep)
-                       sfa-export.cod-status     = 0      /* ---- sem status ----*/
-                       sfa-export.data-fim       = ?
-                       sfa-export.data-inicio    = ?
-                       sfa-export.data-movto     = NOW
-                       sfa-export.ind-situacao   = 1       /*---- Pendente -----*/.
+                CREATE es-api-export.
+                ASSIGN es-api-export.ind-tipo-trans = es-api-param.ind-tipo-trans
+                       es-api-export.id-movto       = es-api-export-repres.id-movto
+                       es-api-export.cd-tipo-integr = es-api-export-repres.cd-tipo-integr
+                       es-api-export.chave          = string(es-api-export-repres.cod-rep)
+                       es-api-export.cod-status     = 0      /* ---- sem status ----*/
+                       es-api-export.data-fim       = ?
+                       es-api-export.data-inicio    = ?
+                       es-api-export.data-movto     = NOW
+                       es-api-export.ind-situacao   = 1       /*---- Pendente -----*/.
                 RUN pi-processa (INPUT 2, INPUT 7).          
             END.
         END.
