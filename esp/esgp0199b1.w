@@ -585,9 +585,9 @@ PROCEDURE pi-processasfa :
                                sfa-export.data-fim       = ?
                                sfa-export.data-inicio    = ?
                                sfa-export.data-movto     = NOW
-                               sfa-export.ind-situacao   = 1       /*---- Pendente -----*/.
+                               sfa-export.ind-situacao   = 0       /*---- Pendente -----*/.
             
-                        RUN pi-processa (INPUT 2, INPUT 2).  
+                        //RUN pi-processa (INPUT 2, INPUT 2).  
             
                     END.
                 END.

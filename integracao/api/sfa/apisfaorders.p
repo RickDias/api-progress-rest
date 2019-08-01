@@ -53,8 +53,10 @@ PROCEDURE pi-create:
     DEFINE VARIABLE oJsonObjectMain  AS JsonObject           NO-UNDO.
     DEFINE VARIABLE iCountMain       AS INTEGER              NO-UNDO.
 
-    ASSIGN  oRequestParser = NEW JsonAPIRequestParser(jsonInput)
-            json_recebido = oRequestParser:getPayloadLongChar().
+    fix-codepage(json_recebido) = "UTF-8".
+
+    ASSIGN oRequestParser = NEW JsonAPIRequestParser(jsonInput)
+           json_recebido = oRequestParser:getPayloadLongChar().
 
     oJsonArrayMain = jsonInput:GetJsonObject("payload":U):GetJsonArray("req":U).
 
@@ -67,27 +69,28 @@ PROCEDURE pi-create:
         END.
     END.
 
-    CREATE  sfa-import-ped.
-    ASSIGN  sfa-import-ped.cd-tipo-integr  = 3 /*--- import ---*/
-            sfa-import-ped.Id-movto        = NEXT-VALUE(seq-import)
-            sfa-import-ped.data-movto      = TODAY
-            sfa-import-ped.c-json          = json_recebido
-            sfa-import-ped.nr-ped-sfa      = CodigoSalesforce.
+    CREATE  es-api-import-ped.
+    ASSIGN  es-api-import-ped.cd-tipo-integr  = 3 /*--- import ---*/
+            es-api-import-ped.Id-movto        = NEXT-VALUE(seq-import)
+            es-api-import-ped.data-movto      = TODAY
+            es-api-import-ped.c-json          = json_recebido
+            es-api-import-ped.nr-ped-sfa      = CodigoSalesforce.
             
-    CREATE  sfa-import.
-    ASSIGN  sfa-import.ind-tipo-trans   = 1 /*--- import ---*/
-            sfa-import.cd-tipo-integr   = sfa-import-ped.cd-tipo-integr
-            sfa-import.id-movto         = sfa-import-ped.Id-movto
-            sfa-import.chave            = ""
-            sfa-import.data-movto       = NOW
-            sfa-import.data-inicio      = NOW
-            sfa-import.data-fim         = ?
-            sfa-import.ind-situacao     = 1 /*--- Pendente ---*/
-            sfa-import.cod-status       = 0 /*--- sem status ---*/  .
+    CREATE  es-api-import.
+    ASSIGN  es-api-import.ind-tipo-trans   = 1 /*--- import ---*/
+            es-api-import.cd-tipo-integr   = es-api-import-ped.cd-tipo-integr
+            es-api-import.id-movto         = es-api-import-ped.Id-movto
+            es-api-import.chave            = CodigoSalesforce
+            es-api-import.data-movto       = NOW
+            es-api-import.data-inicio      = NOW
+            es-api-import.data-fim         = ?
+            es-api-import.ind-situacao     = 0 /*--- Pendente ---*/
+            es-api-import.cod-status       = 0 /*--- sem status ---*/  .
 
+    /*
     FIND FIRST es-api-param 
          WHERE es-api-param.ind-tipo-trans = 1
-           AND es-api-param.cd-tipo-integr = sfa-import-ped.cd-tipo-integr NO-LOCK 
+           AND es-api-param.cd-tipo-integr = es-api-import-ped.cd-tipo-integr NO-LOCK 
          NO-ERROR.
     IF NOT AVAIL es-api-param 
     THEN RETURN. /*-----tratar erro */
@@ -95,30 +98,23 @@ PROCEDURE pi-create:
 
     /* ------ Executa progama espec°fico para o tipo de integraá∆o ------ */
     
-    MESSAGE "***** Time 0: " + STRING(TIME,"HH:MM:SS").
-
-    RUN VALUE( es-api-param.programa-integr ) (INPUT ROWID(sfa-import),
+    RUN VALUE( es-api-param.programa-integr ) (INPUT ROWID(es-api-import),
                                                OUTPUT c-erro,
                                                INPUT jsonInput) NO-ERROR.   
-
-    MESSAGE "***** Time 8: " + STRING(TIME,"HH:MM:SS").
-    
-    MESSAGE "*****" c-erro.
 
     IF ERROR-STATUS:ERROR THEN 
         c-erro = c-erro + SEARCH(es-api-param.programa-integr) + " - " + ERROR-STATUS:GET-MESSAGE(1) + 'propath: ' + PROPATH.
 
-    ASSIGN sfa-import.data-fim     = NOW
-           sfa-import.ind-situacao = 2 .
+    ASSIGN es-api-import.data-fim     = NOW
+           es-api-import.ind-situacao = 2 .
     
-    MESSAGE "***** Time 9: " + STRING(TIME,"HH:MM:SS").
     /* ------ Gerencia retorno do processo -----*/
-    IF c-erro = "" THEN ASSIGN sfa-import.cod-status = 1.
-    ELSE ASSIGN sfa-import.cod-status = 2.
+    IF c-erro = "" THEN ASSIGN es-api-import.cod-status = 1.
+    ELSE ASSIGN es-api-import.cod-status = 2.
     
-    RUN pi-gera-status (c-erro).
+    */
 
-    MESSAGE "***** Time 10: " + STRING(TIME,"HH:MM:SS").
+    RUN pi-gera-status (c-erro).
 
     /* -------- Grava retorno ------*/
     ASSIGN  jsonRetorno = NEW JsonArray().
@@ -129,8 +125,6 @@ PROCEDURE pi-create:
                            INPUT FALSE, 
                            OUTPUT jsonOutput).
 
-    MESSAGE "***** Time 11: " + STRING(TIME,"HH:MM:SS").
-                           
 END PROCEDURE.
 
 
@@ -166,30 +160,34 @@ PROCEDURE pi-gera-status:
 
     DEFINE VARIABLE i-nr-seq AS INTEGER NO-UNDO.
 
-    FIND LAST sfa-import-log NO-LOCK OF sfa-import NO-ERROR.
-    IF AVAIL sfa-import-log THEN
-        ASSIGN i-nr-seq = sfa-import-log.nr-seq + 1.
+    /*
+    FIND LAST es-api-import-log NO-LOCK OF es-api-import NO-ERROR.
+    IF AVAIL es-api-import-log THEN
+        ASSIGN i-nr-seq = es-api-import-log.nr-seq + 1.
     ELSE i-nr-seq = 1.
+    */
 
 /*
-    IF c-erro = "" AND sfa-import.chave = ""
+    IF c-erro = "" AND es-api-import.chave = ""
     THEN ASSIGN
        c-erro = "Pedido n∆o foi integrado".
 */
          
+/*
+    CREATE es-api-import-log.
+    ASSIGN es-api-import-log.ind-tipo-trans = es-api-import.ind-tipo-trans
+           es-api-import-log.cd-tipo-integr = es-api-import.cd-tipo-integr
+           es-api-import-log.id-movto       = es-api-import.id-movto      
+           es-api-import-log.data-log       = NOW
+           es-api-import-log.des-log        = IF c-erro <> "" THEN c-erro ELSE "Registro integrado com sucesso" 
+           es-api-import-log.nr-seq         = i-nr-seq.
+*/
 
-    CREATE sfa-import-log.
-    ASSIGN sfa-import-log.ind-tipo-trans = sfa-import.ind-tipo-trans
-           sfa-import-log.cd-tipo-integr = sfa-import.cd-tipo-integr
-           sfa-import-log.id-movto       = sfa-import.id-movto      
-           sfa-import-log.data-log       = NOW
-           sfa-import-log.des-log        = IF c-erro <> "" THEN c-erro ELSE "Registro integrado com sucesso" 
-           sfa-import-log.nr-seq         = i-nr-seq.
 
     CREATE ttRetorno.
-    ASSIGN ttRetorno.CodigoPedido  = sfa-import.chave
-           ttRetorno.situacao      = IF c-erro = "" THEN YES ELSE NO
-           ttRetorno.descricao = IF c-erro = "" THEN "Registro integrado com sucesso" ELSE c-erro.
+    ASSIGN ttRetorno.CodigoPedido  = /*es-api-import.chave*/ "0"
+           ttRetorno.situacao      = /*IF c-erro = "" THEN */ YES /*ELSE NO */
+           ttRetorno.descricao     = /*IF c-erro = "" THEN */ "Registro recebido com sucesso" /*ELSE c-erro*/ .
 
     
 END PROCEDURE.

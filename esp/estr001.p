@@ -293,30 +293,30 @@ IF (b-emitente.identific = 1 OR b-emitente.identific = 3) AND b-emitente.naturez
     IF AVAIL es-api-param THEN DO:
 
 
-        IF (NOT CAN-FIND(FIRST sfa-export WHERE sfa-export.chave = b-emitente.cgc
-                                           AND sfa-export.ind-tipo-trans = es-api-param.ind-tipo-trans
-                                           AND sfa-export.cd-tipo-integr = es-api-param.cd-tipo-integr
-                                           AND sfa-export.ind-situacao < 2) ) THEN DO:
+        IF (NOT CAN-FIND(FIRST es-api-export WHERE es-api-export.chave = b-emitente.cgc
+                                           AND es-api-export.ind-tipo-trans = es-api-param.ind-tipo-trans
+                                           AND es-api-export.cd-tipo-integr = es-api-param.cd-tipo-integr
+                                           AND es-api-export.ind-situacao < 2) ) THEN DO:
 
-            CREATE sfa-export-cli.
-            ASSIGN sfa-export-cli.cd-tipo-integr = es-api-param.cd-tipo-integr
-                   sfa-export-cli.id-movto       = NEXT-VALUE(seq-export)
-                   sfa-export-cli.cgc            = b-emitente.cgc
-                   sfa-export-cli.data-movto     = NOW
-                   sfa-export-cli.c-json         = ?.
+            CREATE es-api-export-cli.
+            ASSIGN es-api-export-cli.cd-tipo-integr = es-api-param.cd-tipo-integr
+                   es-api-export-cli.id-movto       = NEXT-VALUE(seq-export)
+                   es-api-export-cli.cgc            = b-emitente.cgc
+                   es-api-export-cli.data-movto     = NOW
+                   es-api-export-cli.c-json         = ?.
     
-            CREATE sfa-export.
-            ASSIGN sfa-export.ind-tipo-trans = es-api-param.ind-tipo-trans
-                   sfa-export.id-movto       = sfa-export-cli.id-movto
-                   sfa-export.cd-tipo-integr = sfa-export-cli.cd-tipo-integr
-                   sfa-export.chave          = sfa-export-cli.cgc
-                   sfa-export.cod-status     = 0      /* ---- sem status ----*/
-                   sfa-export.data-fim       = ?
-                   sfa-export.data-inicio    = ?
-                   sfa-export.data-movto     = NOW
-                   sfa-export.ind-situacao   = 1       /*---- Pendente -----*/.
+            CREATE es-api-export.
+            ASSIGN es-api-export.ind-tipo-trans = es-api-param.ind-tipo-trans
+                   es-api-export.id-movto       = es-api-export-cli.id-movto
+                   es-api-export.cd-tipo-integr = es-api-export-cli.cd-tipo-integr
+                   es-api-export.chave          = es-api-export-cli.cgc
+                   es-api-export.cod-status     = 0      /* ---- sem status ----*/
+                   es-api-export.data-fim       = ?
+                   es-api-export.data-inicio    = ?
+                   es-api-export.data-movto     = NOW
+                   es-api-export.ind-situacao   = 0       /*---- Pendente -----*/.
 
-            RUN pi-processa (INPUT 2, INPUT 2).  
+            /*RUN pi-processa (INPUT 2, INPUT 2).  */
 
         END.
     END.
@@ -325,7 +325,7 @@ END.
 
 RETURN "OK".
      
-{esp\esint001rp.i}
+/*{esp\esint001rp.i}*/
 
 
 

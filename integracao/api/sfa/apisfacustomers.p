@@ -17,9 +17,6 @@
 
 {utp/ut-api-action.i pi-create POST /~* }
 
-
-    CURRENT-LANGUAGE = CURRENT-LANGUAGE.
-
 /* ------- Defini‡Æo Temp-tables ------ */   
 DEF TEMP-TABLE tt-erros
     FIELD cod-erro  AS INTEGER
@@ -36,7 +33,6 @@ DEF VAR i-seq-erro AS INTEGER NO-UNDO.
 
 EMPTY TEMP-TABLE tt-Erros.
 EMPTY TEMP-TABLE ttRetorno.
-
 
 
 PROCEDURE pi-create:
@@ -71,45 +67,49 @@ PROCEDURE pi-create:
         END.
     END.
 
-    CREATE  sfa-import-cli.
-    ASSIGN  sfa-import-cli.cd-tipo-integr  = 1 /*--- import ---*/
-            sfa-import-cli.Id-movto        = NEXT-VALUE(seq-import)
-            sfa-import-cli.data-movto      = TODAY
-            sfa-import-cli.c-json          = json_recebido.
+    CREATE  es-api-import-cli.
+    ASSIGN  es-api-import-cli.cd-tipo-integr  = 1 /*--- import ---*/
+            es-api-import-cli.Id-movto        = NEXT-VALUE(seq-import)
+            es-api-import-cli.data-movto      = TODAY
+            es-api-import-cli.c-json          = json_recebido.
             
-    CREATE  sfa-import.
-    ASSIGN  sfa-import.ind-tipo-trans   = 1 /*--- import ---*/
-            sfa-import.cd-tipo-integr   = sfa-import-cli.cd-tipo-integr
-            sfa-import.id-movto         = sfa-import-cli.Id-movto
-            sfa-import.chave            = c_CNPJ
-            sfa-import.data-movto       = NOW
-            sfa-import.data-inicio      = NOW
-            sfa-import.data-fim         = ?
-            sfa-import.ind-situacao     = 1 /*--- Pendente ---*/
-            sfa-import.cod-status       = 0 /*--- sem status ---*/  .
+    CREATE  es-api-import.
+    ASSIGN  es-api-import.ind-tipo-trans   = 1 /*--- import ---*/
+            es-api-import.cd-tipo-integr   = es-api-import-cli.cd-tipo-integr
+            es-api-import.id-movto         = es-api-import-cli.Id-movto
+            es-api-import.chave            = c_CNPJ
+            es-api-import.data-movto       = NOW
+            es-api-import.data-inicio      = NOW
+            es-api-import.data-fim         = ?
+            es-api-import.ind-situacao     = 0 /*--- Pendente ---*/
+            es-api-import.cod-status       = 0 /*--- sem status ---*/  .
 
+    
+    /*
     FIND FIRST es-api-param WHERE es-api-param.ind-tipo-trans = 1
-                              AND es-api-param.cd-tipo-integr = sfa-import-cli.cd-tipo-integr NO-LOCK NO-ERROR.
+                              AND es-api-param.cd-tipo-integr = es-api-import-cli.cd-tipo-integr NO-LOCK NO-ERROR.
     IF NOT AVAIL es-api-param THEN RETURN. /*-----tratar erro */
    
 
     /* ------ Executa progama espec¡fico para o tipo de integra‡Æo ------ */
-    RUN VALUE( es-api-param.programa-integr ) (INPUT ROWID(sfa-import),
+    RUN VALUE( es-api-param.programa-integr ) (INPUT ROWID(es-api-import),
                                                OUTPUT c-erro,
                                                INPUT jsonInput) NO-ERROR.   
     IF ERROR-STATUS:ERROR THEN DO:
         c-erro = c-erro + ERROR-STATUS:GET-MESSAGE(1) + 'propath: ' + PROPATH.
     END.
-    ASSIGN sfa-import.data-fim     = NOW
-           sfa-import.ind-situacao = 2 .
-           
-
+    
+    ASSIGN es-api-import.data-fim     = NOW
+           es-api-import.ind-situacao = 2 .
+                     
     /* ------ Gerencia retorno do processo -----*/
-    IF c-erro = "" THEN ASSIGN sfa-import.cod-status = 1.
-    ELSE ASSIGN sfa-import.cod-status = 2.
-   
-    RUN pi-gera-status (INPUT c-erro).
+    IF c-erro = "" THEN ASSIGN es-api-import.cod-status = 1.
+    ELSE ASSIGN es-api-import.cod-status = 2.
+    
+    */
 
+    RUN pi-gera-status (INPUT c-erro).
+    
     /* -------- Grava retorno ------*/
     ASSIGN  jsonRetorno = NEW JsonArray().
             jsonRetorno:Read(TEMP-TABLE ttRetorno:HANDLE).
@@ -154,25 +154,27 @@ PROCEDURE pi-gera-status:
 
     DEFINE VARIABLE i-nr-seq AS INTEGER NO-UNDO.
 
-    FIND LAST sfa-import-log NO-LOCK OF sfa-import NO-ERROR.
-    IF AVAIL sfa-import-log THEN
-        ASSIGN i-nr-seq = sfa-import-log.nr-seq + 1.
+    /*
+    FIND LAST es-api-import-log NO-LOCK OF es-api-import NO-ERROR.
+    IF AVAIL es-api-import-log THEN
+        ASSIGN i-nr-seq = es-api-import-log.nr-seq + 1.
     ELSE i-nr-seq = 1.
 
-    CREATE sfa-import-log.
-    ASSIGN sfa-import-log.ind-tipo-trans = sfa-import.ind-tipo-trans
-           sfa-import-log.cd-tipo-integr = sfa-import.cd-tipo-integr
-           sfa-import-log.id-movto       = sfa-import.id-movto      
-           sfa-import-log.data-log       = NOW
-           sfa-import-log.des-log        = IF c-erro = "" THEN "Registro integrado com sucesso" ELSE c-erro
-           sfa-import-log.nr-seq         = i-nr-seq.
+    CREATE es-api-import-log.
+    ASSIGN es-api-import-log.ind-tipo-trans = es-api-import.ind-tipo-trans
+           es-api-import-log.cd-tipo-integr = es-api-import.cd-tipo-integr
+           es-api-import-log.id-movto       = es-api-import.id-movto      
+           es-api-import-log.data-log       = NOW
+           es-api-import-log.des-log        = IF c-erro = "" THEN "Registro recebido com sucesso" ELSE c-erro
+           es-api-import-log.nr-seq         = i-nr-seq.
+           */
 
-    FIND FIRST emitente NO-LOCK WHERE emitente.cgc = sfa-import.chave NO-ERROR.
+    FIND FIRST emitente NO-LOCK WHERE emitente.cgc = es-api-import.chave NO-ERROR.
 
     CREATE ttRetorno.
-    ASSIGN ttRetorno.codigoCliente = IF AVAIL emitente THEN string(emitente.cod-emitente) ELSE "0"
-           ttRetorno.situacao      = IF c-erro = "" THEN YES ELSE NO
-           ttRetorno.descricao     = IF c-erro = "" THEN "Registro integrado com sucesso" ELSE c-erro.
+    ASSIGN ttRetorno.codigoCliente = /* IF AVAIL emitente THEN string(emitente.cod-emitente) ELSE */ "0"
+           ttRetorno.situacao      = /*IF c-erro = "" THEN */ YES /*ELSE NO*/
+           ttRetorno.descricao     = /*IF c-erro = "" THEN */ "Registro recebido com sucesso" /*ELSE c-erro */ .
 
     
 END PROCEDURE.
