@@ -6,7 +6,9 @@
  Vers∆o....: 1.000.000
 -----------------------------------------------------------------------------------------------*/
 
-DEFINE TEMP-TABLE tt_emitente SERIALIZE-NAME "req"                                                                                                  
+DEFINE TEMP-TABLE tt_emitente SERIALIZE-NAME "req" 
+    FIELD l-status                      AS LOGICAL                   COLUMN-LABEL "Status"                                            SERIALIZE-NAME "Status"
+    FIELD c-descricao                   AS CHARACTER                                                                                  SERIALIZE-NAME "Descricao"
     field RazaoSocial	                as character                 column-label "Raz∆o Social"               format "X(80)"         SERIALIZE-NAME "RazaoSocial"                   
     field CNPJ	                        as character                 column-label "CNPJ"                       format "X(14)"         SERIALIZE-NAME "CNPJ"                          
     field IE                            as character                 column-label "Inscriá∆o Estadual"         format "X(14)"         SERIALIZE-NAME "IE"                            
@@ -27,7 +29,8 @@ DEFINE TEMP-TABLE tt_emitente SERIALIZE-NAME "req"
     field LimiteCredito	                as INTEGER                   column-label "Limite De CrÇdito"                                 SERIALIZE-NAME "LimiteCredito"                 
     field AvaliacaoCredito	            like emitente.ind-aval       column-label "Avaliaá∆o de CrÇdito"                              SERIALIZE-NAME "AvaliacaoCredito"              
     field TipoCredito	                AS CHARACTER                 column-label "Tipo De CrÇdito"    FORMAT 'X(10)'                 SERIALIZE-NAME "TipoCredito"                   
-    field DataLimiteCredito	            as DATE                      column-label "Data Limite De CrÇdito "    format "99/99/9999"    SERIALIZE-NAME "DataLimiteCredito"             
+    field DataLimiteCredito	            as DATE                      column-label "Data Limite De CrÇdito "    format "99/99/9999"    SERIALIZE-NAME "DataLimiteCredito"       
+    /*field DataLimiteCredito	            as DATE                      column-label "Data Limite De CrÇdito "    format "99/99/9999"    SERIALIZE-NAME "DataDividaMaisLonga"*/
     field SaldoCredito	                as DECIMAL                   column-label "Saldo De CrÇdito"                                  SERIALIZE-NAME "SaldoCredito"                  
     field Banco	                        as CHARACTER                 column-label "Banco"                      format ">>9"           SERIALIZE-NAME "Banco"                         
     field Agencia	                    as character                 column-label "Agància"                    FORMAT "X(4)"          SERIALIZE-NAME "Agencia"                       
@@ -74,6 +77,7 @@ DEFINE TEMP-TABLE tt_EnderecoList SERIALIZE-NAME "EnderecoList"
 
 DEFINE TEMP-TABLE tt_CondicaoPagamentoList SERIALIZE-NAME "CondicaoPagamentoList"
     FIELD fld-rel                       AS INTEGER                   
+    FIELD condicaoPadrao    AS LOGICAL   COLUMN-LABEL "Padr∆o"                                    SERIALIZE-NAME "Padrao"
     field codigoCondicao    AS CHARACTER COLUMN-LABEL "C¢digo Condiá∆o Pagamento" FORMAT "X(10)"  SERIALIZE-NAME "codigoCondicao"
     field descricaoCondicao AS CHARACTER COLUMN-LABEL "Descriá∆o"                 FORMAT "X(255)" SERIALIZE-NAME "descricaoCondicao".     
 

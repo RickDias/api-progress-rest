@@ -14,7 +14,7 @@ DEFINE INPUT  PARAM     TABLE FOR tt_CondicaoPagamentoList.
 DEFINE OUTPUT PARAMETER TABLE FOR tt-erros-integracao. 
 DEFINE OUTPUT PARAMETER pCodEmitenteReturn as INTEGER.
 
-DEF VAR i-count AS INTEGER NO-UNDO.
+/* DEF VAR i-count AS INTEGER NO-UNDO.  */
 
 DEFINE VARIABLE c-destino  AS CHARACTER   NO-UNDO.
 DEFINE VARIABLE c-filename AS CHARACTER   NO-UNDO.
@@ -36,26 +36,41 @@ DEFINE VARIABLE email-nfe         AS CHARACTER   NO-UNDO.
 DEFINE VARIABLE email-financ      AS CHARACTER   NO-UNDO.
 
 /* Variaveis usadas na procedure pi-grandes-red */
-DEFINE VARIABLE c-nome-abrev-rede  LIKE emitente.nome-abrev.
-DEFINE VARIABLE c-nome-matriz-rede LIKE emitente.nome-matriz.
-DEFINE VARIABLE i-portador-rede    LIKE emitente.portador.
-DEFINE VARIABLE i-modalidade-rede  LIKE emitente.modalidade.
-DEFINE VARIABLE i-port-prefer-rede LIKE emitente.port-prefer.
-DEFINE VARIABLE i-mod-prefer-rede  LIKE emitente.mod-prefer.
-DEFINE VARIABLE i-cod-gr-cli-rede  LIKE emitente.cod-gr-cli.
+DEFINE VARIABLE c-nome-abrev-rede  LIKE emitente.nome-abrev no-undo.
+DEFINE VARIABLE c-nome-abrev-raiz  LIKE emitente.nome-abrev no-undo.
+DEFINE VARIABLE c-sequencia        AS CHARACTER              NO-UNDO.
+DEFINE VARIABLE i-sequencia        AS INTEGER                NO-UNDO.
+DEFINE VARIABLE i-cont             AS INTEGER                NO-UNDO.
+DEFINE VARIABLE c-nome-matriz-rede LIKE emitente.nome-matriz no-undo.
+DEFINE VARIABLE i-portador-rede    LIKE emitente.portador    no-undo.
+DEFINE VARIABLE i-modalidade-rede  LIKE emitente.modalidade  no-undo.
+DEFINE VARIABLE i-port-prefer-rede LIKE emitente.port-prefer no-undo.
+DEFINE VARIABLE i-mod-prefer-rede  LIKE emitente.mod-prefer  no-undo.
+DEFINE VARIABLE i-cod-gr-cli-rede  LIKE emitente.cod-gr-cli  no-undo.
 DEFINE VARIABLE i-instr-banc       AS INTEGER NO-UNDO.
-
+DEFINE VARIABLE i-portador-ap      LIKE emitente.portador-ap   NO-UNDO.
+DEFINE VARIABLE i-modalidade-ap    LIKE emitente.modalidade-ap NO-UNDO.
+DEFINE VARIABLE i-int1             AS INTEGER                  NO-UNDO.
 DEFINE BUFFER bf-es-gp-emit-canal FOR es-gp-emit-canal.
+DEFINE BUFFER bf-es-emitente      FOR es-emitente.
 
 ASSIGN c-destino = "Arquivo"
-       c-filename = SESSION:TEMP-DIRECTORY + "/AtualizaEMS5-"
+       c-filename = SESSION:TEMP-DIRECTORY + "/atualizaems5-"
                     + STRING(DAY(TODAY),"99")
                     + STRING(MONTH(TODAY),"99")
                     + STRING(YEAR(TODAY),"9999")
                     + STRING(TIME)
                     + "tmp".
-
-
+DEF STREAM S1.
+DEF VAR C-TESTE AS CHARACTER.
+ASSIGN      c-TESTE = SESSION:TEMP-DIRECTORY + "/atualizaems5-"
+                    + STRING(DAY(TODAY),"99")
+                    + STRING(MONTH(TODAY),"99")
+                    + STRING(YEAR(TODAY),"9999")
+                    + STRING(TIME)
+                    + "c.tmp".
+OUTPUT STREAM S1 TO VALUE(C-TESTE).
+    
 FUNCTION fnc-proximo-emit RETURNS INTEGER() FORWARD.
 
 define temp-table tt-erros NO-UNDO
@@ -88,9 +103,15 @@ IF NOT AVAIL emitente THEN DO:
     ASSIGN v_tipo_movto = "Incluir".
 END.
 ELSE DO:
-     IF emitente.identific = 2 THEN 
+    IF emitente.identific = 2 THEN 
         ASSIGN v_tipo_movto = "Alterar".
-    ELSE RETURN "OK".
+    IF emitente.identific <> 2 THEN
+    DO:
+       CREATE tt-erros-integracao.
+       ASSIGN tt-erros-integracao.erro  = "17006"
+              tt-erros-integracao.descricao = "Cliente ja existe no cadastro." + STRING(emitente.cod-emitente).
+       RETURN "NOK". 
+    END.
 END.
 
 RUN piImportParam.
@@ -113,25 +134,34 @@ IF tt-emitente.tipo-movimento = "Incluir" THEN DO:
     
 END.
 ELSE DO: /* alteraùˇo */
+
     FIND emitente WHERE emitente.cgc = tt-emitente.cpfcnpj NO-LOCK NO-ERROR.
     IF AVAIL emitente THEN DO:
-        ASSIGN i-count = i-count + 1.
+/*         ASSIGN i-count = i-count + 1. */
 
-        ASSIGN iNumEmit = integer(emitente.cod-emitente)
-               i-cod-rep-ant = emitente.cod-rep.        
-    END.
-END.
+        ASSIGN iNumEmit         = integer(emitente.cod-emitente)
+               i-cod-rep-ant    = emitente.cod-rep
+               i-portador-ap    = emitente.portador-ap
+               i-modalidade-ap  = emitente.modalidade-ap.
+  END.
+END.                           
 END.
 
 ASSIGN pCodEmitenteReturn = iNumEmit.
+
+FIND FIRST es-api-param-cliente NO-LOCK NO-ERROR.
 
 CREATE tt_emitente_integr_old_2.
 ASSIGN tt_emitente_integr_old_2.cod_versao_integracao = 1
        tt_emitente_integr_old_2.cod_emitente          = iNumEmit
        tt_emitente_integr_old_2.identific             = integer(tt-emitente.identific)
+       tt_emitente_integr_old_2.cod_portador          = integer(tt-emitente.portador)
        tt_emitente_integr_old_2.modalidade            = integer(tt-emitente.Modalidade)
+       tt_emitente_integr_old_2.port_prefer           = integer(tt-emitente.portador_pref)
+       tt_emitente_integr_old_2.mod_prefer            = integer(tt-emitente.modalidade_pref)
        tt_emitente_integr_old_2.tp_rec_padrao         = integer(tt-emitente.cod_receita)
-       tt_emitente_integr_old_2.data_implant          = TODAY.
+       tt_emitente_integr_old_2.data_implant          = TODAY
+       tt_emitente_integr_old_2.cod_gr_forn           = es-api-param-cliente.cod-gr-for WHEN AVAILABLE es-api-param-cliente.
 
 IF  tt-emitente.tipo-movimento <> "Incluir" THEN
 DO:
@@ -140,6 +170,12 @@ DO:
    ASSIGN tt_emitente_integr_old_2.identific             = 2 
           tt_emitente_integr_old_2.cod_gr_forn           = emitente.cod-gr-for
           tt_emitente_integr_old_2.tp_desp_padrao        = emitente.tp-desp-padrao.
+   IF AVAILABLE es-api-param-cliente THEN
+      ASSIGN tt_emitente_integr_old_2.cod_portador          = integer(es-api-param-cliente.portador)  
+             /* tt_emitente_integr_old_2.cod_portador          = emitente.portador     */
+             tt_emitente_integr_old_2.modalidade            = integer(es-api-param-cliente.Modalidade)
+             tt_emitente_integr_old_2.port_prefer           = integer(es-api-param-cliente.port-prefer)
+             tt_emitente_integr_old_2.mod_prefer            = integer(es-api-param-cliente.mod-prefer).
 END.
 FOR FIRST UNID-FEDER NO-LOCK WHERE
           UNID-FEDER.estado = tt-emitente.cod_estado.
@@ -150,6 +186,11 @@ FOR FIRST UNID-FEDER NO-LOCK WHERE
           UNID-FEDER.estado = tt-emitente.Estado_cob.
     ASSIGN tt-emitente.nome_pais_cob = unid-feder.pais.
 END.
+IF tt-emitente.nome_pais_cob = "" THEN
+    FOR FIRST UNID-FEDER NO-LOCK WHERE
+              UNID-FEDER.estado = tt-emitente.cod_estado.
+        ASSIGN tt-emitente.nome_pais_cob = unid-feder.pais.
+    END.
 
 FOR FIRST mgdis.cidade NO-LOCK 
     WHERE mgdis.cidade.cidade   = tt-emitente.nome_cidade 
@@ -157,7 +198,6 @@ FOR FIRST mgdis.cidade NO-LOCK
       AND mgdis.cidade.pais     = tt-emitente.nome_pais:
 END.
 
-FIND FIRST es-api-param-cliente NO-LOCK NO-ERROR.
 
 ASSIGN tt_emitente_integr_old_2.cod_pais             = tt-emitente.nome_pais
        tt_emitente_integr_old_2.pais_cob             = tt-emitente.nome_pais_cob
@@ -196,8 +236,8 @@ ASSIGN tt_emitente_integr_old_2.cidade_cob   = tt-emitente.nome_cidade2
        tt_emitente_integr_old_2.telefone[1]  = tt-emitente.Telefone
        tt_emitente_integr_old_2.ramal[1]     = tt-emitente.Ramal
        tt_emitente_integr_old_2.telefone[2]  = tt-emitente.Telefone2.
-
-i-count = i-count + 1.
+/*                        */
+/* i-count = i-count + 1. */
 
 ASSIGN tt_emitente_integr_old_2.ramal[2]     = tt-emitente.Ramal2
        tt_emitente_integr_old_2.telefax      = tt-emitente.Telefax
@@ -208,11 +248,9 @@ ASSIGN tt_emitente_integr_old_2.e_mail       = IF tt-emitente.email <> ? THEN tt
        tt_emitente_integr_old_2.natureza     = integer(tt-emitente.nat_cliente)
        tt_emitente_integr_old_2.cgc          = tt-emitente.cpfcnpj
        tt_emitente_integr_old_2.ins_municipal= IF tt-emitente.Ins_municipal <> ? THEN tt-emitente.Ins_municipal ELSE ""
-       tt_emitente_integr_old_2.cod_portador = integer(tt-emitente.portador).
+       .
 
-ASSIGN tt_emitente_integr_old_2.port_prefer  = integer(tt-emitente.portador_pref)
-       tt_emitente_integr_old_2.mod_prefer   = integer(tt-emitente.modalidade_pref)
-       tt_emitente_integr_old_2.emite_bloq   = IF AVAIL es-api-param-cliente THEN es-api-param-cliente.emite-bloq ELSE NO
+ASSIGN tt_emitente_integr_old_2.emite_bloq   = IF AVAIL es-api-param-cliente THEN es-api-param-cliente.emite-bloq ELSE NO
        tt_emitente_integr_old_2.nome_mic_reg = IF AVAIL mgdis.cidade THEN mgdis.cidade.nome-mic-reg ELSE ""
        tt_emitente_integr_old_2.data_implant = date(tt-emitente.dt_implantacao) 
        tt_emitente_integr_old_2.ins_banc[1]  = integer(tt-emitente.cd_instrucao_bancaria)         NO-ERROR.
@@ -265,14 +303,13 @@ ASSIGN tt_emitente_integr_old_2.nome_matriz      = IF tt-emitente.nome_cliente =
        tt_emitente_integr_old_2.Ins_est_cob      = IF tt-emitente.Ins_est_cob  = "" THEN "ISENTO" ELSE UPPER(STRING(tt-emitente.Ins_est_cob,"x(20)")) NO-ERROR.
 
 IF i-portador-rede <> 0 THEN
-   ASSIGN tt_emitente_integr_old_2.cod_portador = i-portador-rede.
+   ASSIGN tt_emitente_integr_old_2.cod_portador = i-portador-rede
+          tt_emitente_integr_old_2.modalidade   = i-modalidade-rede.
 IF c-nome-matriz-rede <> "" THEN
    ASSIGN tt_emitente_integr_old_2.nome_matriz  = c-nome-matriz-rede. 
 IF c-nome-abrev-rede <> "" THEN
    ASSIGN tt_emitente_integr_old_2.nome_abrev   = c-nome-abrev-rede. 
-
-       i-count = i-count + 1.
-
+/*           i-count = i-count + 1.  */
 IF ERROR-STATUS:ERROR THEN DO:
   CREATE tt-erros-integracao.
   ASSIGN tt-erros-integracao.erro  = "17006"
@@ -348,11 +385,11 @@ DO TRANSACTION ON ERROR UNDO, LEAVE:
                    emitente.end-cobranca                        = integer(iNumEmit)
                    /*******/
                    emitente.cgc-cob                             = tt-emitente.cpfcnpjCobranca
-                   emitente.cod-cond-pag                        = integer(tt-emitente.cond_pag)
                    emitente.cod-canal-venda                     = integer(tt-emitente.cod_canal_venda)
                    emitente.nat-operacao                        = tt-emitente.natureza_operacao
                    emitente.nat-ope-ext                         = tt-emitente.natureza_interestadual.
-
+            IF v_tipo_movto <> "Alterar" THEN
+               ASSIGN emitente.cod-cond-pag                        = integer(tt-emitente.cond_pag).
             ASSIGN emitente.cod-transp                          = integer(tt-emitente.cod_transportadora)
                    overlay(emitente.char-1,21,1)                = tt-emitente.suspensao_ipi
                    emitente.telef-fac                           = tt-emitente.Telefax2
@@ -370,10 +407,42 @@ DO TRANSACTION ON ERROR UNDO, LEAVE:
                    emitente.endereco-cob                        = IF tt-emitente.endereco_cob <> ? THEN tt-emitente.endereco_cob ELSE ""
                    emitente.estado-cob                          = IF tt-emitente.estado_cob <> ? THEN UPPER(tt-emitente.estado_cob) ELSE ""
                    emitente.pais-cob                            = IF tt-emitente.nome_pais_cob <> ? THEN UPPER(tt-emitente.nome_pais_cob) ELSE ""
+                   /* 24/07/2019 Cristiane */
+                   emitente.cidade-cob                          = IF tt-emitente.cidade_cob <> ? THEN UPPER(tt-emitente.cidade_cob) ELSE ""
+                   emitente.bairro-cob                          = IF tt-emitente.bairro_cob <> ? THEN UPPER(tt-emitente.bairro_cob) ELSE ""
+                   emitente.cep-cob                             = IF tt-emitente.cep_cob <> ? THEN UPPER(tt-emitente.cep_cob) ELSE ""
                    emitente.nome-mic-reg                        = IF AVAIL mgdis.cidade THEN mgdis.cidade.nome-mic-reg ELSE "".
 
-            IF tt-emitente.tipo-movimento <> "Incluir" THEN 
+            IF tt-emitente.tipo-movimento <> "Incluir" THEN
+            DO:
                ASSIGN emitente.identific = 3.
+               IF emitente.cod-gr-cli = 0 THEN
+                  ASSIGN emitente.cod-gr-cli = IF AVAIL es-api-param-cliente THEN (es-api-param-cliente.cod-gr-cli) ELSE 10.
+               IF AVAIL es-api-param-cliente THEN 
+                   ASSIGN emitente.portador    = es-api-param-cliente.portador   
+                          emitente.modalidade  = es-api-param-cliente.modalidade
+                          emitente.port-prefer = es-api-param-cliente.port-pref 
+                          emitente.mod-prefer  = es-api-param-cliente.mod-prefer.      
+               ASSIGN emitente.portador-ap   = i-portador-ap
+                      emitente.modalidade-ap = i-modalidade-ap
+                      /* Solicitado por Cicero em 25/07/2019 */
+                      emitente.data-implant  = TODAY.
+            END.
+            /* 25/07/2019 */
+            IF emitente.bairro-cob = "" OR emitente.bairro-cob = ? THEN
+               ASSIGN emitente.bairro-cob = emitente.bairro.
+            IF emitente.cep-cob = ""    OR emitente.cep-cob = ? THEN
+               ASSIGN emitente.cep-cob = emitente.cep.
+            IF emitente.cidade-cob = "" OR emitente.cidade-cob = ? THEN
+               ASSIGN emitente.cidade-cob = emitente.cidade.
+            IF emitente.endereco-cob = "" OR emitente.endereco-cob = ? THEN
+               ASSIGN emitente.endereco-cob = emitente.endereco.
+            IF emitente.estado-cob = "" OR emitente.estado-cob = ? THEN
+               ASSIGN emitente.estado-cob = emitente.estado.
+            IF emitente.pais-cob   = "" OR emitente.pais-cob   = ? THEN
+               ASSIGN emitente.pais-cob   = emitente.pais.
+            IF emitente.zip-cob-code = "" OR emitente.zip-cob-code = ? THEN
+               ASSIGN emitente.zip-cob-code = emitente.zip-code.
 
             find first loc-entr use-index ch-entrega EXCLUSIVE-LOCK
                 where loc-entr.nome-abrev  = emitente.nome-abrev
@@ -439,18 +508,28 @@ DO TRANSACTION ON ERROR UNDO, LEAVE:
 
                 /*Logica para prencher campos es-emitente.exige-laudo-cq, es-emitente.exige-loteu, es-emitente.rejeita-prox-ven, es-emitente.regime-trib*/
                 FIND FIRST es-emitente EXCLUSIVE-LOCK
-                    WHERE es-emitente.cod-emitente = INT(tt-emitente.cod-emitente) NO-ERROR.
+                    WHERE es-emitente.cod-emitente = emitente.cod-emitente NO-ERROR.
 
                 IF NOT AVAIL es-emitente THEN DO:
 
                     CREATE es-emitente.
-                    ASSIGN es-emitente.cod-emitente = INT(tt-emitente.cod-emitente).
+                    ASSIGN es-emitente.cod-emitente = emitente.cod-emitente .
                 END.
 
-                ASSIGN es-emitente.exige-laudo-cq   = LOGICAL(tt-emitente.exige-laudo)
-                       es-emitente.exige-loteu      = LOGICAL(tt-emitente.exige-loteu)
-                       es-emitente.rejeita-prox-ven = LOGICAL(tt-emitente.rejeita-prox-ven)
-                       es-emitente.regime-trib      = tt-emitente.regime-trib.
+/*                 ASSIGN es-emitente.exige-laudo-cq   = LOGICAL(tt-emitente.exige-laudo) 
+                          es-emitente.exige-loteu      = LOGICAL(tt-emitente.exige-loteu)*/
+                   ASSIGN es-emitente.exige-laudo-cq   = LOGICAL(tt-emitente.exige-laudo).
+                   IF tt-emitente.exige-loteu BEGINS "N" THEN
+                      ASSIGN es-emitente.exige-loteu      = NO.
+                   ELSE 
+                      ASSIGN es-emitente.exige-loteu      = YES.
+                   IF tt-emitente.rejeita-prox-ven BEGINS "N" THEN 
+                      ASSIGN es-emitente.rejeita-prox-ven = NO.
+                   ELSE 
+                       ASSIGN es-emitente.rejeita-prox-ven = YES.
+                   /*    es-emitente.rejeita-prox-ven = LOGICAL(tt-emitente.rejeita-prox-ven) */
+                    ASSIGN es-emitente.regime-trib      = tt-emitente.regime-trib.
+
 
                 RELEASE es-emitente.
                 /*Fim logica para prencher campos es-emitente.exige-laudo-cq, es-emitente.exige-loteu, es-emitente.rejeita-prox-ven, es-emitente.regime-trib*/
@@ -464,6 +543,10 @@ DO TRANSACTION ON ERROR UNDO, LEAVE:
                    emitente.log-calcula-pis-cofins-unid  = YES.
                 
                 /* End: 24/06/2017 Inclusao de Campos - Willians Ambrosio - DSC Praxis */
+                
+                /* 24/07/2019 */
+                IF emitente.ins-est-cob = "" THEN
+                   ASSIGN emitente.ins-est-cob = emitente.ins-estadual.
 
                 /*Logica para prencher campos es-gp-emit-coord.latitude e es-gp-emit-coord.longitude*/
                 FIND FIRST es-gp-emit-coord EXCLUSIVE-LOCK
@@ -540,8 +623,10 @@ DO TRANSACTION ON ERROR UNDO, LEAVE:
 
 
             /*Tiago - 20151029 - Atualizaùˇo de contato do emitente + atualizaùˇo EMS5*/
-            
-            FOR EACH tt_ContatoList:
+            ASSIGN i-int1 = 0.
+            FOR EACH tt_ContatoList 
+                /* 27/04/2019 */
+                WHERE  tt_ContatoList.fld-rel <> 0:
                FIND FIRST cont-emit
                     WHERE cont-emit.cod-emitente = emitente.cod-emitente
                       AND cont-emit.sequencia    = tt_ContatoList.fld-rel
@@ -553,6 +638,8 @@ DO TRANSACTION ON ERROR UNDO, LEAVE:
                       cont-emit.cod-emitente = emitente.cod-emitente  
                       cont-emit.sequencia    = tt_ContatoList.fld-rel.
                END.
+               ASSIGN i-int1 = i-int1 + 1.
+
                ASSIGN
                    cont-emit.identific = emitente.identific
                    cont-emit.nome      = tt_ContatoList.nome
@@ -563,9 +650,16 @@ DO TRANSACTION ON ERROR UNDO, LEAVE:
                    cont-emit.ramal-fax = tt_ContatoList.ramalfax
                    cont-emit.telefax   = tt_ContatoList.fax
                    cont-emit.telefone  = tt_ContatoList.telefone
-                   .
+                   cont-emit.int-1     = i-int1.
+               /* 25/07/2019 */
+               IF tt_ContatoList.email = ""    OR tt_ContatoList.email = ? THEN 
+                  ASSIGN cont-emit.e-mail   = IF tt-emitente.email_financ <> ? THEN tt-emitente.email_financ ELSE "".
+               IF tt_ContatoList.telefone = "" OR tt_ContatoList.telefone = ? THEN
+                  ASSIGN cont-emit.telefone = tt-emitente.telefone.
+               IF tt_ContatoList.nome = ""     OR tt_ContatoList.nome = ? THEN
+                  ASSIGN cont-emit.nome     = "CONTATO".
             END.
-
+            
             /* Cria contato NF-e */
             find first cont-emit exclusive-lock
                  where cont-emit.cod-emitente = emitente.cod-emitente
@@ -573,13 +667,15 @@ DO TRANSACTION ON ERROR UNDO, LEAVE:
 
             if not avail cont-emit then
             do:
+               ASSIGN i-int1 = i-int1 + 1.
                create cont-emit.
                assign cont-emit.cod-emitente = emitente.cod-emitente
                       cont-emit.sequencia    = 98
+                      cont-emit.identific    = emitente.identific
                       cont-emit.nome         = "DESTINATARIO XML NF-e"
                       cont-emit.telefone     = tt-emitente.nr_celular
                       cont-emit.e-mail       = IF tt-emitente.email_nfe <> ? THEN tt-emitente.email_nfe ELSE ""
-                      cont-emit.int-1        = 2.
+                      cont-emit.int-1        = i-int1.
             end.
 
             /* Cria contato Financeiro */
@@ -589,13 +685,15 @@ DO TRANSACTION ON ERROR UNDO, LEAVE:
 
             if not avail cont-emit then do:
 
+                ASSIGN i-int1 = i-int1 + 1.
                 create cont-emit.
                 assign cont-emit.cod-emitente = emitente.cod-emitente
                        cont-emit.sequencia    = 99
+                       cont-emit.identific    = emitente.identific 
                        cont-emit.nome         = "CONTATO FINANCEIRO"
                        cont-emit.telefone     = tt-emitente.nr_telefone_finan
                        cont-emit.e-mail       = IF tt-emitente.email_financ <> ? THEN tt-emitente.email_financ ELSE ""
-                       cont-emit.int-1        = 1.
+                       cont-emit.int-1        = i-int1.
             end.
 
             FIND CURRENT emitente NO-ERROR.
@@ -614,7 +712,8 @@ DO TRANSACTION ON ERROR UNDO, LEAVE:
                                       input 0,
                                       input c-filename, /*"\\192.168.51.98\d$\Especificos\bravaecm\teste.tmp",*/
                                       input "Arquivo":U,
-                                      input "") NO-ERROR.                    
+                                      input "") NO-ERROR.  
+
                 END.
             end.           
             
@@ -667,8 +766,6 @@ PROCEDURE piImportParam:
     FIND FIRST es-api-param-cliente NO-LOCK NO-ERROR.
     FIND FIRST portador WHERE portador.cod-portador = es-api-param-cliente.portador NO-LOCK NO-ERROR.
     FIND FIRST transporte WHERE transporte.cod-transp = es-api-param-cliente.cod-transp NO-LOCK NO-ERROR.
-
-    
     CREATE tt-emitente.  
     IF v_tipo_movto = "Incluir"  THEN
         ASSIGN tt-emitente.identific                      = "1".
@@ -750,8 +847,7 @@ PROCEDURE piImportParam:
            tt-emitente.modalidade_pref                = string(es-api-param-cliente.mod-prefer)                    
            tt-emitente.Mod_prefer                     = string(es-api-param-cliente.mod-prefer)                                       
            tt-emitente.cod_receita                    = '10'    .
-
-    IF tt-emitente.nfe = ? THEN
+IF tt-emitente.nfe = ? THEN
         ASSIGN tt-emitente.nfe = "NO".
 
 
@@ -769,8 +865,6 @@ ASSIGN  tt-emitente.nome_receita                   = ""
         tt-emitente.ck_faturamento_parcial         = IF AVAIL es-api-param-cliente THEN string(es-api-param-cliente.ind-fat-par) ELSE ""    
         tt-emitente.sl_esp_padrao_ped_venda        = IF AVAIL es-api-param-cliente THEN string(es-api-param-cliente.esp-pd-venda) ELSE ""
         tt-emitente.nm_ramo_atividade              = tt_emitente.RamoAtividade    .
-
-
   ASSIGN   tt-emitente.cd_entrega_padrao              = ""
            tt-emitente.nm_entrega_padrao              = ""
            tt-emitente.cd_sequencia_contato_emitente  = ""
@@ -843,9 +937,9 @@ ASSIGN  tt-emitente.nome_receita                   = ""
            ASSIGN tt-emitente.rejeita-prox-ven = IF tt-emitente.rejeita-prox-ven = "" THEN "NO" ELSE tt-emitente.rejeita-prox-ven. 
            ASSIGN tt-emitente.lim-credito      = IF tt-emitente.lim-credito      = ?  THEN "0" ELSE tt-emitente.lim-credito.
 
-    ASSIGN i-instr-banc = 1.
-
-    RUN pi-grandes-red.  
+    ASSIGN i-instr-banc = es-api-param-cliente.ins-banc WHEN AVAILABLE es-api-param-cliente.
+    /* Solicitado em 24/07/2019  IF v_tipo_movto = "Incluir" THEN  */
+       RUN pi-grandes-red.  
 
     IF i-portador-rede <> 0 THEN
     DO:
@@ -878,7 +972,6 @@ END PROCEDURE.
 /* Procedure para alterar os campos de nome abreviado, matriz, portador e modalidade para clientes de grandes redes
 Informacao obtida atravÇs dos codigos de grupos de clientes de exceá∆o da tabela es-api-param-cliente */
 PROCEDURE pi-grandes-red:
-
    DEFINE BUFFER b1-emitente         FOR  emitente.
    DEFINE BUFFER b2-emitente         FOR  emitente.
    DEFINE BUFFER b3-emitente         FOR  emitente.
@@ -902,7 +995,8 @@ PROCEDURE pi-grandes-red:
           i-cont             = 0.
 
    FIND FIRST es-api-param-cliente NO-LOCK NO-ERROR.
-   FIND FIRST b1-emitente WHERE SUBSTRING(b1-emitente.cgc, 01, 08) = SUBSTRING(tt_emitente.cnpj, 01,08) 
+   FIND FIRST b1-emitente WHERE SUBSTRING(b1-emitente.cgc, 01, 08) =  SUBSTRING(tt_emitente.cnpj, 01,08)
+                          AND   b1-emitente.cgc                    <> tt_emitente.cnpj
                           NO-LOCK NO-ERROR.
    /* emitente integrado faz parte de uma grande rede */
    IF AVAILABLE b1-emitente THEN
@@ -914,7 +1008,7 @@ PROCEDURE pi-grandes-red:
          DO:
              ASSIGN i-instr-banc = 0.
 
-            /* Localizando o ultimo emitente pertencente a rede */
+            /* Localizando o ultimo emitente pertencente a rede - alteraá∆o p¢s solicitaá∆o de novo tipo de composiá∆o do nome abreviado - chamado aberto pelo Cicero 
             FIND LAST b3-emitente WHERE SUBSTRING(b3-emitente.cgc, 1, 8) =  SUBSTRING(b1-emitente.cgc, 1, 8)
                                   AND   b3-emitente.nome-abrev           <> b3-emitente.nome-matriz
                                   AND   LOOKUP(SUBSTRING(b3-emitente.nome-abrev,12,1), "0,1,2,3,4,5,6,7,8,9") <> 0
@@ -935,8 +1029,8 @@ PROCEDURE pi-grandes-red:
                   ASSIGN i-sequencia = 1.
                ELSE 
                   ASSIGN i-sequencia = DEC(c-sequencia).
-            END. /* AVAILABLE b3-emitente */
-               
+            END. /* AVAILABLE b3-emitente */    */
+            ASSIGN i-sequencia = INTEGER(SUBSTRING(tt_emitente.cnpj,09,04)). 
             /* Localizando a matriz */
             FIND b2-emitente WHERE b2-emitente.nome-abrev = b1-emitente.nome-matriz
                              AND   b2-emitente.nome-abrev = b2-emitente.nome-matriz
@@ -958,14 +1052,17 @@ PROCEDURE pi-grandes-red:
                    ASSIGN c-nome-abrev-raiz = SUBSTRING(b2-emitente.nome-abrev,01,09) + "-".
 
             END. /* AVAILABLE b2-emitente - Matriz */
+            
          /*   MESSAGE "c-nome-matriz-rede" c-nome-matriz-rede. */
             bl-ver-reg:
             REPEAT:
-               ASSIGN i-sequencia       = i-sequencia + 1
-                      c-nome-abrev-rede = c-nome-abrev-raiz + STRING(i-sequencia, "9999").
+               ASSIGN c-nome-abrev-rede = c-nome-abrev-raiz + STRING(i-sequencia, "9999").
                FIND FIRST b4-emitente WHERE b4-emitente.nome-abrev = c-nome-abrev-rede
                                       NO-LOCK NO-ERROR.       
                IF NOT AVAILABLE b4-emitente THEN LEAVE bl-ver-reg.
+               IF AVAILABLE b4-emitente AND b4-emitente.cgc = tt_emitente.cnpj THEN
+                   LEAVE bl-ver-reg.
+               ASSIGN i-sequencia       = i-sequencia + 1.
             END. /* bl-ver-reg */
          END. /* b1-emitente.cod-gr-cli indica se Ç grande rede ou n∆o */
       END. /* AVAILABLE es-api-param-cliente */

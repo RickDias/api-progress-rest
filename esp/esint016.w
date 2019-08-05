@@ -1,6 +1,7 @@
 &ANALYZE-SUSPEND _VERSION-NUMBER UIB_v8r12 GUI ADM1
 &ANALYZE-RESUME
 /* Connected Databases 
+          mgcad            PROGRESS
           mgcam            PROGRESS
 */
 &Scoped-define WINDOW-NAME w-livre
@@ -37,8 +38,7 @@ CREATE WIDGET-POOL.
 /* Parameters Definitions ---                                           */
 
 /* Local Variable Definitions ---                                       */
-DEF BUFFER portador FOR mgcad.portador.
-
+DEF BUFFER portador               FOR mgcad.portador.
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
@@ -60,32 +60,38 @@ DEF BUFFER portador FOR mgcad.portador.
 es-api-param-cliente.modalidade es-api-param-cliente.port-prefer ~
 es-api-param-cliente.tp-rec-padrao es-api-param-cliente.cod-cond-pag ~
 es-api-param-cliente.cod-transp es-api-param-cliente.cod-gr-cli ~
-es-api-param-cliente.nat-operacao es-api-param-cliente.perc-fat-ped ~
-es-api-param-cliente.nat-ope-ext es-api-param-cliente.mod-prefer ~
+es-api-param-cliente.cod-gr-for es-api-param-cliente.nat-operacao ~
+es-api-param-cliente.perc-fat-ped es-api-param-cliente.nat-ope-ext ~
+es-api-param-cliente.ins-banc es-api-param-cliente.mod-prefer ~
 es-api-param-cliente.log-optan-suspens-ipi es-api-param-cliente.emite-bloq ~
 es-api-param-cliente.agente-retencao es-api-param-cliente.ind-fat-par ~
 es-api-param-cliente.log-calcula-pis-cofins-unid ~
 es-api-param-cliente.log-nf-eletro es-api-param-cliente.natureza ~
 es-api-param-cliente.esp-pd-venda 
-&Scoped-define ENABLED-TABLES es-api-param-cliente
+&Scoped-define ENABLED-TABLES es-api-param-cliente grupo-fornec emitente
 &Scoped-define FIRST-ENABLED-TABLE es-api-param-cliente
+&Scoped-define SECOND-ENABLED-TABLE grupo-fornec
+&Scoped-define THIRD-ENABLED-TABLE emitente
 &Scoped-Define ENABLED-OBJECTS bt-alterar bt-salvar rt-button RECT-14 ~
-RECT-18 RECT-22 RECT-23 RECT-24 RECT-25 
+RECT-18 RECT-22 RECT-23 RECT-24 RECT-25 sl-cod-gr-c-e 
 &Scoped-Define DISPLAYED-FIELDS es-api-param-cliente.portador ~
 es-api-param-cliente.modalidade es-api-param-cliente.port-prefer ~
 es-api-param-cliente.tp-rec-padrao es-api-param-cliente.cod-cond-pag ~
-es-api-param-cliente.cod-transp es-api-param-cliente.cod-gr-cli ~
-es-api-param-cliente.nat-operacao es-api-param-cliente.perc-fat-ped ~
-es-api-param-cliente.nat-ope-ext es-api-param-cliente.mod-prefer ~
+es-api-param-cliente.cod-transp es-api-param-cliente.cod-gr-cli es-api-param-cliente.cod-gr-for ~
+es-api-param-cliente.nat-operacao ~
+es-api-param-cliente.perc-fat-ped es-api-param-cliente.nat-ope-ext ~
+es-api-param-cliente.ins-banc es-api-param-cliente.mod-prefer ~
 es-api-param-cliente.log-optan-suspens-ipi es-api-param-cliente.emite-bloq ~
 es-api-param-cliente.agente-retencao es-api-param-cliente.ind-fat-par ~
 es-api-param-cliente.log-calcula-pis-cofins-unid ~
 es-api-param-cliente.log-nf-eletro es-api-param-cliente.natureza ~
 es-api-param-cliente.esp-pd-venda 
-&Scoped-define DISPLAYED-TABLES es-api-param-cliente
+&Scoped-define DISPLAYED-TABLES es-api-param-cliente grupo-fornec emitente
 &Scoped-define FIRST-DISPLAYED-TABLE es-api-param-cliente
+&Scoped-define SECOND-DISPLAYED-TABLE grupo-fornec
+&Scoped-define THIRD-DISPLAYED-TABLE emitente
 &Scoped-Define DISPLAYED-OBJECTS fi-det-1 fi-det-2 fi-det-3 fi-det-4 ~
-fi-det-5 fi-det-6 
+fi-det-5 fi-det-7 fi-det-8 sl-cod-gr-c-e 
 
 /* Custom List Definitions                                              */
 /* List-1,List-2,List-3,List-4,List-5,List-6                            */
@@ -150,13 +156,17 @@ DEFINE VARIABLE fi-det-5 AS CHARACTER FORMAT "X(256)":U
      VIEW-AS FILL-IN 
      SIZE 38.86 BY .88 NO-UNDO.
 
-DEFINE VARIABLE fi-det-6 AS CHARACTER FORMAT "X(256)":U 
+DEFINE VARIABLE fi-det-7 AS CHARACTER FORMAT "X(256)":U 
      VIEW-AS FILL-IN 
      SIZE 38.72 BY .88 NO-UNDO.
 
+DEFINE VARIABLE fi-det-8 AS CHARACTER FORMAT "X(256)":U 
+     VIEW-AS FILL-IN 
+     SIZE 38.86 BY .88 NO-UNDO.
+
 DEFINE RECTANGLE RECT-14
      EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL   
-     SIZE 25 BY 8.5.
+     SIZE 25 BY 8.88.
 
 DEFINE RECTANGLE RECT-18
      EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL   
@@ -164,35 +174,45 @@ DEFINE RECTANGLE RECT-18
 
 DEFINE RECTANGLE RECT-22
      EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL   
-     SIZE 79.43 BY 4.04.
+     SIZE 78.86 BY 2.71.
 
 DEFINE RECTANGLE RECT-23
      EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL   
-     SIZE 79 BY 8.75.
+     SIZE 79 BY 11.75.
 
 DEFINE RECTANGLE RECT-24
      EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL   
-     SIZE 39 BY 4.08.
+     SIZE 39 BY 3.38.
 
 DEFINE RECTANGLE RECT-25
      EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL   
-     SIZE 39 BY 4.08.
+     SIZE 39.43 BY 3.33.
 
 DEFINE RECTANGLE rt-button
      EDGE-PIXELS 2 GRAPHIC-EDGE    
      SIZE 106 BY 1.46
      BGCOLOR 7 .
 
+DEFINE VARIABLE sl-cod-gr-c-e AS CHARACTER 
+    VIEW-AS SELECTION-LIST MULTIPLE NO-DRAG SCROLLBAR-VERTICAL 
+    LIST-ITEM-PAIRS "Item"," 1" 
+    SIZE 47 BY 2.63 NO-UNDO.
+DEFINE VARIABLE i-cont-cli-e       AS INTEGER.
+DEFINE VARIABLE c-cod-gr-c-e       AS CHARACTER.
+DEFINE VARIABLE c-lista-cod-gr-c-e AS CHARACTER.
+DEFINE VARIABLE p-lista-cod-gr-c-e AS CHARACTER.
+DEFINE VARIABLE c-lista-marca      AS CHARACTER.
+DEF BUFFER b-es-api-param-cliente FOR es-api-param-cliente.
 
 /* ************************  Frame Definitions  *********************** */
 
 DEFINE FRAME f-cad
      bt-alterar AT ROW 1.08 COL 1.43 WIDGET-ID 124
      bt-salvar AT ROW 1.08 COL 6 WIDGET-ID 120
-     es-api-param-cliente.portador AT ROW 3.63 COL 24 COLON-ALIGNED WIDGET-ID 64
+     es-api-param-cliente.portador AT ROW 3 COL 25.86 COLON-ALIGNED WIDGET-ID 64
           VIEW-AS FILL-IN 
           SIZE 6.86 BY .88
-     fi-det-1 AT ROW 3.63 COL 31 COLON-ALIGNED NO-LABEL WIDGET-ID 90
+     fi-det-1 AT ROW 3 COL 32.86 COLON-ALIGNED NO-LABEL WIDGET-ID 90
      es-api-param-cliente.modalidade AT ROW 3.88 COL 85 NO-LABEL WIDGET-ID 40
           VIEW-AS RADIO-SET VERTICAL
           RADIO-BUTTONS 
@@ -206,36 +226,44 @@ DEFINE FRAME f-cad
 "Cheque", 8,
 "Nota Promiss¢ria", 9
           SIZE 19.72 BY 7.5
-     es-api-param-cliente.port-prefer AT ROW 4.63 COL 24 COLON-ALIGNED WIDGET-ID 62
+     es-api-param-cliente.port-prefer AT ROW 4 COL 25.86 COLON-ALIGNED WIDGET-ID 62
           VIEW-AS FILL-IN 
           SIZE 6.86 BY .88
-     fi-det-2 AT ROW 4.63 COL 31 COLON-ALIGNED NO-LABEL WIDGET-ID 88
-     es-api-param-cliente.tp-rec-padrao AT ROW 5.58 COL 24 COLON-ALIGNED WIDGET-ID 66
+     fi-det-2 AT ROW 4 COL 32.86 COLON-ALIGNED NO-LABEL WIDGET-ID 88
+     es-api-param-cliente.tp-rec-padrao AT ROW 4.96 COL 25.86 COLON-ALIGNED WIDGET-ID 66
           VIEW-AS FILL-IN 
           SIZE 7 BY .88
-     fi-det-3 AT ROW 5.58 COL 31.14 COLON-ALIGNED NO-LABEL WIDGET-ID 92
-     es-api-param-cliente.cod-cond-pag AT ROW 6.54 COL 24 COLON-ALIGNED WIDGET-ID 10
+     fi-det-3 AT ROW 4.96 COL 33 COLON-ALIGNED NO-LABEL WIDGET-ID 92
+     es-api-param-cliente.cod-cond-pag AT ROW 5.92 COL 25.86 COLON-ALIGNED WIDGET-ID 10
           VIEW-AS FILL-IN 
           SIZE 7 BY .88
-     fi-det-4 AT ROW 6.54 COL 31.14 COLON-ALIGNED NO-LABEL WIDGET-ID 94
-     es-api-param-cliente.cod-transp AT ROW 7.5 COL 24 COLON-ALIGNED WIDGET-ID 14
+     fi-det-4 AT ROW 5.92 COL 33 COLON-ALIGNED NO-LABEL WIDGET-ID 94
+     es-api-param-cliente.cod-transp AT ROW 6.88 COL 25.86 COLON-ALIGNED WIDGET-ID 14
           VIEW-AS FILL-IN 
           SIZE 8 BY .88
-     fi-det-5 AT ROW 7.5 COL 32.14 COLON-ALIGNED NO-LABEL WIDGET-ID 96
-     es-api-param-cliente.cod-gr-cli AT ROW 8.46 COL 24 COLON-ALIGNED WIDGET-ID 12
+     fi-det-5 AT ROW 6.88 COL 34 COLON-ALIGNED NO-LABEL WIDGET-ID 96
+     es-api-param-cliente.cod-gr-cli AT ROW 7.83 COL 25.86 COLON-ALIGNED NO-LABEL WIDGET-ID 12
           VIEW-AS FILL-IN 
           SIZE 8 BY .88
-     fi-det-6 AT ROW 8.46 COL 32.29 COLON-ALIGNED NO-LABEL WIDGET-ID 98
-     es-api-param-cliente.nat-operacao AT ROW 9.42 COL 24 COLON-ALIGNED WIDGET-ID 52
+     fi-det-7 AT ROW 7.83 COL 34.14 COLON-ALIGNED NO-LABEL WIDGET-ID 128
+     es-api-param-cliente.cod-gr-for AT ROW 8.79 COL 25.86 COLON-ALIGNED NO-LABEL WIDGET-ID 130
+          VIEW-AS FILL-IN 
+          SIZE 8 BY .88
+     fi-det-8 AT ROW 8.79 COL 33.86 COLON-ALIGNED NO-LABEL WIDGET-ID 134
+     es-api-param-cliente.nat-operacao AT ROW 9.75 COL 25.86 COLON-ALIGNED WIDGET-ID 52
           VIEW-AS FILL-IN 
           SIZE 10.14 BY .88
-     es-api-param-cliente.perc-fat-ped AT ROW 9.46 COL 66.43 COLON-ALIGNED WIDGET-ID 60
+     es-api-param-cliente.perc-fat-ped AT ROW 9.75 COL 68.29 COLON-ALIGNED WIDGET-ID 60
           VIEW-AS FILL-IN 
           SIZE 4.57 BY .88
-     es-api-param-cliente.nat-ope-ext AT ROW 10.33 COL 24 COLON-ALIGNED WIDGET-ID 50
+     es-api-param-cliente.nat-ope-ext AT ROW 10.71 COL 25.86 COLON-ALIGNED WIDGET-ID 50
           VIEW-AS FILL-IN 
           SIZE 10.14 BY .88
-     es-api-param-cliente.mod-prefer AT ROW 12.67 COL 85 NO-LABEL WIDGET-ID 30
+     es-api-param-cliente.ins-banc AT ROW 10.71 COL 68.29 COLON-ALIGNED NO-LABEL WIDGET-ID 138
+          VIEW-AS FILL-IN 
+          SIZE 4.57 BY .88
+     sl-cod-gr-c-e AT ROW 11.67 COL 27.86 NO-LABEL WIDGET-ID 142
+     es-api-param-cliente.mod-prefer AT ROW 12.75 COL 84.57 NO-LABEL WIDGET-ID 30
           VIEW-AS RADIO-SET VERTICAL
           RADIO-BUTTONS 
                     "Cb Simples", 1,
@@ -248,64 +276,74 @@ DEFINE FRAME f-cad
 "Cheque", 8,
 "Nota Promiss¢ria", 9
           SIZE 19.72 BY 7.5
-     es-api-param-cliente.log-optan-suspens-ipi AT ROW 12.75 COL 4 WIDGET-ID 122
+     es-api-param-cliente.log-optan-suspens-ipi AT ROW 14.79 COL 3.72 WIDGET-ID 122
           VIEW-AS TOGGLE-BOX
           SIZE 27 BY .83
-     es-api-param-cliente.emite-bloq AT ROW 12.75 COL 47 WIDGET-ID 16
+     es-api-param-cliente.emite-bloq AT ROW 14.79 COL 46.72 WIDGET-ID 16
           VIEW-AS TOGGLE-BOX
           SIZE 17.72 BY .83
-     es-api-param-cliente.agente-retencao AT ROW 13.46 COL 4 WIDGET-ID 8
+     es-api-param-cliente.agente-retencao AT ROW 15.5 COL 3.72 WIDGET-ID 8
           VIEW-AS TOGGLE-BOX
           SIZE 19.14 BY .83
-     es-api-param-cliente.ind-fat-par AT ROW 13.46 COL 47 WIDGET-ID 22
+    WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY 
+         SIDE-LABELS NO-UNDERLINE THREE-D 
+         AT COL 1 ROW 1
+         SIZE 132.86 BY 23.38 WIDGET-ID 100.
+
+/* DEFINE FRAME statement is approaching 4K Bytes.  Breaking it up   */
+DEFINE FRAME f-cad
+     es-api-param-cliente.ind-fat-par AT ROW 15.5 COL 46.72 WIDGET-ID 22
           VIEW-AS TOGGLE-BOX
           SIZE 22.14 BY .83
-     es-api-param-cliente.log-calcula-pis-cofins-unid AT ROW 14.21 COL 4 WIDGET-ID 24
+     es-api-param-cliente.log-calcula-pis-cofins-unid AT ROW 16.25 COL 3.72 WIDGET-ID 24
           VIEW-AS TOGGLE-BOX
           SIZE 31.43 BY .83
-     es-api-param-cliente.log-nf-eletro AT ROW 14.21 COL 47 WIDGET-ID 26
+     es-api-param-cliente.log-nf-eletro AT ROW 16.25 COL 46.72 WIDGET-ID 26
           VIEW-AS TOGGLE-BOX
           SIZE 15.43 BY .83
-     es-api-param-cliente.natureza AT ROW 17 COL 5 NO-LABEL WIDGET-ID 54
+     es-api-param-cliente.natureza AT ROW 17.54 COL 15.14 NO-LABEL WIDGET-ID 54
           VIEW-AS RADIO-SET VERTICAL
           RADIO-BUTTONS 
                     "Pessoa F¡sica", 1,
 "Pessoa Jur¡dica", 2,
 "Estrangeiro", 3,
 "Trading", 4
-          SIZE 20 BY 3.25
-    WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY 
-         SIDE-LABELS NO-UNDERLINE THREE-D 
-         AT COL 1 ROW 1
-         SIZE 132.86 BY 19.67 WIDGET-ID 100.
-
-/* DEFINE FRAME statement is approaching 4K Bytes.  Breaking it up   */
-DEFINE FRAME f-cad
-     es-api-param-cliente.esp-pd-venda AT ROW 17.25 COL 44 NO-LABEL WIDGET-ID 18
+          SIZE 20 BY 2.96
+     es-api-param-cliente.esp-pd-venda AT ROW 18.25 COL 51.14 NO-LABEL WIDGET-ID 18
           VIEW-AS RADIO-SET VERTICAL
           RADIO-BUTTONS 
                     "Pedido Simples", 1,
 "Programa‡Æo Entrega", 2
           SIZE 23.57 BY 1.67
+     "(Grandes Redes)" VIEW-AS TEXT
+          SIZE 16 BY .67 AT ROW 13 COL 8.14 WIDGET-ID 146
+     "Instru‡Æo Banc ria:" VIEW-AS TEXT
+          SIZE 19.29 BY .67 AT ROW 10.83 COL 50.86 WIDGET-ID 140
+     "Grupo Fornecedor:" VIEW-AS TEXT
+          SIZE 17.14 BY .67 AT ROW 8.92 COL 9.86 WIDGET-ID 136
+     "Grupo de Cliente:" VIEW-AS TEXT
+          SIZE 16 BY .67 AT ROW 7.96 COL 11 WIDGET-ID 126
      " Modalidade" VIEW-AS TEXT
-          SIZE 8.86 BY .67 AT ROW 2.75 COL 83.14 WIDGET-ID 118
-     " Modalidade Preferencial" VIEW-AS TEXT
-          SIZE 17 BY .67 AT ROW 11.79 COL 83 WIDGET-ID 116
-     " Esp‚cie Pedido de Venda" VIEW-AS TEXT
-          SIZE 20 BY .67 AT ROW 16.25 COL 43 WIDGET-ID 114
+          SIZE 11.86 BY .67 AT ROW 2.96 COL 86.14 WIDGET-ID 118
      " Natureza" VIEW-AS TEXT
-          SIZE 10 BY .67 AT ROW 16.17 COL 3.29 WIDGET-ID 112
+          SIZE 10 BY .67 AT ROW 17.21 COL 2.72 WIDGET-ID 112
+     " Esp‚cie Pedido de Venda" VIEW-AS TEXT
+          SIZE 26.43 BY .67 AT ROW 17.25 COL 41.57 WIDGET-ID 114
+     " Modalidade Preferencial" VIEW-AS TEXT
+          SIZE 23 BY .67 AT ROW 11.88 COL 81.29 WIDGET-ID 116
+     "Grupos Cliente Exce‡Æo:" VIEW-AS TEXT
+          SIZE 23 BY .67 AT ROW 12.25 COL 4.29 WIDGET-ID 144
      rt-button AT ROW 1 COL 1
-     RECT-14 AT ROW 12 COL 82 WIDGET-ID 72
-     RECT-18 AT ROW 3 COL 82 WIDGET-ID 80
-     RECT-22 AT ROW 12 COL 1.57 WIDGET-ID 104
-     RECT-23 AT ROW 3 COL 1.72 WIDGET-ID 106
-     RECT-24 AT ROW 16.42 COL 1.86 WIDGET-ID 108
-     RECT-25 AT ROW 16.42 COL 42 WIDGET-ID 110
+     RECT-14 AT ROW 11.75 COL 80.72 WIDGET-ID 72
+     RECT-18 AT ROW 2.75 COL 80.86 WIDGET-ID 80
+     RECT-22 AT ROW 14.54 COL 1.14 WIDGET-ID 104
+     RECT-23 AT ROW 2.75 COL 1 WIDGET-ID 106
+     RECT-24 AT ROW 17.29 COL 1 WIDGET-ID 108
+     RECT-25 AT ROW 17.33 COL 40.57 WIDGET-ID 110
     WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY 
          SIDE-LABELS NO-UNDERLINE THREE-D 
          AT COL 1 ROW 1
-         SIZE 132.86 BY 19.67 WIDGET-ID 100.
+         SIZE 132.86 BY 23.38 WIDGET-ID 100.
 
 
 /* *********************** Procedure Settings ************************ */
@@ -327,11 +365,11 @@ IF SESSION:DISPLAY-TYPE = "GUI":U THEN
   CREATE WINDOW w-livre ASSIGN
          HIDDEN             = YES
          TITLE              = "Parƒmetro padrÆo de clientes - Integra‡Æo SFA"
-         HEIGHT             = 19.67
+         HEIGHT             = 19.75
          WIDTH              = 106.29
-         MAX-HEIGHT         = 19.67
+         MAX-HEIGHT         = 27.21
          MAX-WIDTH          = 133
-         VIRTUAL-HEIGHT     = 19.67
+         VIRTUAL-HEIGHT     = 27.21
          VIRTUAL-WIDTH      = 133
          RESIZE             = yes
          SCROLL-BARS        = no
@@ -377,10 +415,15 @@ ASSIGN {&WINDOW-NAME}:MENUBAR    = MENU m-livre:HANDLE.
    NO-ENABLE                                                            */
 /* SETTINGS FOR FILL-IN fi-det-5 IN FRAME f-cad
    NO-ENABLE                                                            */
-/* SETTINGS FOR FILL-IN fi-det-6 IN FRAME f-cad
+/* SETTINGS FOR FILL-IN fi-det-7 IN FRAME f-cad
+   NO-ENABLE                                                            */
+/* SETTINGS FOR FILL-IN fi-det-8 IN FRAME f-cad
    NO-ENABLE                                                            */
 IF SESSION:DISPLAY-TYPE = "GUI":U AND VALID-HANDLE(w-livre)
 THEN w-livre:HIDDEN = yes.
+
+ASSIGN 
+       sl-cod-gr-c-e:AUTO-RESIZE IN FRAME f-cad      = TRUE.
 
 /* _RUN-TIME-ATTRIBUTES-END */
 &ANALYZE-RESUME
@@ -440,8 +483,8 @@ DO:
         CREATE es-api-param-cliente.
 
     ASSIGN FRAME {&FRAME-NAME}
-         es-api-param-cliente.agente-retencao es-api-param-cliente.cod-cond-pag es-api-param-cliente.cod-gr-cli 
-        es-api-param-cliente.cod-transp es-api-param-cliente.emite-bloq es-api-param-cliente.esp-pd-venda 
+         es-api-param-cliente.agente-retencao es-api-param-cliente.cod-cond-pag es-api-param-cliente.cod-gr-cli es-api-param-cliente.cod-gr-for
+         es-api-param-cliente.ins-banc es-api-param-cliente.cod-transp es-api-param-cliente.emite-bloq es-api-param-cliente.esp-pd-venda 
         es-api-param-cliente.ind-fat-par es-api-param-cliente.log-calcula-pis-cofins-unid es-api-param-cliente.log-nf-eletro 
          es-api-param-cliente.mod-prefer es-api-param-cliente.modalidade 
         es-api-param-cliente.nat-ope-ext es-api-param-cliente.nat-operacao es-api-param-cliente.natureza es-api-param-cliente.perc-fat-ped 
@@ -494,7 +537,7 @@ END.
 
 &Scoped-define SELF-NAME es-api-param-cliente.cod-gr-cli
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL es-api-param-cliente.cod-gr-cli w-livre
-ON F5 OF es-api-param-cliente.cod-gr-cli IN FRAME f-cad /* Grupo */
+ON F5 OF es-api-param-cliente.cod-gr-cli IN FRAME f-cad /* Gr */
 DO:
   assign l-implanta = yes.
   {include/zoom.i &prog-zoom="adzoom/z01ad129.w"
@@ -508,12 +551,25 @@ END.
 
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL es-api-param-cliente.cod-gr-cli w-livre
-ON LEAVE OF es-api-param-cliente.cod-gr-cli IN FRAME f-cad /* Grupo */
+ON LEAVE OF es-api-param-cliente.cod-gr-cli IN FRAME f-cad /* Gr */
 DO:
 
     FIND FIRST gr-cli WHERE gr-cli.cod-gr-cli = input frame {&frame-name} es-api-param-cliente.cod-gr-cli NO-LOCK NO-ERROR.
     IF AVAIL gr-cli THEN
-        DISP gr-cli.descricao @ fi-det-6 WITH FRAME {&FRAME-NAME}.
+        DISP gr-cli.descricao @ fi-det-7 WITH FRAME {&FRAME-NAME}.
+END.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL es-api-param-cliente.cod-gr-for w-livre
+ON LEAVE OF es-api-param-cliente.cod-gr-for IN FRAME f-cad /* Gr */
+DO:
+
+    FIND FIRST grupo-forn WHERE grupo-forn.cod-gr-for = input frame {&frame-name} es-api-param-cliente.cod-gr-for NO-LOCK NO-ERROR.
+    IF AVAIL grupo-forn THEN
+        DISP grupo-forn.descricao @ fi-det-8 WITH FRAME {&FRAME-NAME}.
 END.
 
 /* _UIB-CODE-BLOCK-END */
@@ -521,7 +577,7 @@ END.
 
 
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL es-api-param-cliente.cod-gr-cli w-livre
-ON MOUSE-SELECT-DBLCLICK OF es-api-param-cliente.cod-gr-cli IN FRAME f-cad /* Grupo */
+ON MOUSE-SELECT-DBLCLICK OF es-api-param-cliente.cod-gr-cli IN FRAME f-cad /* Gr */
 DO:
   APPLY 'F5' TO es-api-param-cliente.cod-gr-cli.
 END.
@@ -912,13 +968,15 @@ PROCEDURE enable_UI :
                These statements here are based on the "Other 
                Settings" section of the widget Property Sheets.
 ------------------------------------------------------------------------------*/
-  DISPLAY fi-det-1 fi-det-2 fi-det-3 fi-det-4 fi-det-5 fi-det-6 
+  DISPLAY fi-det-1 fi-det-2 fi-det-3 fi-det-4 fi-det-5 fi-det-7 fi-det-8 
+          sl-cod-gr-c-e 
       WITH FRAME f-cad IN WINDOW w-livre.
   IF AVAILABLE es-api-param-cliente THEN 
     DISPLAY es-api-param-cliente.portador es-api-param-cliente.modalidade 
           es-api-param-cliente.port-prefer es-api-param-cliente.tp-rec-padrao 
           es-api-param-cliente.cod-cond-pag es-api-param-cliente.cod-transp 
-          es-api-param-cliente.cod-gr-cli es-api-param-cliente.nat-operacao 
+          es-api-param-cliente.cod-gr-cli es-api-param-cliente.cod-gr-for 
+          es-api-param-cliente.ins-banc es-api-param-cliente.nat-operacao 
           es-api-param-cliente.perc-fat-ped es-api-param-cliente.nat-ope-ext 
           es-api-param-cliente.mod-prefer 
           es-api-param-cliente.log-optan-suspens-ipi 
@@ -926,14 +984,20 @@ PROCEDURE enable_UI :
           es-api-param-cliente.ind-fat-par 
           es-api-param-cliente.log-calcula-pis-cofins-unid 
           es-api-param-cliente.log-nf-eletro es-api-param-cliente.natureza 
-          es-api-param-cliente.esp-pd-venda 
+          es-api-param-cliente.esp-pd-venda
+          es-api-param-cliente.ins-banc
       WITH FRAME f-cad IN WINDOW w-livre.
+  IF AVAILABLE grupo-fornec THEN 
+    DISPLAY grupo-fornec.cod-gr-for 
+      WITH FRAME f-cad IN WINDOW w-livre.
+
   ENABLE bt-alterar bt-salvar rt-button RECT-14 RECT-18 RECT-22 RECT-23 RECT-24 
          RECT-25 es-api-param-cliente.portador es-api-param-cliente.modalidade 
          es-api-param-cliente.port-prefer es-api-param-cliente.tp-rec-padrao 
          es-api-param-cliente.cod-cond-pag es-api-param-cliente.cod-transp 
-         es-api-param-cliente.cod-gr-cli es-api-param-cliente.nat-operacao 
-         es-api-param-cliente.perc-fat-ped es-api-param-cliente.nat-ope-ext 
+         es-api-param-cliente.cod-gr-cli es-api-param-cliente.cod-gr-for 
+         es-api-param-cliente.nat-operacao es-api-param-cliente.perc-fat-ped 
+         es-api-param-cliente.nat-ope-ext es-api-param-cliente.ins-banc sl-cod-gr-c-e 
          es-api-param-cliente.mod-prefer 
          es-api-param-cliente.log-optan-suspens-ipi 
          es-api-param-cliente.emite-bloq es-api-param-cliente.agente-retencao 
@@ -944,6 +1008,97 @@ PROCEDURE enable_UI :
       WITH FRAME f-cad IN WINDOW w-livre.
   {&OPEN-BROWSERS-IN-QUERY-f-cad}
   VIEW w-livre.
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE local-display-fields V-table-Win 
+PROCEDURE local-display-fields :
+/*------------------------------------------------------------------------------
+  Purpose:     Override standard ADM method
+  Notes:       
+------------------------------------------------------------------------------*/
+
+    /* Dispatch standard ADM method.                             */
+    RUN dispatch IN THIS-PROCEDURE ( INPUT 'display-fields':U ) .
+MESSAGE 1
+    VIEW-AS ALERT-BOX INFO BUTTONS OK.
+    /* Code placed here will execute AFTER standard behavior.    */
+    ASSIGN c-lista-marca = "".
+    FIND FIRST es-api-param-cliente NO-LOCK NO-ERROR.
+    IF AVAILABLE es-api-param-cliente THEN
+       ASSIGN c-lista-marca = es-api-param-cliente.cod-gr-c-e.
+    ASSIGN sl-cod-gr-c-e:SCREEN-VALUE IN FRAME {&FRAME-NAME} = "8,12".
+
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE local-add-record V-table-Win 
+PROCEDURE local-add-record :
+/*------------------------------------------------------------------------------
+  Purpose:     Override standard ADM method
+  Notes:       
+------------------------------------------------------------------------------*/
+
+    /* Code placed here will execute PRIOR to standard behavior. */
+    /* Dispatch standard ADM method.                             */
+    RUN dispatch IN THIS-PROCEDURE ( INPUT 'add-record':U ) .
+/*
+    ASSIGN c-lista-marca = ""
+           sl-cod-gr-c-e:SCREEN-VALUE IN FRAME {&FRAME-NAME} = c-lista-marca.
+*/
+    /* Code placed here will execute AFTER standard behavior.    */
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE local-assign-record V-table-Win 
+PROCEDURE local-assign-record :
+/*------------------------------------------------------------------------------
+  Purpose:     Override standard ADM method
+  Notes:       
+------------------------------------------------------------------------------*/
+
+    /* Code placed here will execute PRIOR to standard behavior. */
+    {include/i-valid.i}
+    
+
+    /*:T Ponha na pi-validate todas as valida»„es */
+    /*:T N’o gravar nada no registro antes do dispatch do assign-record e 
+       nem na PI-validate. */
+
+    RUN pi-validate.
+
+    IF RETURN-VALUE = 'adm-error' THEN
+        RETURN 'adm-error'.
+    
+
+    /* Dispatch standard ADM method.                             */
+    RUN dispatch IN THIS-PROCEDURE ( INPUT 'assign-record':U ) .
+    if RETURN-VALUE = 'ADM-ERROR':U then 
+        return 'ADM-ERROR':U.
+    
+
+    /*:T Todos os assign‹s n’o feitos pelo assign-record devem ser feitos aqui */  
+    /* Code placed here will execute AFTER standard behavior.    */
+    ASSIGN sl-cod-gr-c-e = sl-cod-gr-c-e:SCREEN-VALUE IN FRAME {&FRAME-NAME}.
+    FIND FIRST b-es-api-param-cliente EXCLUSIVE-LOCK NO-ERROR.
+    IF AVAILABLE b-es-api-param-cliente THEN
+    DO i-cont-cli-e = 1 TO NUM-ENTRIES(sl-cod-gr-c-e):
+       ASSIGN c-cod-gr-c-e = ENTRY(i-cont-cli-e,sl-cod-gr-c-e,",").
+       IF c-cod-gr-c-e <> "" THEN
+          ASSIGN b-es-api-param-cliente.cod-gr-c-e = c-cod-gr-c-e.
+    END.
+
+
 END PROCEDURE.
 
 /* _UIB-CODE-BLOCK-END */
@@ -1002,9 +1157,18 @@ PROCEDURE local-initialize :
   RUN dispatch IN THIS-PROCEDURE ( INPUT 'initialize':U ) .
 
   /* Code placed here will execute AFTER standard behavior.    */
+  ASSIGN c-lista-cod-gr-c-e = "".
+  FOR EACH gr-cli NO-LOCK:
+      ASSIGN c-lista-cod-gr-c-e = c-lista-cod-gr-c-e + string(gr-cli.cod-gr-cli) + "  - " + gr-cli.descricao + "," + STRING(gr-cli.cod-gr-cli) + ",".
+  END.
+  ASSIGN sl-cod-gr-c-e:LIST-ITEM-PAIRS IN FRAME f-cad = substr(c-lista-cod-gr-c-e,1,LENGTH(c-lista-cod-gr-c-e) - 1).
+  ASSIGN c-lista-marca = "".
+  FIND FIRST es-api-param-cliente NO-LOCK NO-ERROR.
+  IF AVAILABLE es-api-param-cliente THEN
+     ASSIGN c-lista-marca = es-api-param-cliente.cod-gr-c-e.
 
+  ASSIGN sl-cod-gr-c-e:SCREEN-VALUE IN FRAME f-cad = c-lista-marca.
   run pi-after-initialize.
-
   RUN pi-inicio.
 
   RUN pi-disable.
@@ -1023,9 +1187,9 @@ PROCEDURE pi-disable :
 ------------------------------------------------------------------------------*/
 
 DISABLE es-api-param-cliente.agente-retencao es-api-param-cliente.cod-cond-pag 
-      es-api-param-cliente.cod-gr-cli es-api-param-cliente.cod-transp es-api-param-cliente.emite-bloq 
+      es-api-param-cliente.cod-gr-cli es-api-param-cliente.cod-gr-for es-api-param-cliente.ins-banc es-api-param-cliente.cod-transp es-api-param-cliente.emite-bloq 
       es-api-param-cliente.esp-pd-venda es-api-param-cliente.ind-fat-par es-api-param-cliente.log-calcula-pis-cofins-unid 
-      es-api-param-cliente.log-nf-eletro es-api-param-cliente.mod-prefer 
+      es-api-param-cliente.log-nf-eletro es-api-param-cliente.mod-prefer /* sl-cod-gr-c-e */         
       es-api-param-cliente.modalidade es-api-param-cliente.nat-ope-ext es-api-param-cliente.nat-operacao 
       es-api-param-cliente.natureza es-api-param-cliente.perc-fat-ped es-api-param-cliente.port-prefer 
       es-api-param-cliente.portador es-api-param-cliente.tp-rec-padrao es-api-param-cliente.log-optan-suspens-ipi WITH FRAME {&FRAME-NAME}.
@@ -1044,9 +1208,9 @@ PROCEDURE pi-enable :
 ------------------------------------------------------------------------------*/
 
 ENABLE es-api-param-cliente.agente-retencao es-api-param-cliente.cod-cond-pag 
-      es-api-param-cliente.cod-gr-cli es-api-param-cliente.cod-transp es-api-param-cliente.emite-bloq 
+      es-api-param-cliente.cod-gr-cli es-api-param-cliente.cod-gr-for es-api-param-cliente.ins-banc es-api-param-cliente.cod-transp es-api-param-cliente.emite-bloq 
       es-api-param-cliente.esp-pd-venda es-api-param-cliente.ind-fat-par es-api-param-cliente.log-calcula-pis-cofins-unid 
-      es-api-param-cliente.log-nf-eletro es-api-param-cliente.mod-prefer 
+      es-api-param-cliente.log-nf-eletro es-api-param-cliente.mod-prefer sl-cod-gr-c-e 
       es-api-param-cliente.modalidade es-api-param-cliente.nat-ope-ext es-api-param-cliente.nat-operacao 
       es-api-param-cliente.natureza es-api-param-cliente.perc-fat-ped es-api-param-cliente.port-prefer 
       es-api-param-cliente.portador es-api-param-cliente.tp-rec-padrao es-api-param-cliente.log-optan-suspens-ipi WITH FRAME {&FRAME-NAME}.
@@ -1068,7 +1232,7 @@ FIND FIRST es-api-param-cliente NO-ERROR.
 IF NOT AVAIL es-api-param-cliente THEN DO:
     CREATE es-api-param-cliente.
     ASSIGN FRAME {&FRAME-NAME} es-api-param-cliente.agente-retencao es-api-param-cliente.cod-cond-pag 
-    es-api-param-cliente.cod-gr-cli es-api-param-cliente.cod-transp es-api-param-cliente.emite-bloq 
+    es-api-param-cliente.cod-gr-cli es-api-param-cliente.cod-gr-for es-api-param-cliente.ins-banc es-api-param-cliente.cod-transp es-api-param-cliente.emite-bloq 
     es-api-param-cliente.esp-pd-venda es-api-param-cliente.ind-fat-par es-api-param-cliente.log-calcula-pis-cofins-unid 
     es-api-param-cliente.log-nf-eletro es-api-param-cliente.mod-prefer 
     es-api-param-cliente.modalidade es-api-param-cliente.nat-ope-ext es-api-param-cliente.nat-operacao 
@@ -1077,7 +1241,7 @@ IF NOT AVAIL es-api-param-cliente THEN DO:
 END.
 
 DISP es-api-param-cliente.agente-retencao es-api-param-cliente.cod-cond-pag 
-    es-api-param-cliente.cod-gr-cli es-api-param-cliente.cod-transp es-api-param-cliente.emite-bloq 
+    es-api-param-cliente.cod-gr-cli es-api-param-cliente.cod-gr-for es-api-param-cliente.ins-banc es-api-param-cliente.cod-transp es-api-param-cliente.emite-bloq 
     es-api-param-cliente.esp-pd-venda es-api-param-cliente.ind-fat-par es-api-param-cliente.log-calcula-pis-cofins-unid 
     es-api-param-cliente.log-nf-eletro es-api-param-cliente.mod-prefer 
     es-api-param-cliente.modalidade es-api-param-cliente.nat-ope-ext es-api-param-cliente.nat-operacao 
@@ -1089,7 +1253,9 @@ APPLY 'leave' TO es-api-param-cliente.port-prefer.
 APPLY 'leave' TO es-api-param-cliente.tp-rec-padrao.
 APPLY 'leave' TO es-api-param-cliente.cod-cond-pag.
 APPLY 'leave' TO es-api-param-cliente.cod-gr-cli.
-APPLY 'leave' TO es-api-param-cliente.cod-transp.
+APPLY 'leave' TO es-api-param-cliente.cod-gr-for.
+APPLY 'leave' TO es-api-param-cliente.ins-banc.
+APPLY 'leave' TO es-api-param-cliente.cod-gr-for.
 
 END PROCEDURE.
 

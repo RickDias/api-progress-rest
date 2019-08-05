@@ -105,9 +105,9 @@ DEF TEMP-TABLE tt-log NO-UNDO
 /* Definitions for FRAME f-cad                                          */
 
 /* Standard List Definitions                                            */
-&Scoped-Define ENABLED-OBJECTS rt-button RECT-4 RECT-5 bt-rep cb-sistema ~
-cb-tipo-integr rs-transacao bt-pesquisar cb-estado cb-status fi-dt-movto ~
-fi-chave br-movto br-log bt-sla bt-rel bt-agend bt-faixa 
+&Scoped-Define ENABLED-OBJECTS bt-rep rt-button RECT-4 RECT-5 cb-sistema ~
+cb-tipo-integr rs-transacao bt-pesquisar cb-estado bt-sla cb-status ~
+fi-dt-movto bt-rel fi-chave bt-agend bt-faixa br-movto br-log 
 &Scoped-Define DISPLAYED-OBJECTS cb-sistema cb-tipo-integr rs-transacao ~
 cb-estado cb-status fi-dt-movto fi-chave 
 
@@ -294,15 +294,15 @@ DEFINE FRAME f-cad
      rs-transacao AT ROW 3.25 COL 3.57 NO-LABEL WIDGET-ID 30
      bt-pesquisar AT ROW 4.79 COL 105.72 WIDGET-ID 16
      cb-estado AT ROW 4.88 COL 7.29 COLON-ALIGNED WIDGET-ID 8
+     bt-sla AT ROW 1.21 COL 19.57 WIDGET-ID 26
      cb-status AT ROW 4.92 COL 27 COLON-ALIGNED WIDGET-ID 12
      fi-dt-movto AT ROW 4.92 COL 56.29 COLON-ALIGNED WIDGET-ID 46
-     fi-chave AT ROW 4.92 COL 76.14 COLON-ALIGNED WIDGET-ID 14
-     br-movto AT ROW 6.5 COL 1 WIDGET-ID 200
-     br-log AT ROW 18.38 COL 1 WIDGET-ID 300
-     bt-sla AT ROW 1.21 COL 19.57 WIDGET-ID 26
      bt-rel AT ROW 1.21 COL 15.14 WIDGET-ID 24
+     fi-chave AT ROW 4.92 COL 76.14 COLON-ALIGNED WIDGET-ID 14
      bt-agend AT ROW 1.21 COL 10.72 WIDGET-ID 22
      bt-faixa AT ROW 1.21 COL 6.29 WIDGET-ID 20
+     br-movto AT ROW 6.5 COL 1 WIDGET-ID 200
+     br-log AT ROW 18.38 COL 1 WIDGET-ID 300
      " Filtros" VIEW-AS TEXT
           SIZE 8 BY .67 AT ROW 4.25 COL 2.29 WIDGET-ID 44
      " Transa‡Æo" VIEW-AS TEXT
@@ -376,7 +376,7 @@ ASSIGN {&WINDOW-NAME}:MENUBAR    = MENU m-livre:HANDLE.
   VISIBLE,,RUN-PERSISTENT                                               */
 /* SETTINGS FOR FRAME f-cad
    FRAME-NAME L-To-R                                                    */
-/* BROWSE-TAB br-movto fi-chave f-cad */
+/* BROWSE-TAB br-movto bt-faixa f-cad */
 /* BROWSE-TAB br-log br-movto f-cad */
 ASSIGN 
        br-movto:POPUP-MENU IN FRAME f-cad             = MENU POPUP-MENU-br-movto:HANDLE.
@@ -506,86 +506,86 @@ DO:
         
     IF rs-transacao = 1 OR rs-transacao = 2 THEN DO:        
 
-        FOR EACH sfa-import NO-LOCK WHERE DATE(sfa-import.data-movto) = DATE(fi-dt-movto:SCREEN-VALUE IN FRAME {&FRAME-NAME}):
+        FOR EACH es-api-import NO-LOCK WHERE DATE(es-api-import.data-movto) = DATE(fi-dt-movto:SCREEN-VALUE IN FRAME {&FRAME-NAME}):
 
-            IF cb-tipo-integr <> 99 AND sfa-import.cd-tipo-integr <> cb-tipo-integr then NEXT.
-            IF cb-status      <> 99 and sfa-import.cod-status     <> cb-status      then NEXT.
-            IF cb-estado      <> 99 and sfa-import.ind-situacao   <> cb-estado      then NEXT.
+            IF cb-tipo-integr <> 99 AND es-api-import.cd-tipo-integr <> cb-tipo-integr then NEXT.
+            IF cb-status      <> 99 and es-api-import.cod-status     <> cb-status      then NEXT.
+            IF cb-estado      <> 99 and es-api-import.ind-situacao   <> cb-estado      then NEXT.
 
-            FIND FIRST es-api-param WHERE es-api-param.ind-tipo-trans = sfa-import.ind-tipo-trans
-                                      AND es-api-param.cd-tipo-integr = sfa-import.cd-tipo-integr NO-LOCK NO-ERROR.
+            FIND FIRST es-api-param WHERE es-api-param.ind-tipo-trans = es-api-import.ind-tipo-trans
+                                      AND es-api-param.cd-tipo-integr = es-api-import.cd-tipo-integr NO-LOCK NO-ERROR.
             IF NOT AVAIL es-api-param THEN NEXT.
 
             IF cb-sistema     <> 99 AND es-api-param.cd-sistema     <> cb-sistema     then NEXT.
 
             CREATE tt-movto.
-            ASSIGN tt-movto.transacao       = IF sfa-import.ind-tipo-trans = 1 THEN "Importa‡Æo" ELSE "Exporta‡Æo"
-                   tt-movto.id-movto        = sfa-import.id-movto
-                   tt-movto.cd-tipo         = sfa-import.cd-tipo-integr
+            ASSIGN tt-movto.transacao       = IF es-api-import.ind-tipo-trans = 1 THEN "Importa‡Æo" ELSE "Exporta‡Æo"
+                   tt-movto.id-movto        = es-api-import.id-movto
+                   tt-movto.cd-tipo         = es-api-import.cd-tipo-integr
                    tt-movto.des-tipo-integr = es-api-param.des-tipo-integr
                    tt-movto.cd-tipo-integr  = es-api-param.cd-tipo-integr
-                   tt-movto.chave           = sfa-import.chave
-                   tt-movto.dt-inicio       = sfa-import.data-inicio
-                   tt-movto.dt-fim          = sfa-import.data-fim
+                   tt-movto.chave           = es-api-import.chave
+                   tt-movto.dt-inicio       = es-api-import.data-inicio
+                   tt-movto.dt-fim          = es-api-import.data-fim
                    tt-movto.ind-tipo-trans  = es-api-param.ind-tipo-trans.
 
-            CASE sfa-import.cod-status:
+            CASE es-api-import.cod-status:
                 WHEN 0 THEN tt-movto.cd-status = "NÆo Verificado".
                 WHEN 1 THEN tt-movto.cd-status = "Integrado (OK)".
                 WHEN 2 THEN tt-movto.cd-status = "NÆo Integrado (Erro)".
             END CASE.
             
-            FOR EACH sfa-import-log OF sfa-import NO-LOCK:
+            FOR EACH es-api-import-log OF es-api-import NO-LOCK:
                 CREATE tt-log.
-                ASSIGN tt-log.id-movto = sfa-import.id-movto
-                       tt-log.data     = sfa-import-log.data
-                       tt-log.cd-tipo  = sfa-import.cd-tipo-integr
-                       tt-log.nr-seq   = sfa-import-log.nr-seq
-                       tt-log.c-log    = trim(sfa-import-log.des-log). 
+                ASSIGN tt-log.id-movto = es-api-import.id-movto
+                       tt-log.data     = es-api-import-log.data
+                       tt-log.cd-tipo  = es-api-import.cd-tipo-integr
+                       tt-log.nr-seq   = es-api-import-log.nr-seq
+                       tt-log.c-log    = trim(es-api-import-log.des-log). 
             END.
         END.        
     END.
     IF rs-transacao = 1 OR rs-transacao = 3 THEN DO:
 
-        FOR EACH sfa-export NO-LOCK 
-           WHERE DATE(sfa-export.data-movto) = DATE(fi-dt-movto:SCREEN-VALUE IN FRAME {&FRAME-NAME})                                      /*AND sfa-export.chave BEGINS fi-chave*/ :
+        FOR EACH es-api-export NO-LOCK 
+           WHERE DATE(es-api-export.data-movto) = DATE(fi-dt-movto:SCREEN-VALUE IN FRAME {&FRAME-NAME})                                      /*AND es-api-export.chave BEGINS fi-chave*/ :
 
-            IF cb-tipo-integr <> 99 AND sfa-export.cd-tipo-integr <> cb-tipo-integr then NEXT.
-            IF cb-status      <> 99 and sfa-export.cod-status     <> cb-status      then NEXT.
-            IF cb-estado      <> 99 and sfa-export.ind-situacao   <> cb-estado      then NEXT.
+            IF cb-tipo-integr <> 99 AND es-api-export.cd-tipo-integr <> cb-tipo-integr then NEXT.
+            IF cb-status      <> 99 and es-api-export.cod-status     <> cb-status      then NEXT.
+            IF cb-estado      <> 99 and es-api-export.ind-situacao   <> cb-estado      then NEXT.
             
 
-            FIND FIRST es-api-param WHERE es-api-param.ind-tipo-trans = sfa-export.ind-tipo-trans
-                                      AND es-api-param.cd-tipo-integr = sfa-export.cd-tipo-integr NO-LOCK NO-ERROR.
+            FIND FIRST es-api-param WHERE es-api-param.ind-tipo-trans = es-api-export.ind-tipo-trans
+                                      AND es-api-param.cd-tipo-integr = es-api-export.cd-tipo-integr NO-LOCK NO-ERROR.
 
             IF NOT AVAIL es-api-param THEN NEXT.
 
             IF cb-sistema     <> 99 AND es-api-param.cd-sistema     <> cb-sistema     then NEXT.
 
             CREATE tt-movto.
-            ASSIGN tt-movto.transacao       = IF sfa-export.ind-tipo-trans = 1 THEN "Importa‡Æo" ELSE "Exporta‡Æo"
-                   tt-movto.id-movto        = sfa-export.id-movto
-                   tt-movto.cd-tipo         = sfa-export.cd-tipo-integr
+            ASSIGN tt-movto.transacao       = IF es-api-export.ind-tipo-trans = 1 THEN "Importa‡Æo" ELSE "Exporta‡Æo"
+                   tt-movto.id-movto        = es-api-export.id-movto
+                   tt-movto.cd-tipo         = es-api-export.cd-tipo-integr
                    tt-movto.des-tipo-integr = es-api-param.des-tipo-integr
                    tt-movto.cd-tipo-integr  = es-api-param.cd-tipo-integr
-                   tt-movto.chave           = sfa-export.chave
-                   tt-movto.dt-inicio       = sfa-export.data-inicio
-                   tt-movto.dt-fim          = sfa-export.data-fim
+                   tt-movto.chave           = es-api-export.chave
+                   tt-movto.dt-inicio       = es-api-export.data-inicio
+                   tt-movto.dt-fim          = es-api-export.data-fim
                    tt-movto.ind-tipo-trans  = es-api-param.ind-tipo-trans.
 
-            CASE sfa-export.cod-status:
+            CASE es-api-export.cod-status:
                 WHEN 0 THEN tt-movto.cd-status = "NÆo Verificado".
                 WHEN 1 THEN tt-movto.cd-status = "Integrado (OK)".
                 WHEN 2 THEN tt-movto.cd-status = "NÆo Integrado (Erro)".
             END CASE.
 
-            FOR EACH sfa-export-log OF sfa-export NO-LOCK:
+            FOR EACH es-api-export-log OF es-api-export NO-LOCK:
                 CREATE tt-log.
-                ASSIGN tt-log.id-movto = sfa-export.id-movto
-                       tt-log.cd-tipo  = sfa-export.cd-tipo-integr
-                       tt-log.data     = sfa-export-log.data
-                       tt-log.nr-seq   = sfa-export-log.nr-seq
-                       tt-log.c-log    = sfa-export-log.des-log.
+                ASSIGN tt-log.id-movto = es-api-export.id-movto
+                       tt-log.cd-tipo  = es-api-export.cd-tipo-integr
+                       tt-log.data     = es-api-export-log.data
+                       tt-log.nr-seq   = es-api-export-log.nr-seq
+                       tt-log.c-log    = es-api-export-log.des-log.
             END.
         END.
     END.
@@ -615,24 +615,24 @@ DO:
 
             IF tt-movto.cd-status <> "Integrado (OK)" THEN DO:
             
-                FIND FIRST sfa-export EXCLUSIVE-LOCK WHERE sfa-export.id-movto = tt-movto.id-movto NO-ERROR.
-                IF AVAIL sfa-export THEN DO:
+                FIND FIRST es-api-export EXCLUSIVE-LOCK WHERE es-api-export.id-movto = tt-movto.id-movto NO-ERROR.
+                IF AVAIL es-api-export THEN DO:
         
-                    ASSIGN sfa-export.cod-status   = 0
-                           sfa-export.ind-situacao = 1.
+                    ASSIGN es-api-export.cod-status   = 0
+                           es-api-export.ind-situacao = 1.
         
-                    RUN pi-processa (INPUT sfa-export.ind-tipo-trans, INPUT sfa-export.cd-tipo-integr).
+                    RUN pi-processa (INPUT es-api-export.ind-tipo-trans, INPUT es-api-export.cd-tipo-integr).
         
-                    FOR EACH sfa-export-log OF sfa-export NO-LOCK:
+                    FOR EACH es-api-export-log OF es-api-export NO-LOCK:
         
-                        IF NOT CAN-FIND(FIRST tt-log WHERE tt-log.id-movto = int(sfa-export.id-movto       )
-                                                       AND tt-log.cd-tipo  = sfa-export.cd-tipo-integr 
-                                                       AND tt-log.nr-seq   = sfa-export-log.nr-seq     ) THEN DO:
+                        IF NOT CAN-FIND(FIRST tt-log WHERE tt-log.id-movto = int(es-api-export.id-movto       )
+                                                       AND tt-log.cd-tipo  = es-api-export.cd-tipo-integr 
+                                                       AND tt-log.nr-seq   = es-api-export-log.nr-seq     ) THEN DO:
                             CREATE tt-log.
-                            ASSIGN tt-log.id-movto = sfa-export.id-movto
-                                   tt-log.cd-tipo  = sfa-export.cd-tipo-integr
-                                   tt-log.nr-seq   = sfa-export-log.nr-seq
-                                   tt-log.c-log    = sfa-export-log.des-log.
+                            ASSIGN tt-log.id-movto = es-api-export.id-movto
+                                   tt-log.cd-tipo  = es-api-export.cd-tipo-integr
+                                   tt-log.nr-seq   = es-api-export-log.nr-seq
+                                   tt-log.c-log    = es-api-export-log.des-log.
                         END.
                     END.
         
@@ -642,7 +642,7 @@ DO:
                     APPLY "row-diplay" TO br-movto.
                     br-movto:REFRESH().
         
-                    RELEASE sfa-export.
+                    RELEASE es-api-export.
                     
                 END.
             END.
@@ -651,24 +651,24 @@ DO:
 
             IF tt-movto.cd-status <> "Integrado (OK)" THEN DO:
 
-                FIND FIRST sfa-import EXCLUSIVE-LOCK WHERE sfa-import.id-movto = tt-movto.id-movto NO-ERROR.
-                IF AVAIL sfa-import THEN DO:
+                FIND FIRST es-api-import EXCLUSIVE-LOCK WHERE es-api-import.id-movto = tt-movto.id-movto NO-ERROR.
+                IF AVAIL es-api-import THEN DO:
 
-                    ASSIGN sfa-import.cod-status   = 0
-                           sfa-import.ind-situacao = 1.
+                    ASSIGN es-api-import.cod-status   = 0
+                           es-api-import.ind-situacao = 1.
         
-                    RUN pi-processa (INPUT sfa-import.ind-tipo-trans, INPUT sfa-import.cd-tipo-integr).
+                    RUN pi-processa (INPUT es-api-import.ind-tipo-trans, INPUT es-api-import.cd-tipo-integr).
         
-                    FOR EACH sfa-import-log OF sfa-import NO-LOCK:
+                    FOR EACH es-api-import-log OF es-api-import NO-LOCK:
         
-                        IF NOT CAN-FIND(FIRST tt-log WHERE tt-log.id-movto = int(sfa-import.id-movto       )
-                                                       AND tt-log.cd-tipo  = sfa-import.cd-tipo-integr 
-                                                       AND tt-log.nr-seq   = sfa-import-log.nr-seq     ) THEN DO:
+                        IF NOT CAN-FIND(FIRST tt-log WHERE tt-log.id-movto = int(es-api-import.id-movto       )
+                                                       AND tt-log.cd-tipo  = es-api-import.cd-tipo-integr 
+                                                       AND tt-log.nr-seq   = es-api-import-log.nr-seq     ) THEN DO:
                             CREATE tt-log.
-                            ASSIGN tt-log.id-movto = sfa-import.id-movto
-                                   tt-log.cd-tipo  = sfa-import.cd-tipo-integr
-                                   tt-log.nr-seq   = sfa-import-log.nr-seq
-                                   tt-log.c-log    = sfa-import-log.des-log.
+                            ASSIGN tt-log.id-movto = es-api-import.id-movto
+                                   tt-log.cd-tipo  = es-api-import.cd-tipo-integr
+                                   tt-log.nr-seq   = es-api-import-log.nr-seq
+                                   tt-log.c-log    = es-api-import-log.des-log.
                         END.
                     END.
         
@@ -678,7 +678,7 @@ DO:
                     APPLY "row-diplay" TO br-movto.
                     br-movto:REFRESH().
         
-                    RELEASE sfa-import.
+                    RELEASE es-api-import.
                     
                 END.
             END.
@@ -872,7 +872,8 @@ DO:
             IF clongjson = "" THEN
                 MESSAGE 'sem registros' VIEW-AS ALERT-BOX INFO BUTTONS OK.
 
-            RUN esp\esint006j (INPUT clongjson).
+            RUN esp\esint006j (INPUT es-api-param.ind-tipo-trans,
+                               INPUT clongjson).
 
         END.        
     END.
@@ -896,9 +897,9 @@ DO:
         FIND FIRST es-api-param NO-LOCK WHERE es-api-param.ind-tipo-trans = tt-movto.ind-tipo-trans 
                                           AND es-api-param.cd-tipo-integr = tt-movto.cd-tipo-integr  NO-ERROR.
         IF AVAIL es-api-param THEN DO:
-            FIND FIRST sfa-export NO-LOCK WHERE sfa-export.id-movto = tt-movto.id-movto NO-ERROR.
-            IF AVAIL sfa-export THEN DO:
-                ASSIGN clongjson = sfa-export.text-retorno.
+            FIND FIRST es-api-export NO-LOCK WHERE es-api-export.id-movto = tt-movto.id-movto NO-ERROR.
+            IF AVAIL es-api-export THEN DO:
+                ASSIGN clongjson = es-api-export.text-retorno.
                 RUN esp\esint006j (INPUT clongjson).
           END.
        END.        
@@ -1051,9 +1052,9 @@ PROCEDURE enable_UI :
   DISPLAY cb-sistema cb-tipo-integr rs-transacao cb-estado cb-status fi-dt-movto 
           fi-chave 
       WITH FRAME f-cad IN WINDOW w-livre.
-  ENABLE rt-button RECT-4 RECT-5 bt-rep cb-sistema cb-tipo-integr rs-transacao 
-         bt-pesquisar cb-estado cb-status fi-dt-movto fi-chave br-movto br-log 
-         bt-sla bt-rel bt-agend bt-faixa 
+  ENABLE bt-rep rt-button RECT-4 RECT-5 cb-sistema cb-tipo-integr rs-transacao 
+         bt-pesquisar cb-estado bt-sla cb-status fi-dt-movto bt-rel fi-chave 
+         bt-agend bt-faixa br-movto br-log 
       WITH FRAME f-cad IN WINDOW w-livre.
   {&OPEN-BROWSERS-IN-QUERY-f-cad}
   VIEW w-livre.

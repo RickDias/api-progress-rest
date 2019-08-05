@@ -74,153 +74,143 @@ IF ERROR-STATUS:ERROR THEN DO:
     RETURN "NOK".
 END.
 
-FIND FIRST sfa-export NO-LOCK WHERE ROWID(sfa-export) = r-table NO-ERROR.
-IF AVAIL sfa-export THEN DO:
+FIND FIRST es-api-export NO-LOCK WHERE ROWID(es-api-export) = r-table NO-ERROR.
+IF NOT AVAIL es-api-export THEN do:
+    ASSIGN c-erro = "Registro Tabela de Cliente n∆o localizado".
+    RETURN "NOK".
+END.
 
-    FIND FIRST es-api-param WHERE es-api-param.ind-tipo-trans = sfa-export.ind-tipo-trans
-                              AND es-api-param.cd-tipo-integr = sfa-export.cd-tipo-integr NO-LOCK NO-ERROR. 
+FIND FIRST es-api-param WHERE es-api-param.ind-tipo-trans = es-api-export.ind-tipo-trans
+                          AND es-api-param.cd-tipo-integr = es-api-export.cd-tipo-integr NO-LOCK NO-ERROR.
 
-    FIND FIRST sfa-export-cli OF sfa-export NO-ERROR.
-    IF AVAIL sfa-export-cli THEN DO:
+FIND FIRST es-api-export-cli OF es-api-export EXCLUSIVE-LOCK NO-ERROR.
+IF NOT AVAIL es-api-export-cli THEN DO:
+    ASSIGN c-erro = "Registro Tabela de Cliente n∆o localizado".
+    RETURN "NOK".
+END.
 
-        /*------------------------------------------ Emitente -------------------------------------------*/
-        RUN piGravaTTEmitente (OUTPUT h-temp,
-                               OUTPUT c-erro).
-        IF valid-handle(h-temp) THEN DO:
+/*------------------------------------------ Emitente -------------------------------------------*/
+RUN piGravaTTEmitente (OUTPUT h-temp,
+                       OUTPUT c-erro).
+IF valid-handle(h-temp) THEN DO:
 
-            RUN piCriaObj IN h-esint002 (INPUT h-temp,
-                                         OUTPUT ojsonObjIni,
-                                         OUTPUT ojsonArrayIni,
-                                         INPUT NO) NO-ERROR.
-            IF ERROR-STATUS:ERROR THEN DO:
-                ASSIGN c-erro = ERROR-STATUS:GET-MESSAGE(1).
-                DELETE OBJECT h-temp.
-                RETURN "NOK".
-            END.            
-            DELETE OBJECT h-temp.
-        END.
+    RUN piCriaObj IN h-esint002 (INPUT h-temp,
+                                 OUTPUT ojsonObjIni,
+                                 OUTPUT ojsonArrayIni,
+                                 INPUT NO) NO-ERROR.
+    IF ERROR-STATUS:ERROR THEN DO:
+        ASSIGN c-erro = ERROR-STATUS:GET-MESSAGE(1).
+        DELETE OBJECT h-temp.
+        RETURN "NOK".
+    END.            
+    DELETE OBJECT h-temp.
+END.
 
-        /*--------------------------------------- Endereáo List -----------------------------------------*/
-        RUN piGravaTTEnderecoList (OUTPUT h-temp).
+/*--------------------------------------- Endereáo List -----------------------------------------*/
+RUN piGravaTTEnderecoList (OUTPUT h-temp).
 
-        IF valid-handle(h-temp) THEN DO:
+IF valid-handle(h-temp) THEN DO:
 
-            /* ------ Adiciona Array -----*/
-            RUN piCriaObj IN h-esint002 (INPUT h-temp,
-                                         OUTPUT ojsonObjAux,
-                                         OUTPUT ojsonArrayAux,
-                                         INPUT YES) NO-ERROR.
-            IF ERROR-STATUS:ERROR THEN DO:
-                ASSIGN c-erro = ERROR-STATUS:GET-MESSAGE(1).
-                DELETE OBJECT h-temp.
-                RETURN "NOK".
-            END.
-
-            ojsonObjIni:ADD("EnderecoList",ojsonArrayAux).
-
-            DELETE OBJECT h-temp.
-        END.
-                
-        /*-------------------------------- Condiá∆o de Pagamento List ----------------------------------*/
-        RUN piGravaTTCondicaoPagto (OUTPUT h-temp).
-
-        IF valid-handle(h-temp) THEN DO:
-
-            /* ------ Adiciona Array -----*/
-            RUN piCriaObj IN h-esint002 (INPUT h-temp,
-                                         OUTPUT ojsonObjAux,
-                                         OUTPUT ojsonArrayAux,
-                                         INPUT YES) NO-ERROR.
-            IF ERROR-STATUS:ERROR THEN DO:
-                ASSIGN c-erro = ERROR-STATUS:GET-MESSAGE(1).
-                DELETE OBJECT h-temp.
-                RETURN "NOK".
-            END.
-            
-            ojsonObjIni:ADD("CondicaoPagamentoList",ojsonArrayAux).
-
-            DELETE OBJECT h-temp.
-        END.
-        
-        /*---------------------------------------- Contact List ---------------------------------------*/
-        RUN piGravaTTContato (OUTPUT h-temp).
-
-        IF valid-handle(h-temp) THEN DO:
-
-            /* ------ Adiciona Array -----*/
-            RUN piCriaObj IN h-esint002 (INPUT h-temp,
-                                         OUTPUT ojsonObjAux,
-                                         OUTPUT ojsonArrayAux,
-                                         INPUT YES) NO-ERROR.
-            IF ERROR-STATUS:ERROR THEN DO:
-                ASSIGN c-erro = ERROR-STATUS:GET-MESSAGE(1).
-                DELETE OBJECT h-temp.
-                RETURN "NOK".
-            END.
-
-            ojsonObjIni:ADD("ContactList",ojsonArrayAux).
-            
-            DELETE OBJECT h-temp.
-        END.
-
-        
-        oJsonArrayMain = NEW JsonArray().
-        oJsonArrayMain:ADD(ojsonObjIni).
-        
-        /* ----- Cria Json Principal ------- */
-        oJsonObjMain = NEW JsonObject().
-        oJsonObjMain:ADD("req",oJsonArrayMain).
-
-        /*
-        /*----------- Grava Json ---------- */
-        RUN piGeraArqJson  IN h-esint002 (INPUT oJsonObjMain,
-                                          INPUT es-api-param.dir-export,
-                                          INPUT "cli",
-                                          OUTPUT c-arq-json) .
-        IF ERROR-STATUS:ERROR THEN DO:
-            ASSIGN c-erro = ERROR-STATUS:GET-MESSAGE(1).
-            DELETE OBJECT h-esint002.
-            RETURN "NOK".
-        END.
-        */
-        
-
-        /* ------ Grava conteudo do Json em variavel -----*/
-        RUN piGeraVarJson IN h-esint002 (INPUT oJsonObjMain,
-                                         OUTPUT c-Json) NO-ERROR.
-        IF ERROR-STATUS:ERROR THEN DO:
-            ASSIGN c-erro = ERROR-STATUS:GET-MESSAGE(1).
-            DELETE OBJECT h-esint002.
-            RETURN "NOK".
-        END.
-
-        ASSIGN sfa-export-cli.c-json = c-Json.
-
-        /* ------------ Envia Objeto Json --------- */
-        RUN piPostJsonObj IN h-esint002 (INPUT oJsonObjMain,
-                                      INPUT rowid(es-api-param),
-                                      OUTPUT lResp,
-                                      OUTPUT TABLE RowErrors,
-                                      OUTPUT c-retorno).
-        IF c-retorno <> "" THEN
-            ASSIGN sfa-export.text-retorno = c-retorno.
-
-        IF TEMP-TABLE rowErrors:HAS-RECORDS THEN DO:
-            FOR EACH rowErrors:
-                ASSIGN c-erro = c-erro + string(rowerrors.ErrorNumber)  + " - " + rowerrors.ErrorDescription.
-                DELETE OBJECT h-esint002.
-                RETURN "NOK".
-            END.
-        END.       
-        
-        
-        
-    END.
-    ELSE do: 
-        ASSIGN c-erro = "Registro Tabela de Cliente n∆o localizado".
+    /* ------ Adiciona Array -----*/
+    RUN piCriaObj IN h-esint002 (INPUT h-temp,
+                                 OUTPUT ojsonObjAux,
+                                 OUTPUT ojsonArrayAux,
+                                 INPUT YES) NO-ERROR.
+    IF ERROR-STATUS:ERROR THEN DO:
+        ASSIGN c-erro = ERROR-STATUS:GET-MESSAGE(1).
+        DELETE OBJECT h-temp.
         RETURN "NOK".
     END.
+
+    ojsonObjIni:ADD("EnderecoList",ojsonArrayAux).
+
+    DELETE OBJECT h-temp.
 END.
+        
+/*-------------------------------- Condiá∆o de Pagamento List ----------------------------------*/
+RUN piGravaTTCondicaoPagto (OUTPUT h-temp).
+
+IF valid-handle(h-temp) THEN DO:
+
+    /* ------ Adiciona Array -----*/
+    RUN piCriaObj IN h-esint002 (INPUT h-temp,
+                                 OUTPUT ojsonObjAux,
+                                 OUTPUT ojsonArrayAux,
+                                 INPUT YES) NO-ERROR.
+    IF ERROR-STATUS:ERROR THEN DO:
+        ASSIGN c-erro = ERROR-STATUS:GET-MESSAGE(1).
+        DELETE OBJECT h-temp.
+        RETURN "NOK".
+    END.
+    
+    ojsonObjIni:ADD("CondicaoPagamentoList",ojsonArrayAux).
+
+    DELETE OBJECT h-temp.
+END.
+
+/*---------------------------------------- Contact List ---------------------------------------*/
+RUN piGravaTTContato (OUTPUT h-temp).
+
+IF valid-handle(h-temp) THEN DO:
+
+    /* ------ Adiciona Array -----*/
+    RUN piCriaObj IN h-esint002 (INPUT h-temp,
+                                 OUTPUT ojsonObjAux,
+                                 OUTPUT ojsonArrayAux,
+                                 INPUT YES) NO-ERROR.
+    IF ERROR-STATUS:ERROR THEN DO:
+        ASSIGN c-erro = ERROR-STATUS:GET-MESSAGE(1).
+        DELETE OBJECT h-temp.
+        RETURN "NOK".
+    END.
+
+    ojsonObjIni:ADD("ContactList",ojsonArrayAux).
+    
+    DELETE OBJECT h-temp.
+END.
+
+
+oJsonArrayMain = NEW JsonArray().
+oJsonArrayMain:ADD(ojsonObjIni).
+
+/* ----- Cria Json Principal ------- */
+oJsonObjMain = NEW JsonObject().
+oJsonObjMain:ADD("req",oJsonArrayMain).
+
+/* ------ Grava conteudo do Json em variavel -----*/
+RUN piGeraVarJson IN h-esint002 (INPUT oJsonObjMain,
+                                 OUTPUT c-Json) NO-ERROR.
+IF ERROR-STATUS:ERROR THEN DO:
+    ASSIGN c-erro = ERROR-STATUS:GET-MESSAGE(1).
+    DELETE OBJECT h-esint002.
+    RETURN "NOK".
+END.
+
+ASSIGN es-api-export-cli.c-json = c-Json.
+
+RELEASE es-api-export-cli.
+
+/* ------------ Envia Objeto Json --------- */
+RUN piPostJsonObj IN h-esint002 (INPUT oJsonObjMain,
+                              INPUT rowid(es-api-param),
+                              OUTPUT lResp,
+                              OUTPUT TABLE RowErrors,
+                              OUTPUT c-retorno).
+IF c-retorno <> "" THEN DO:
+    FIND CURRENT es-api-export EXCLUSIVE-LOCK NO-ERROR.
+    IF AVAIL es-api-export THEN
+        ASSIGN es-api-export.text-retorno = c-retorno.
+END.
+
+RELEASE es-api-export.
+
+IF TEMP-TABLE rowErrors:HAS-RECORDS THEN DO:
+    FOR EACH rowErrors:
+        ASSIGN c-erro = c-erro + string(rowerrors.ErrorNumber)  + " - " + rowerrors.ErrorDescription.
+        DELETE OBJECT h-esint002.
+        RETURN "NOK".
+    END.
+END.               
 
 IF VALID-HANDLE(h-esint002) THEN
     DELETE OBJECT h-esint002.
@@ -239,7 +229,7 @@ PROCEDURE piGravaTTEmitente:
     
     DEFINE BUFFER bf-emitente FOR emitente.
 
-    FIND FIRST emitente NO-LOCK WHERE emitente.cgc = sfa-export-cli.cgc NO-ERROR.
+    FIND FIRST emitente NO-LOCK WHERE emitente.cgc = es-api-export-cli.cgc NO-ERROR.
     IF AVAIL emitente THEN DO:
         
         FIND FIRST es-emitente OF emitente NO-LOCK NO-ERROR.
@@ -249,7 +239,9 @@ PROCEDURE piGravaTTEmitente:
         FIND FIRST bf-emitente WHERE bf-emitente.nome-abrev = emitente.nome-matriz NO-LOCK NO-ERROR.
         
         CREATE tt_emitente.
-        ASSIGN tt_emitente.RazaoSocial             = emitente.nome-emit             
+        ASSIGN tt_emitente.l-status                = YES 
+               tt_emitente.c-descricao              = ""
+               tt_emitente.RazaoSocial             = emitente.nome-emit             
                tt_emitente.CNPJ                    = emitente.cgc                
                tt_emitente.IE                      = trim(emitente.ins-estadual)
                tt_emitente.Email                   = fncValidaMail(emitente.e-mail)
@@ -319,7 +311,7 @@ PROCEDURE piGravaTTEmitente:
 
     END.
     ELSE DO:
-        pErro = "Registro Emitente n∆o localizado com o campo CGC: " + sfa-export-cli.cgc.
+        pErro = "Registro Emitente n∆o localizado com o campo CGC: " + es-api-export-cli.cgc.
         RETURN "NOK".
     END.
 
@@ -332,7 +324,7 @@ PROCEDURE piGravaTTEnderecoList:
 
     DEFINE OUTPUT PARAMETER pTemp AS HANDLE NO-UNDO.
 
-    FIND FIRST emitente NO-LOCK WHERE emitente.cgc = sfa-export-cli.cgc NO-ERROR.
+    FIND FIRST emitente NO-LOCK WHERE emitente.cgc = es-api-export-cli.cgc NO-ERROR.
     IF AVAIL emitente THEN DO:
 
         FOR EACH loc-entr WHERE loc-entr.nome-abrev = emitente.nome-abrev NO-LOCK:
@@ -367,16 +359,28 @@ PROCEDURE piGravaTTCondicaoPagto:
 
     DEFINE OUTPUT PARAMETER pTemp AS HANDLE NO-UNDO.
 
-    FIND FIRST emitente NO-LOCK WHERE emitente.cgc = sfa-export-cli.cgc NO-ERROR.
+    FIND FIRST emitente NO-LOCK WHERE emitente.cgc = es-api-export-cli.cgc NO-ERROR.
     IF AVAIL emitente THEN DO:
 
-        FOR EACH es-gp-emit-cond-pagto WHERE es-gp-emit-cond-pagto.cod-emitente = emitente.cod-emitente NO-LOCK:
+        IF emitente.cod-cond-pag > 0 THEN DO:
+
+            FIND FIRST cond-pagto NO-LOCK WHERE cond-pagto.cod-cond-pag = emitente.cod-cond-pag NO-ERROR.
+
+            CREATE tt_CondicaoPagamentoList.
+            ASSIGN tt_CondicaoPagamentoList.codigoCondicao = trim(string(es-gp-emit-cond-pagto.cod-cond-pag,">99"))
+                   tt_CondicaoPagamentoList.descricao      = IF AVAIL cond-pagto THEN caps(cond-pagto.descricao) ELSE ""
+                   tt_condicaopagamentolist.condicaopadrao = TRUE.
+        END.
+
+        FOR EACH es-gp-emit-cond-pagto WHERE es-gp-emit-cond-pagto.cod-emitente  = emitente.cod-emitente
+                                         AND es-gp-emit-cond-pagto.cod-cond-pag <> emitente.cod-cond-pag NO-LOCK:
 
             FOR EACH cond-pagto NO-LOCK WHERE cond-pagto.cod-cond-pag = es-gp-emit-cond-pagto.cod-cond-pag :
             
                 CREATE tt_CondicaoPagamentoList.
                 ASSIGN tt_CondicaoPagamentoList.codigoCondicao = trim(string(es-gp-emit-cond-pagto.cod-cond-pag,">99"))
-                       tt_CondicaoPagamentoList.descricao      = caps(cond-pagto.descricao).
+                       tt_CondicaoPagamentoList.descricao      = caps(cond-pagto.descricao)
+                       tt_condicaoPagamentolist.condicaopadrao = FALSE.
             END.
         END.
     END.
@@ -391,7 +395,7 @@ PROCEDURE piGravaTTContato:
     DEFINE OUTPUT PARAMETER pTemp AS HANDLE NO-UNDO.
     DEF VAR i-aplic AS INTEGER NO-UNDO.
 
-    FIND FIRST emitente NO-LOCK WHERE emitente.cgc = sfa-export-cli.cgc NO-ERROR.
+    FIND FIRST emitente NO-LOCK WHERE emitente.cgc = es-api-export-cli.cgc NO-ERROR.
     IF AVAIL emitente THEN DO:
 
         FOR EACH cont-emit OF emitente NO-LOCK:

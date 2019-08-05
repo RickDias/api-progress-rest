@@ -10,7 +10,7 @@
 DEFINE TEMP-TABLE tt_repres NO-UNDO
     field cod-rep     LIKE repres.cod-rep     serialize-name "CodigoRepresentante"
     field nome        like repres.nome        serialize-name "NomeRepresentante"
-    field nome-ab-reg like repres.nome-ab-reg serialize-name "RegiaoRepresentante"
+    /*field nome-ab-reg like repres.nome-ab-reg serialize-name "RegiaoRepresentante"*/
     field e-mail      like repres.e-mail      serialize-name "EmailRepresentante"
     field nome-abrev  like repres.nome-abrev  serialize-name "NomeAbreviadoRepresentante"
     FIELD situacao    AS LOGICAL              SERIALIZE-NAME "Inativo".

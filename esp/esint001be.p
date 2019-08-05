@@ -32,6 +32,7 @@ DEFINE VARIABLE lEnviou             AS LOGICAL    NO-UNDO.
 DEFINE VARIABLE c-arq-json          AS CHARACTER  NO-UNDO.
 DEFINE VARIABLE lresp               AS LOGICAL    NO-UNDO.
 DEFINE VARIABLE c-retorno           AS LONGCHAR   NO-UNDO.
+DEFINE VARIABLE c-sit-ped           AS CHARACTER  NO-UNDO INITIAL "Aberto,Atendido Parcial,Atendido Total,Pendente,Suspenso,Cancelado,Fatur Balc∆o".
 
 /* ------- Definiá∆o de Temp-Tables ------ */
 {esp/esint001b.i}
@@ -64,14 +65,14 @@ IF ERROR-STATUS:ERROR THEN DO:
 END.
 
 
-FIND FIRST sfa-export NO-LOCK WHERE ROWID(sfa-export) = r-table NO-ERROR.
-IF AVAIL sfa-export THEN DO:
+FIND FIRST es-api-export NO-LOCK WHERE ROWID(es-api-export) = r-table NO-ERROR.
+IF AVAIL es-api-export THEN DO:
 
-    FIND FIRST es-api-param WHERE es-api-param.ind-tipo-trans = sfa-export.ind-tipo-trans
-                              AND es-api-param.cd-tipo-integr = sfa-export.cd-tipo-integr NO-LOCK NO-ERROR. 
+    FIND FIRST es-api-param WHERE es-api-param.ind-tipo-trans = es-api-export.ind-tipo-trans
+                              AND es-api-param.cd-tipo-integr = es-api-export.cd-tipo-integr NO-LOCK NO-ERROR. 
 
-    FIND FIRST sfa-export-ped OF sfa-export NO-ERROR.
-    IF AVAIL sfa-export-ped THEN DO:
+    FIND FIRST es-api-export-ped OF es-api-export NO-ERROR.
+    IF AVAIL es-api-export-ped THEN DO:
 
         /*------------------------------------------ Pedido -------------------------------------------*/
         RUN piGravaTTPedVenda (OUTPUT h-temp,
@@ -144,7 +145,7 @@ IF AVAIL sfa-export THEN DO:
         END.
 
         ASSIGN 
-           sfa-export-ped.c-json = c-Json.
+           es-api-export-ped.c-json = c-Json.
 
         /* ------------ Envia Objeto Json --------- */
         RUN piPostJsonObj IN h-esint002 (INPUT oJsonObjMain,
@@ -153,8 +154,8 @@ IF AVAIL sfa-export THEN DO:
                                          OUTPUT TABLE RowErrors,
                                          OUTPUT c-retorno).
 
-        ASSIGN sfa-export-ped.text-retorno = c-retorno
-               sfa-export.text-retorno     = c-retorno.
+        ASSIGN es-api-export-ped.text-retorno = c-retorno
+               es-api-export.text-retorno     = c-retorno.
            
         IF TEMP-TABLE rowErrors:HAS-RECORDS THEN DO:
             FOR EACH rowErrors:
@@ -184,8 +185,8 @@ PROCEDURE piGravaTTPedVenda:
 
     DEF VAR cDestMerc AS CHARACTER NO-UNDO INITIAL "ComÇrcio/Industria,Cons Pr¢prio/Ativo".
 
-    FIND FIRST ped-venda NO-LOCK WHERE ped-venda.nome-abrev = sfa-export-ped.nome-abrev
-                                   AND ped-venda.nr-pedcli  = sfa-export-ped.nr-pedcli NO-ERROR.
+    FIND FIRST ped-venda NO-LOCK WHERE ped-venda.nome-abrev = es-api-export-ped.nome-abrev
+                                   AND ped-venda.nr-pedcli  = es-api-export-ped.nr-pedcli NO-ERROR.
     IF AVAIL ped-venda THEN DO:
 
         FIND FIRST repres NO-LOCK WHERE repres.nome-abrev = ped-venda.no-ab-reppri NO-ERROR.
@@ -198,13 +199,18 @@ PROCEDURE piGravaTTPedVenda:
                tt_pedvenda.destinomercadoria = ENTRY(ped-venda.cod-des-merc,cDestMerc)
                tt_pedvenda.cod-rep           = repres.cod-rep
                tt_pedvenda.modalidade-frete  = ENTRY(ped-venda.ind-tp-frete,"CIF,FOB")
-               tt_pedvenda.nr-pedrep         = ped-venda.nr-pedrep.
+               tt_pedvenda.nr-pedrep         = ped-venda.nr-pedrep
+               tt_pedvenda.l-status          = YES
+               tt_pedvenda.c-descricao       = "".
+
+        ASSIGN tt_pedvenda.sit-ped = ENTRY(ped-venda.cod-sit-ped,c-sit-ped).
 
         IF tt_pedvenda.cod-entrega = 'PADRAO' THEN
             ASSIGN tt_pedvenda.cod-entrega = "Padr∆o".
+        
     END.
     ELSE DO:
-        pErro = "Registro Pedido de Venda n∆o localizado com o nome-abrev: " + sfa-export-ped.nome-abrev + " e nr-pedcli: " + sfa-export-ped.nr-pedcli.
+        pErro = "Registro Pedido de Venda n∆o localizado com o nome-abrev: " + es-api-export-ped.nome-abrev + " e nr-pedcli: " + es-api-export-ped.nr-pedcli.
         RETURN "NOK".
     END.
 
@@ -217,8 +223,8 @@ PROCEDURE piGravaTTPedItem:
 
     DEFINE OUTPUT PARAMETER pTemp AS HANDLE NO-UNDO.
 
-    FOR EACH ped-item NO-LOCK WHERE ped-item.nome-abrev = sfa-export-ped.nome-abrev
-                                AND ped-item.nr-pedcli  = sfa-export-ped.nr-pedcli:
+    FOR EACH ped-item NO-LOCK WHERE ped-item.nome-abrev = es-api-export-ped.nome-abrev
+                                AND ped-item.nr-pedcli  = es-api-export-ped.nr-pedcli:
 
         CREATE tt_pedItem.
         BUFFER-COPY ped-item TO tt_pedItem.

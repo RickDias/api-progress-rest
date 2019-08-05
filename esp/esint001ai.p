@@ -16,7 +16,8 @@ DEFINE TEMP-TABLE tt-erros-integracao   NO-UNDO
 DEFINE TEMP-TABLE tt-retorno NO-UNDO
     FIELD cnpj     AS CHARACTER SERIALIZE-NAME "CNPJ"
     FIELD l-status AS LOGICAL   SERIALIZE-NAME "Status"
-    FIELD c-descr  AS CHARACTER SERIALIZE-NAME "Descricao".
+    FIELD c-descr  AS CHARACTER SERIALIZE-NAME "Descricao"
+    FIELD codigocliente AS INTEGER SERIALIZE-NAME "CodigoCliente".
 
 DEF VAR pTTEmitente         AS CHARACTER NO-UNDO.
 DEF VAR pCodEmitenteReturn  AS INTEGER   NO-UNDO.
@@ -25,9 +26,7 @@ DEF VAR cAux                AS CHARACTER NO-UNDO.
 /* ------- Definiá∆o de ParÉmetros ----- */
 DEFINE INPUT  PARAMETER r-table     AS ROWID      NO-UNDO.
 DEFINE OUTPUT PARAMETER c-erro      AS CHARACTER  NO-UNDO.
-DEFINE INPUT  PARAMETER pJsonInput  AS JsonObject NO-UNDO.
-
-MESSAGE ">> In°cio: " NOW.
+/*DEFINE INPUT  PARAMETER pJsonInput  AS JsonObject NO-UNDO.*/
 
 /* ------- Definiá∆o de Vari†veis ------ */
 DEFINE VARIABLE cLongJson        AS LONGCHAR   NO-UNDO.
@@ -46,7 +45,7 @@ DEFINE VARIABLE c-natureza       AS CHARACTER  NO-UNDO INITIAL "Pessoa F°sica,Pe
 DEFINE VARIABLE c-tipocredito    AS CHARACTER  NO-UNDO INITIAL "Normal,Autom†tico,Suspenso,S¢ Imp Ped,Pg Ö Vista".
 DEFINE VARIABLE m-json           AS MEMPTR     NO-UNDO.
 DEFINE VARIABLE myParser         AS ObjectModelParser NO-UNDO. 
-/*DEFINE VARIABLE pJsonInput       AS JsonObject NO-UNDO.*/
+DEFINE VARIABLE pJsonInput       AS JsonObject NO-UNDO.
 
 /* ------- Definiá∆o de Temp-Tables e Datasets ------ */
 {esp\esint001ai.i}
@@ -58,23 +57,21 @@ DEFINE VARIABLE myParser         AS ObjectModelParser NO-UNDO.
 /*------------------------------ Main Begin ----------------------------*/
 ASSIGN c-erro = "".
 
-FIND FIRST sfa-import NO-LOCK WHERE ROWID(sfa-import) = r-table NO-ERROR.
-IF NOT AVAIL sfa-import THEN RETURN "NOK".
+FIND FIRST es-api-import NO-LOCK WHERE ROWID(es-api-import) = r-table NO-ERROR.
+IF NOT AVAIL es-api-import THEN RETURN "NOK".
 
 /* ------- Grava clob para longchar ----- */
-FIND FIRST sfa-import-cli OF sfa-import NO-ERROR.
-IF NOT AVAIL sfa-import-cli THEN RETURN "NOK".
+FIND FIRST es-api-import-cli OF es-api-import NO-LOCK NO-ERROR.
+IF NOT AVAIL es-api-import-cli THEN RETURN "NOK".
 
 /* ------ RogÇrio Dias - Gera Json Ö partir de Longchar convertendo para UTF8 ----- */
 FIX-CODEPAGE(cLongJson) = "UTF-8".
 
-COPY-LOB sfa-import-cli.c-json TO m-json.
+COPY-LOB es-api-import-cli.c-json TO m-json.
 COPY-LOB m-json TO cLongJson NO-CONVERT.
 
  myParser = NEW ObjectModelParser(). 
  pJsonInput = CAST(myParser:Parse(cLongJson),JsonObject).
-
-
 /*---------------------------------------------------------------------------------*/
 
 /* ---- Là propriedade Principal ---- */        
@@ -93,19 +90,12 @@ DO iCountMain = 1 TO oJsonArrayMain:LENGTH:
     
     /* ----/ Validaá‰es ----- */
     RUN pi-valida .
-    IF c-erro <> "" THEN do: 
-        /*
-        MESSAGE 'erro no valida ' c-erro VIEW-AS ALERT-BOX INFO BUTTONS OK.
+    IF c-erro <> "" THEN do:         
         RUN pi-processa-erro (INPUT-OUTPUT c-erro,
-                              INPUT tt_emitente.CNPJ).
-                              */
-        
-
+                              INPUT tt_emitente.CNPJ).                                 
         RETURN "NOK".
     END.
-    /*ELSE
-        MESSAGE 'nao achou erro no valida' VIEW-AS ALERT-BOX INFO BUTTONS OK.*/
-
+    
     RUN pi-criaEnderecoList.
     RUN pi-criaContactList.
     RUN pi-criaCondicaoPagamentoList.
@@ -115,29 +105,19 @@ END.
 IF NOT TEMP-TABLE tt_emitente:HAS-RECORDS THEN ASSIGN c-erro = c-erro + "N∆o h† registros para processar". 
 ELSE DO:
 
-    /*MESSAGE  'vai chamar aic' VIEW-AS ALERT-BOX INFO BUTTONS OK.*/
     RUN esp/esint001aic.p (INPUT  TABLE tt_emitente,
                            INPUT  TABLE tt_ContatoList,
                            INPUT  TABLE tt_CondicaoPagamentoList,
                            OUTPUT TABLE tt-erros-integracao,
                            OUTPUT pCodEmitenteReturn) NO-ERROR.
-    /*MESSAGE 'chamou aic' VIEW-AS ALERT-BOX INFO BUTTONS OK.*/
     IF ERROR-STATUS:ERROR THEN DO:
         c-erro = c-erro + ERROR-STATUS:GET-MESSAGE(1).
-        /*
-
-        MESSAGE 'vai gerar erro 1' VIEW-AS ALERT-BOX INFO BUTTONS OK.
         RUN pi-processa-erro (INPUT-OUTPUT c-erro,
-                              INPUT tt_emitente.CNPJ).
-                              */
-
+                              INPUT tt_emitente.CNPJ).                            
         RETURN "NOK".
     END.
-  /*  ELSE
-        MESSAGE 'nao vai gerar erro 1' VIEW-AS ALERT-BOX INFO BUTTONS OK.*/
-
+  
     IF c-erro = "" THEN DO:
-        /*MESSAGE 'nao deu erro' VIEW-AS ALERT-BOX INFO BUTTONS OK.*/
         FOR EACH tt-erros-integracao:
             
             IF c-erro > "" THEN 
@@ -146,16 +126,9 @@ ELSE DO:
             ASSIGN c-erro = c-erro + tt-erros-integracao.erro + " - " + tt-erros-integracao.descricao.                    
        END.
 
-/*
-       IF c-erro <> "" THEN DO:
-
-           MESSAGE 'vai gerar erro 2' VIEW-AS ALERT-BOX INFO BUTTONS OK.
-
+       IF c-erro <> "" THEN
            RUN pi-processa-erro (INPUT-OUTPUT c-erro,
                                  INPUT tt_emitente.CNPJ).
-       END.
-       */
-
     END.
 END.
 
@@ -189,8 +162,8 @@ PROCEDURE pi-valida:
     IF tt_emitente.AvaliacaoCredito = ?     THEN ASSIGN c-erro = c-erro + "AvaliacaoCredito inv†lido" + CHR(10).
     IF tt_emitente.Telefone = ?             THEN ASSIGN c-erro = c-erro + "Telefone inv†lido ou n∆o informado" + CHR(10).
     IF tt_emitente.TelefoneFinanceiro = ?   THEN ASSIGN c-erro = c-erro + "Telefone Financeiro inv†lido ou n∆o informado" + CHR(10).
-    IF tt_emitente.Representante = 0        THEN ASSIGN c-erro = c-erro + "Representante n∆o cadastrado".
-        
+    IF tt_emitente.Representante = 0        OR 
+       tt_emitente.Representante = ?        THEN ASSIGN c-erro = c-erro + "Representante n∆o cadastrado".
 
  END PROCEDURE.
 
@@ -199,12 +172,12 @@ PROCEDURE pi-criaContactList:
      IF oJsonObjectMain:Has("ContactList") THEN DO:
 
         oJsonArraySec = oJsonObjectMain:GetJsonArray("ContactList").
-
+        CREATE tt_ContatoList.
         DO iCountSec = 1 TO oJsonArraySec:LENGTH:
-            CREATE tt_ContatoList.
+            /* CREATE tt_ContatoList. */
 
             oJsonObjectSec =  oJsonArraySec:GetJsonObject(iCountSec). 
-            ASSIGN fld-rel = iCountSec.
+            ASSIGN fld-rel = iCountSec * 10.
 
             if oJsonObjectSec:Has("Nome")         then tt_ContatoList.Nome           = oJsonObjectSec:GetCharacter("Nome")               no-error.
             if oJsonObjectSec:Has("CodigoContato")then tt_ContatoList.CodigoContato  = INT(oJsonObjectSec:GetCharacter("CodigoContato")) no-error.
@@ -331,7 +304,6 @@ PROCEDURE pi-criaTTEmitente:
 
 END PROCEDURE.
 
-/*
 PROCEDURE pi-processa-erro:
 
     DEFINE INPUT-OUTPUT PARAMETER pErro AS CHARACTER NO-UNDO.
@@ -352,10 +324,13 @@ PROCEDURE pi-processa-erro:
 
     RUN esp/esint002.p PERSISTENT SET h-esint002.
 
+    FIND FIRST emitente NO-LOCK WHERE emitente.cgc = pcnpj NO-ERROR.
+
     CREATE tt-retorno.
     ASSIGN tt-retorno.cnpj     = pcnpj
            tt-retorno.l-status = FALSE
-           tt-retorno.c-descr  = perro.
+           tt-retorno.c-descr  = perro
+           tt-retorno.codigocliente = IF AVAIL emitente AND emitente.identific <> 2 THEN emitente.cod-emitente ELSE 0.
 
     ASSIGN h-temp = BUFFER tt-retorno:HANDLE.
 
@@ -383,8 +358,6 @@ PROCEDURE pi-processa-erro:
     RUN piGeraVarJson IN h-esint002 (INPUT oJsonObjMain,
                                      OUTPUT c-Json) NO-ERROR.
 
-    MESSAGE STRING(c-Json) VIEW-AS ALERT-BOX INFO BUTTONS OK.
-
     IF ERROR-STATUS:ERROR THEN DO:
         ASSIGN c-erro = ERROR-STATUS:GET-MESSAGE(1).
         DELETE OBJECT h-esint002.
@@ -401,7 +374,8 @@ PROCEDURE pi-processa-erro:
                                      OUTPUT TABLE RowErrors,
                                      OUTPUT c-retorno).
 
-    MESSAGE '>> c-retorno: ' string(c-retorno) VIEW-AS ALERT-BOX ERROR.
+    /*MESSAGE '>> c-retorno: ' string(c-retorno) VIEW-AS ALERT-BOX ERROR.*/
+
     IF TEMP-TABLE rowErrors:HAS-RECORDS THEN DO:
 
         ASSIGN perro = "".
@@ -415,4 +389,3 @@ PROCEDURE pi-processa-erro:
     
 
 END PROCEDURE.
-*/

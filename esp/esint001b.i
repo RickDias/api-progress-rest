@@ -8,6 +8,8 @@
 
 
 DEFINE TEMP-TABLE tt_PedVenda NO-UNDO
+      FIELD l-status               AS LOGICAL                            SERIALIZE-NAME "Status"
+      FIELD c-descricao            AS CHARACTER                          SERIALIZE-NAME "Descricao"
       field estab-destino          LIKE ped-venda.estab-destino          SERIALIZE-NAME "EstabelecimentoDestino"       format "X(5)"
       field cod-rep                LIKE repres.cod-rep                   serialize-name "Representante"                
       field dt-entrega             LIKE ped-venda.dt-entrega             serialize-name "DataEntregaPrevista"          
@@ -39,8 +41,8 @@ DEFINE TEMP-TABLE tt_PedVenda NO-UNDO
       field codcondpag             AS c                                  serialize-name "CondicaoPagamento"            
       field nr-pedrep              like ped-venda.nr-pedrep              serialize-name "NumeroPedidoRepresentante"    format "X(12)"
       FIELD atendido               LIKE ped-venda.atendido               SERIALIZE-NAME "TipoAtendimento"              
-      FIELD cod-ped-clien-mp       LIKE ped-venda.cod-ped-clien-mp       SERIALIZE-NAME "CodigoSalesforce"              
-      .
+      FIELD cod-ped-clien-mp       LIKE ped-venda.cod-ped-clien-mp       SERIALIZE-NAME "CodigoSalesforce" 
+      FIELD sit-ped                AS CHARACTER                          SERIALIZE-NAME "SituacaoPedido".
 
 DEF TEMP-TABLE tt_PedItem NO-UNDO
      field nr-tabpre                  like ped-item.nr-tabpre                  SERIALIZE-NAME "TabelaPreco"                  format "X(12)"     

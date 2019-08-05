@@ -15,8 +15,6 @@
 /*                          - Alteracao natureza de operacao "ES-CFOP" para regra de busca                               */ 
 /*************************************************************************************************************************/
 
-MESSAGE '**** esint001birp'.
-MESSAGE "****x 0.1".
 
 /* buffer */
 {include/i-bfems2.i}                       
@@ -70,7 +68,9 @@ DEFINE TEMP-TABLE tt-pedido-erro NO-UNDO
     FIELD cod-msg        AS INT
     FIELD msg-erro       AS CHAR
     FIELD msg-padrao     AS LOG
-    FIELD cd-cliente     AS INT.
+    FIELD cd-cliente     AS INT
+    FIELD nr-pedcli      AS CHARACTER
+    FIELD nome-abrev     AS CHARACTER.
 
 DEFINE TEMP-TABLE tt-pedido-erro-dest NO-UNDO LIKE tt-pedido-erro 
     FIELD e-mail   AS CHAR
@@ -217,7 +217,6 @@ RUN utp/utapi019.p    PERSISTENT SET h-utapi019.
                         
 RUN pi-inicializar IN h-acomp (INPUT "Processando Pedidos...").
 
-MESSAGE "****x 0.2".
 
 /* busca primeiro pedidos PAI */
 blk_pedido:
@@ -227,7 +226,7 @@ FOR EACH b-tt-sf-pedido NO-LOCK
     BREAK BY b-tt-sf-pedido.cd_tipo_pedido
           BY b-tt-sf-pedido.cd_pedido_palm_pai 
           BY b-tt-sf-pedido.cd_pedido_palm:
-    MESSAGE "****x 0.3".
+    
 /*
     IF b-tt-sf-pedido.cd_vendedor < tt-param.cod-rep-ini OR
        b-tt-sf-pedido.cd_vendedor > tt-param.cod-rep-fim THEN NEXT.
@@ -240,9 +239,15 @@ FOR EACH b-tt-sf-pedido NO-LOCK
 */
     RUN pi-acompanhar IN h-acomp (INPUT STRING(b-tt-sf-pedido.cd_pedido_palm)).
 
-    IF CAN-FIND(FIRST ext-ped-venda WHERE ext-ped-venda.nr-ped-sfa = b-tt-sf-pedido.id_pedido_web) THEN DO:
-       c-erro = "ERRO: Pedido ja Integrado.".
-       RETURN "NOK".
+    FIND FIRST ext-ped-venda WHERE ext-ped-venda.nr-ped-sfa = b-tt-sf-pedido.id_pedido_web NO-LOCK NO-ERROR.
+    IF AVAIL ext-ped-venda THEN DO:
+        c-erro = "ERRO: Pedido j† integrado".
+        RUN pi-create-erro (INPUT 15,
+                            INPUT FALSE,
+                            INPUT c-erro,
+                            INPUT ext-ped-venda.nome-abrev,
+                            INPUT ext-ped-venda.nr-pedcli).
+        RETURN "NOK".
     END.
     
     ASSIGN c-nr-tabpre = ""
@@ -252,13 +257,18 @@ FOR EACH b-tt-sf-pedido NO-LOCK
     /* Quando carrega as tabelas na busca nao esta registrado como vazio ainda                            */
     IF  b-tt-sf-pedido.nome-abrev <> "" AND b-tt-sf-pedido.nr-pedcli  <> "" THEN DO:
         c-erro = "Ocorreram erros durante o processamento: Nome abreviado e n£mero do pedido do cliente n∆o informados".
+        RUN pi-create-erro (INPUT 15,
+                            INPUT FALSE,
+                            INPUT c-erro,
+                            INPUT b-tt-sf-pedido.nome-abrev,
+                            INPUT b-tt-sf-pedido.nr-pedcli).
         RETURN "NOK".
     END.
 
     /* Buca tabela de preªo */
     /* Salva tabela de preªo na variavel c-nr-tabpre */
     /* Nío pode retirar DO TRANS porque se nío existir a tabela de preªo utilizando int() da erro no resto da transacao do programa */
-    MESSAGE "****x 0.4".
+    
     blk_preco:
     DO TRANS ON ERROR  UNDO, LEAVE blk_preco
              ON STOP   UNDO, LEAVE blk_preco
@@ -269,57 +279,31 @@ FOR EACH b-tt-sf-pedido NO-LOCK
          IF AVAIL tb-preco THEN
              ASSIGN c-nr-tabpre = tb-preco.nr-tabpre.
     END.
-    MESSAGE "****x 0.5".
+    
     blk_trans:
     DO TRANS ON ERROR  UNDO, LEAVE blk_trans
              ON STOP   UNDO, LEAVE blk_trans
              ON ENDKEY UNDO, LEAVE blk_trans:
 
         /* Busca nr-pedcli primeiro para acerto de preco e pedido pai sempre ter mesmo numero */
-        MESSAGE "****x 0.6".
-
-        FIND FIRST ext-ped-venda WHERE ext-ped-venda.nr-ped-sfa = b-tt-sf-pedido.id_pedido_web NO-ERROR.
-        IF NOT AVAIL ext-ped-venda THEN DO:
-            CREATE ext-ped-venda.
-            ASSIGN ext-ped-venda.nr-ped-sfa = b-tt-sf-pedido.id_pedido_web.
-        END.
-
-        MESSAGE 'antes do pi-buscar' .
-            
+        
         RUN pi-buscar-nr-pedcli (OUTPUT c-nr-pedcli).
 
-        IF AVAIL ext-ped-venda THEN DO:
-            FIND FIRST emitente NO-LOCK WHERE emitente.cod-emitente = b-tt-sf-pedido.cd_cliente NO-ERROR.
-            IF AVAIL emitente THEN
-                ASSIGN ext-ped-venda.nome-abrev = emitente.nome-abrev
-                       ext-ped-venda.nr-pedcli  = c-nr-pedcli.
-            ELSE
-                MESSAGE 'nao achou emitente'.
-        END.
-        ELSE
-            MESSAGE 'nao achou ext-ped-venda'.
-
-        MESSAGE "****x 0.6.1 " c-nr-pedcli.
-        MESSAGE "****x 0.6.2 " b-tt-sf-pedido.cd_tipo_pedido.
-
         IF c-nr-pedcli = "" OR c-nr-pedcli = ? THEN DO:
-            MESSAGE "**** 0.6.3 next" VIEW-AS ALERT-BOX INFO BUTTONS OK.
             NEXT blk_pedido.        
         END.
 
         
-        
         /* Logica para sempre manter a regra de sempre entrar um pedido acerto de preco junto ao pedido principal */
         /* Se o pedido for normal, primeiro integra os pedidos de acerto de preco                                 */
         IF b-tt-sf-pedido.cd_tipo_pedido = "1" THEN DO:
-            MESSAGE "****x 0.7".
             IF b-tt-sf-pedido.cd_pedido_palm > 0
             AND CAN-FIND(FIRST b-tt-sf-pedido-bonif NO-LOCK
                         WHERE b-tt-sf-pedido-bonif.cd_pedido_palm_pai = b-tt-sf-pedido.cd_pedido_palm) THEN DO:
-                MESSAGE "****x 0.7.1".
+                
                 FOR FIRST b-tt-sf-pedido-bonif NO-LOCK
                     WHERE b-tt-sf-pedido-bonif.cd_pedido_palm_pai = b-tt-sf-pedido.cd_pedido_palm: 
-                    MESSAGE "****x 0.7.2".
+                    
                     ASSIGN c-nr-pedcli = c-nr-pedcli + "B".
 
                     /* Se vai criar bonificacao, antes do pedido principal. Adiciona um "B" antes do pedido */
@@ -328,6 +312,18 @@ FOR EACH b-tt-sf-pedido NO-LOCK
 
                     IF RETURN-VALUE = "NEXT":U THEN
                         UNDO blk_trans, NEXT blk_pedido.
+                    ELSE DO:
+
+                        FIND FIRST ext-ped-venda WHERE ext-ped-venda.nr-ped-sfa = b-tt-sf-pedido.id_pedido_web NO-ERROR.
+                        IF NOT AVAIL ext-ped-venda THEN DO:
+                            CREATE ext-ped-venda.
+                            ASSIGN ext-ped-venda.nr-ped-sfa = b-tt-sf-pedido.id_pedido_web.
+                        END.
+                        FIND FIRST emitente NO-LOCK WHERE emitente.cod-emitente = b-tt-sf-pedido.cd_cliente NO-ERROR.
+                        IF AVAIL emitente THEN
+                            ASSIGN ext-ped-venda.nome-abrev = emitente.nome-abrev
+                                   ext-ped-venda.nr-pedcli  = c-nr-pedcli.            
+                    END.
 
                     /* Retira o "B" do pedido para o principal */
                     ASSIGN c-nr-pedcli = SUBSTRING(c-nr-pedcli,1,LENGTH(c-nr-pedcli) - 1).
@@ -336,14 +332,21 @@ FOR EACH b-tt-sf-pedido NO-LOCK
         
             RUN pi-processa-pedido (INPUT b-tt-sf-pedido.cd_pedido_palm).
             
-            MESSAGE "**** pi-processa-pedido " RETURN-VALUE " " c-nr-pedcli.
-
-
             IF RETURN-VALUE = "NEXT":U THEN
                 UNDO blk_trans, NEXT blk_pedido.        
+            ELSE DO:
+                FIND FIRST ext-ped-venda WHERE ext-ped-venda.nr-ped-sfa = b-tt-sf-pedido.id_pedido_web NO-ERROR.
+                IF NOT AVAIL ext-ped-venda THEN DO:
+                    CREATE ext-ped-venda.
+                    ASSIGN ext-ped-venda.nr-ped-sfa = b-tt-sf-pedido.id_pedido_web.
+                END.
+                FIND FIRST emitente NO-LOCK WHERE emitente.cod-emitente = b-tt-sf-pedido.cd_cliente NO-ERROR.
+                IF AVAIL emitente THEN
+                    ASSIGN ext-ped-venda.nome-abrev = emitente.nome-abrev
+                           ext-ped-venda.nr-pedcli  = c-nr-pedcli.
+            END.
         END.
         ELSE IF b-tt-sf-pedido.cd_tipo_pedido = "2" THEN DO: /* Acerto de preco, se o pedido principal ja foi integrado pela tabela tt-sf-pedido e nao estava o pedido de acerto de preco integrado */
-            MESSAGE "****x 0.8".
             FOR FIRST tt-sf-pedido NO-LOCK
                 WHERE tt-sf-pedido.cd_pedido_palm = b-tt-sf-pedido.cd_pedido_palm_pai 
                   AND tt-sf-pedido.nome-abrev    <> "" 
@@ -355,6 +358,17 @@ FOR EACH b-tt-sf-pedido NO-LOCK
 
                 IF RETURN-VALUE = "NEXT":U THEN
                     UNDO blk_trans, NEXT blk_pedido.
+                ELSE DO:
+                    FIND FIRST ext-ped-venda WHERE ext-ped-venda.nr-ped-sfa = b-tt-sf-pedido.id_pedido_web NO-ERROR.
+                    IF NOT AVAIL ext-ped-venda THEN DO:
+                        CREATE ext-ped-venda.
+                        ASSIGN ext-ped-venda.nr-ped-sfa = b-tt-sf-pedido.id_pedido_web.
+                    END.
+                    FIND FIRST emitente NO-LOCK WHERE emitente.cod-emitente = b-tt-sf-pedido.cd_cliente NO-ERROR.
+                    IF AVAIL emitente THEN
+                        ASSIGN ext-ped-venda.nome-abrev = emitente.nome-abrev
+                               ext-ped-venda.nr-pedcli  = c-nr-pedcli.
+                END.
 
             END. 
             IF NOT AVAIL tt-sf-pedido THEN DO:
@@ -362,17 +376,29 @@ FOR EACH b-tt-sf-pedido NO-LOCK
 				/*analisar andre*/
                 RUN pi-create-erro (INPUT 15,
                                     INPUT FALSE,
-                                    INPUT SUBSTITUTE("Pedido &1 de acerto de preáo. N∆o integrado o pedido principal &2.",b-tt-sf-pedido.cd_pedido_palm, b-tt-sf-pedido.cd_pedido_palm_pai) + " (3)").
-                NEXT blk_pedido.
+                                    INPUT SUBSTITUTE("Pedido &1 de acerto de preáo. N∆o integrado o pedido principal &2.",b-tt-sf-pedido.cd_pedido_palm, b-tt-sf-pedido.cd_pedido_palm_pai) + " (3)",
+                                    INPUT "",
+                                    INPUT "").
+                NEXT blk_pedido.   
             END.
         END.
         /* Bonificacao */
         ELSE IF b-tt-sf-pedido.cd_tipo_pedido = "4" THEN DO:
-            MESSAGE "****x 0.9".
             RUN pi-processa-pedido (INPUT b-tt-sf-pedido.cd_pedido_palm).
 
             IF RETURN-VALUE = "NEXT":U THEN
                 UNDO blk_trans, NEXT blk_pedido.
+            ELSE DO:
+                FIND FIRST ext-ped-venda WHERE ext-ped-venda.nr-ped-sfa = b-tt-sf-pedido.id_pedido_web NO-ERROR.
+                IF NOT AVAIL ext-ped-venda THEN DO:
+                    CREATE ext-ped-venda.
+                    ASSIGN ext-ped-venda.nr-ped-sfa = b-tt-sf-pedido.id_pedido_web.
+                END.
+                FIND FIRST emitente NO-LOCK WHERE emitente.cod-emitente = b-tt-sf-pedido.cd_cliente NO-ERROR.
+                IF AVAIL emitente THEN
+                    ASSIGN ext-ped-venda.nome-abrev = emitente.nome-abrev
+                           ext-ped-venda.nr-pedcli  = c-nr-pedcli.
+            END.
         END.
     END.
 
@@ -633,7 +659,6 @@ RETURN "OK":U.
 /**************************************************************************************************************/ 
 
 PROCEDURE pi-processa-pedido:
-    MESSAGE "****x 0.0.1".
     DEFINE INPUT PARAMETER pi-cd-pedido-palm LIKE tt-sf-pedido.cd_pedido_palm NO-UNDO.
                    
     FOR EACH tt-ped-venda:
@@ -651,12 +676,11 @@ PROCEDURE pi-processa-pedido:
     FOR EACH tt-ped-param:
         DELETE tt-ped-param.
     END.
-    MESSAGE "****x 0.0.2".
     FOR FIRST tt-sf-pedido EXCLUSIVE-LOCK
         WHERE tt-sf-pedido.cd_pedido_palm = pi-cd-pedido-palm
           AND tt-sf-pedido.nome-abrev     = "" 
           AND tt-sf-pedido.nr-pedcli      = "":
-        MESSAGE "****x 0.0.3".
+        
         ASSIGN i-sequencia-item = 0
                i-cod-cond-pag   = 0
                /* Bonificacao */
@@ -680,10 +704,12 @@ PROCEDURE pi-processa-pedido:
 			/*analisar andre*/    
             RUN pi-create-erro (INPUT 13,
                                 INPUT TRUE,
-                                INPUT RETURN-VALUE + " (4)").
+                                INPUT RETURN-VALUE + " (4)",
+                                INPUT "",
+                                INPUT "").
             RETURN "NEXT":U.   
         END.
-MESSAGE "****x 0.0.4".
+
         FIND FIRST repres NO-LOCK
             WHERE repres.cod-rep = tt-sf-pedido.cd_vendedor NO-ERROR.
         IF NOT AVAIL repres THEN DO:
@@ -695,10 +721,12 @@ MESSAGE "****x 0.0.4".
 			/*analisar andre*/ 
             RUN pi-create-erro (INPUT 372,
                                 INPUT TRUE,
-                                INPUT RETURN-VALUE + " (5)").
+                                INPUT RETURN-VALUE + " (5)",
+                                INPUT '',
+                                INPUT "").
             RETURN "NEXT":U.    
         END.
-MESSAGE "****x 0.0.5".
+
         FIND FIRST emitente NO-LOCK
             WHERE emitente.cod-emitente = tt-sf-pedido.cd_cliente NO-ERROR.
         IF NOT AVAIL emitente THEN DO:   
@@ -709,11 +737,13 @@ MESSAGE "****x 0.0.5".
     
             RUN pi-create-erro (INPUT 785,
                                 INPUT TRUE,
-                                INPUT RETURN-VALUE + " (6)").
+                                INPUT RETURN-VALUE + " (6)",
+                                INPUT "",
+                                INPUT "").
     
             RETURN "NEXT":U.    
         END.
-MESSAGE "****x 0.0.6".
+
 
         /* Definido que ser† fixo transportadora RETIRA */
         FIND FIRST transporte NO-LOCK
@@ -722,10 +752,12 @@ MESSAGE "****x 0.0.6".
     
             RUN pi-create-erro (INPUT 1,
                                 INPUT FALSE,
-                                INPUT "Transportadora RETIRA eliminada." + " (7)").
+                                INPUT "Transportadora RETIRA eliminada." + " (7)",
+                                INPUT "",
+                                INPUT "").
             RETURN "NEXT":U.    
         END.
-MESSAGE "****x 0.0.7".
+
         /*Processa Natureza para o Pedido*/
         RUN pi-processa-natureza-item (OUTPUT c-natureza,
                                        OUTPUT d-peso,
@@ -733,7 +765,7 @@ MESSAGE "****x 0.0.7".
                                        OUTPUT c-tp-pedido).
     
         IF RETURN-VALUE = "NEXT":U THEN RETURN "NEXT":U.
-MESSAGE "****x 0.0.8".                            
+
         /*Valida se o Pedido ja foi Implantado com o mesmo nrPedCli*/
         FIND FIRST ped-venda NO-LOCK
             WHERE ped-venda.nome-abrev = emitente.nome-abrev
@@ -742,21 +774,25 @@ MESSAGE "****x 0.0.8".
             
             RUN pi-create-erro (INPUT 3,
                                 INPUT FALSE,
-                                INPUT "Chave entrada para o n£mero do pedido cliente j† existe." + " (8)").
+                                INPUT "Chave entrada para o n£mero do pedido cliente j† existe." + " (8)",
+                                INPUT "",
+                                INPUT "").
             RETURN "NEXT":U.    
         END.
-MESSAGE "****x 0.0.9".    
+
         FIND FIRST natur-oper NO-LOCK
              WHERE natur-oper.nat-operacao = c-natureza NO-ERROR.
         IF NOT AVAIL natur-oper THEN DO:
     
             RUN pi-create-erro (INPUT 6,
                                 INPUT FALSE,
-                                INPUT SUBSTITUTE("Natureza de operaá∆o &1 n∆o cadastrada.",c-natureza) + " (9)").
+                                INPUT SUBSTITUTE("Natureza de operaá∆o &1 n∆o cadastrada.",c-natureza) + " (9)",
+                                INPUT "",
+                                INPUT "").
     
             RETURN "NEXT":U.
         END.
-MESSAGE "****x 0.0.10".        
+
         /* Carrega cond pagto */
 /*
         IF(STRING(c-tipo-pedido,"99")  = "52"  OR                                           
@@ -794,17 +830,19 @@ MESSAGE "****x 0.0.10".
             THEN DO:
                 RUN pi-create-erro (INPUT 8,
                                     INPUT FALSE,
-                                    INPUT SUBSTITUTE("Condiá∆o de pagamento &1 n∆o cadastrada.",STRING(i-cod-cond-pag)) + " (10)").
+                                    INPUT SUBSTITUTE("Condiá∆o de pagamento &1 n∆o cadastrada.",STRING(i-cod-cond-pag)) + " (10)",
+                                    INPUT "",
+                                    INPUT "").
             
                 RETURN "NEXT":U.           
             END.
         END.
 
-MESSAGE "****x 0.0.11".            
+
         RUN setConstraintQuotation  IN bo-ped-venda (INPUT NO).
         RUN setConstraintDefault    IN bo-ped-venda.
         RUN openQueryStatic         IN bo-ped-venda (INPUT "Default":U).
-MESSAGE "****x 0.0.12".            
+
         /*INICIA A CRIAÄ«O DO PEDIDO*/
         CREATE tt-ped-venda.
         ASSIGN tt-ped-venda.cod-estabel      = estabelec.cod-estabel
@@ -850,6 +888,7 @@ MESSAGE "****x 0.0.12".
                tt-ped-venda.endereco         = fncNullEmptyChar(tt-sf-pedido.ds_endereco_entr)
                tt-ped-venda.pais             = fncNullEmptyChar(emitente.pais)
                tt-ped-venda.dt-entorig       = tt-sf-pedido.dt_entrega
+               /*tt-ped-venda.dt-entrega       = tt-sf-pedido.dt_entrega*/
                tt-ped-venda.user-impl        = c-user-pedidos
                    
                tt-ped-venda.cod-ped-clien-mp = tt-sf-pedido.id_pedido_web
@@ -889,7 +928,7 @@ MESSAGE "****x 0.0.12".
                     ASSIGN tt-ped-venda.cod-entrega = loc-entr.cod-entrega.
         END.
         *****/
-MESSAGE "****x 0.0.13".        
+
         FIND FIRST loc-entr NO-LOCK 
              WHERE loc-entr.nome-abrev  = geo-endereco_pedido.nome_abrev  
                AND loc-entr.cod-entrega = geo-endereco_pedido.cod_entrega 
@@ -907,7 +946,7 @@ MESSAGE "****x 0.0.13".
              ASSIGN 
                 tt-ped-venda.cod-entrega = loc-entr.cod-entrega.
         END.
-MESSAGE "****x 0.0.14".        
+
         IF AVAIL loc-entr 
         THEN ASSIGN 
            tt-ped-venda.cod-entrega = loc-entr.cod-entrega
@@ -947,36 +986,28 @@ MESSAGE "****x 0.0.14".
             ELSE DO:            
                 /* Calcula data de entrega simulada, n∆o efetiva data de faturamento porque n∆o foi aprovado ainda */
                 /* Data de faturamento s¢ Ç efetivada na liberaá∆o do pedido                                       */
-                RUN piDtEntrega IN h-dt-calc (INPUT  tt-ped-venda.cod-estabel,
-                                              INPUT  tt-ped-venda.estado,
-                                              INPUT  tt-ped-venda.cidade,
-                                              INPUT  tt-ped-venda.cep,
-                                              INPUT  d-peso,
-                                              INPUT  tt-ped-venda.nome-abrev,
-                                              INPUT  TODAY,
-                                              OUTPUT tt-ped-venda.dt-entrega,
-                                              OUTPUT dt-fatura,
-                                              OUTPUT c-erro).
 
-                MESSAGE "**** Local entrega " c-erro.
-
-                MESSAGE "**** tt-ped-venda.cod-estabel" tt-ped-venda.cod-estabel.
-                MESSAGE "**** tt-ped-venda.cod-entrega" tt-ped-venda.cod-entrega.
-                MESSAGE "**** tt-ped-venda.estado     " tt-ped-venda.estado     .
-                MESSAGE "**** tt-ped-venda.cidade     " tt-ped-venda.cidade     .
-                MESSAGE "**** tt-ped-venda.cep        " tt-ped-venda.cep        .
-                MESSAGE "**** d-peso                  " d-peso                  .
-                MESSAGE "**** tt-ped-venda.nome-abrev " tt-ped-venda.nome-abrev .
-                MESSAGE "**** tt-ped-venda.dt-entrega " tt-ped-venda.dt-entrega .
-                MESSAGE "**** dt-fatura               " dt-fatura               .
-
-                /* Se o representante informar a data */
-                IF tt-sf-pedido.dt_entrega <> tt-sf-pedido.dt_entrega_calc THEN DO:
-                                        
-                    /* Apenas dia util - Ticket 29976 */
-                    IF date(tt-sf-pedido.dt_entrega) > tt-ped-venda.dt-entrega THEN
-                        ASSIGN tt-ped-venda.dt-entrega = DYNAMIC-FUNCTION("fncDiasUteis" IN h-dt-calc,tt-ped-venda.cod-estabel, tt-sf-pedido.dt_entrega).                                                                                    
-                END.
+                /*IF tt-sf-pedido.dt_entrega = ? THEN DO:*/
+                    
+                    RUN piDtEntrega IN h-dt-calc (INPUT  tt-ped-venda.cod-estabel,
+                                                  INPUT  tt-ped-venda.estado,
+                                                  INPUT  tt-ped-venda.cidade,
+                                                  INPUT  tt-ped-venda.cep,
+                                                  INPUT  d-peso,
+                                                  INPUT  tt-ped-venda.nome-abrev,
+                                                  INPUT  TODAY,
+                                                  OUTPUT tt-ped-venda.dt-entrega,
+                                                  OUTPUT dt-fatura,
+                                                  OUTPUT c-erro).
+    
+                    /* Se o representante informar a data */
+                    IF tt-sf-pedido.dt_entrega <> tt-sf-pedido.dt_entrega_calc THEN DO:
+                                            
+                        /* Apenas dia util - Ticket 29976 */
+                        IF date(tt-sf-pedido.dt_entrega) > tt-ped-venda.dt-entrega THEN
+                            ASSIGN tt-ped-venda.dt-entrega = DYNAMIC-FUNCTION("fncDiasUteis" IN h-dt-calc,tt-ped-venda.cod-estabel, tt-sf-pedido.dt_entrega).                                                                                    
+                    END.
+                /*END.*/
             END.
         
             /* Se a data de entrega original tiver como vazia, assume a data de entrega calculada */
@@ -984,14 +1015,16 @@ MESSAGE "****x 0.0.14".
                 ASSIGN tt-ped-venda.dt-entorig = tt-ped-venda.dt-entrega.
 
         END.
-MESSAGE "****x 0.0.15".        
+
         IF c-erro <> "" THEN DO:    
             RUN pi-create-erro (INPUT 4,
                                 INPUT FALSE,
-                                INPUT c-erro + SUBSTITUTE(" / Est: &1 / UF: &2 / Cid: &3, Peso: &4", tt-ped-venda.cod-estabel, tt-ped-venda.estado, tt-ped-venda.cidade, d-peso) + " (11)").
+                                INPUT c-erro + SUBSTITUTE(" / Est: &1 / UF: &2 / Cid: &3, Peso: &4", tt-ped-venda.cod-estabel, tt-ped-venda.estado, tt-ped-venda.cidade, d-peso) + " (11)",
+                                INPUT "",
+                                INPUT "").
             RETURN "NEXT":U.
         END.  
-MESSAGE "****x 0.0.16".        
+
         FIND FIRST geo-endereco_pedido
              WHERE geo-endereco_pedido.cd_endereco = tt-sf-pedido.cd_endereco_entrega NO-LOCK NO-ERROR.
         IF AVAIL geo-endereco_pedido THEN DO:
@@ -1003,7 +1036,7 @@ MESSAGE "****x 0.0.16".
                 ASSIGN tt-ped-venda.cod-entrega = loc-entr.cod-entrega.
     
         END.  
-MESSAGE "****x 0.0.17".        
+
         /* Se nao existir nem local de entrega nem endereco pedido busca o padrao ou o primeiro */
         IF NOT AVAIL loc-entr THEN DO:
     
@@ -1019,7 +1052,7 @@ MESSAGE "****x 0.0.17".
                     ASSIGN tt-ped-venda.cod-entrega = loc-entr.cod-entrega.
     
         END.
-MESSAGE "****x 0.0.18" SEARCH("tges/twp/twdi159.p") SEARCH("tges/twp/twdi159.r").            
+
         /* Altera tt-sf-pedido para chegar na Trigger de write com os valores j† atualizados                */
         /* Se houver eliminacao na tabela do pedido a TRIGGER tges/tdp/tdp159-01.p zera os valores abaixo */
         ASSIGN tt-sf-pedido.nome-abrev         = tt-ped-venda.nome-abrev 
@@ -1036,7 +1069,7 @@ MESSAGE "****x 0.0.18" SEARCH("tges/twp/twdi159.p") SEARCH("tges/twp/twdi159.r")
         RUN inputRowParam  IN bo-ped-venda (INPUT TABLE tt-ped-param).
         RUN createRecord   IN bo-ped-venda.
         RUN getRowErrors   IN bo-ped-venda (OUTPUT TABLE RowErrors).
-MESSAGE "****x 0.0.19".        
+
         FIND FIRST RowErrors
              WHERE RowErrors.ErrorSubType  <> "WARNING" NO-LOCK NO-ERROR.
         
@@ -1044,14 +1077,16 @@ MESSAGE "****x 0.0.19".
     
             RUN pi-create-erro (INPUT RowErrors.ErrorNumber,
                                 INPUT TRUE,
-                                INPUT RowErrors.ErrorDescription + " (12)").
+                                INPUT RowErrors.ErrorDescription + " (12)",
+                                INPUT "",
+                                INPUT "").
     
             RUN pi-delete-pedido-erro(INPUT tt-ped-venda.nr-pedcli,
                                       INPUT tt-ped-venda.nome-abrev).
                 
             RETURN "NEXT":U.    
         END.
-MESSAGE "****x 0.0.20".            
+
         FIND FIRST tt-ped-venda NO-ERROR.
         
         RUN getRowid                    IN bo-ped-venda (OUTPUT tt-ped-venda.r-rowid).
@@ -1061,7 +1096,7 @@ MESSAGE "****x 0.0.20".
         FIND FIRST tt-ped-venda NO-ERROR.
     
         /*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*/
-MESSAGE "****x 0.0.21".        
+
         FOR EACH tt-sf-item-pedido NO-LOCK
             WHERE tt-sf-item-pedido.cd_pedido_palm = tt-sf-pedido.cd_pedido_palm:
 
@@ -1103,7 +1138,9 @@ MESSAGE "****x 0.0.21".
     
                 RUN pi-create-erro (INPUT 90,
                                     INPUT TRUE,
-                                    INPUT RETURN-VALUE + " (14)").
+                                    INPUT RETURN-VALUE + " (14)",
+                                    INPUT "",
+                                    INPUT "").
     
                 RUN pi-delete-pedido-erro(INPUT tt-ped-venda.nr-pedcli,
                                           INPUT tt-ped-venda.nome-abrev).
@@ -1127,7 +1164,9 @@ MESSAGE "****x 0.0.21".
                     
                     RUN pi-create-erro (INPUT 6,
                                         INPUT FALSE,
-                                        INPUT SUBSTITUTE("Natureza de operaá∆o &1 n∆o cadastrada.",tt-item-prod-nat.nat_operacao) + " (15)").
+                                        INPUT SUBSTITUTE("Natureza de operaá∆o &1 n∆o cadastrada.",tt-item-prod-nat.nat_operacao) + " (15)",
+                                        INPUT "",
+                                        INPUT "").
                                                     
                     RUN pi-delete-pedido-erro(INPUT tt-ped-venda.nr-pedcli,
                                               INPUT tt-ped-venda.nome-abrev).
@@ -1198,7 +1237,9 @@ MESSAGE "****x 0.0.21".
     
                 RUN pi-create-erro (INPUT RowErrors.ErrorNumber,
                                     INPUT TRUE,
-                                    INPUT "Erro ao criar Item do pedido: " +  tt-sf-item-pedido.it-codigo + " Erro: " + RowErrors.ErrorDescription + " (16)").
+                                    INPUT "Erro ao criar Item do pedido: " +  tt-sf-item-pedido.it-codigo + " Erro: " + RowErrors.ErrorDescription + " (16)",
+                                    INPUT "",
+                                    INPUT "").
                   
                 RUN pi-delete-pedido-erro(INPUT tt-ped-venda.nr-pedcli,
                                           INPUT tt-ped-venda.nome-abrev).
@@ -1221,7 +1262,7 @@ MESSAGE "****x 0.0.21".
                        es-ped-item.cod-mensagem = tt-item-prod-nat.cod_mensagem.              
             END.
         END.
-MESSAGE "****x 0.0.22".                
+
         RUN pi-cancela-tb-preco.
         
         IF ped-venda.cod-sit-ped <> 6 THEN DO:
@@ -1240,13 +1281,11 @@ MESSAGE "****x 0.0.22".
                        es-lib-cml.u-char-1     = STRING(TIME,"HH:MM:SS"). /* hora liberaá∆o */
             END.
         END.
-MESSAGE "****x 0.0.23".                
-        MESSAGE "**** c-nr-pedcli " c-nr-pedcli.
-        
+
         /*-*-*-*-*-*-*-*-*-*-*-*-*-*-*/
         /*Completa Pedido*/
         RUN pi-completa-pedido(INPUT ROWID(ped-venda)).        
-MESSAGE "****x 0.0.24".        
+
     END.
 
 END PROCEDURE.
@@ -1275,8 +1314,7 @@ PROCEDURE pi-cancela-tb-preco:
 
             RUN pi-cancela-preco-item (OUTPUT l-cancela).
 
-            MESSAGE "**** l-cancela " l-cancela.
-
+            
             IF l-cancela THEN
                 ASSIGN i-cont-item-cancela = i-cont-item-cancela + 1.
 
@@ -1322,8 +1360,7 @@ PROCEDURE pi-cancela-preco-item:
     /* Se existir preco item E estiver como ativo, nao cancela ITEM                    */
     /* Deve ser verificado primeiro ITEM principal pois tem casos que pode nao alterar */
 
-    MESSAGE "**** c-nr-tabpre " c-nr-tabpre.
-
+    
     IF NOT CAN-FIND(FIRST es-gp-preco-item NO-LOCK
                     WHERE es-gp-preco-item.nr-tabpre    = c-nr-tabpre
                       AND es-gp-preco-item.it-codigo    = ped-item.it-codigo) 
@@ -1374,28 +1411,27 @@ PROCEDURE pi-cancela-preco-item:
             END.
         END.
         ELSE DO:
-            MESSAGE "**** cancela 1".
-
+            
             /* Busca tabela de preco historica para clientes suspenso (Se ainda existir na rota entao nao cancela) */
             FOR LAST es-gp-preco-hist NO-LOCK
                WHERE es-gp-preco-hist.nr-tabpre    = c-nr-tabpre
                  AND es-gp-preco-hist.it-codigo    = ped-item.it-codigo
                  AND es-gp-preco-hist.cod-refer    = ped-item.cod-refer
                  AND es-gp-preco-hist.cod-unid-med = ped-item.cod-un:
-                MESSAGE "**** cancela 2".                
+                
                 /* Busca por rota */
                 FIND FIRST es-gp-tb-preco
                      WHERE es-gp-tb-preco.nr-rota = es-gp-preco-hist.nr-rota
                        AND es-gp-tb-preco.tipo    = "Rota" NO-LOCK NO-ERROR.
                 IF AVAIL es-gp-tb-preco THEN DO:
-                    MESSAGE "**** cancela 3".                    
+                    
                     /* Se eixstir o item de tabela de rota nao cancela */
                     IF CAN-FIND(FIRST es-gp-preco-item NO-LOCK
                                 WHERE es-gp-preco-item.nr-tabpre    = es-gp-tb-preco.nr-tabpre
                                   AND es-gp-preco-item.it-codigo    = ped-item.it-codigo
                                   AND es-gp-preco-item.cod-refer    = ped-item.cod-refer
                                   AND es-gp-preco-item.cod-unid-med = ped-item.cod-un) THEN DO:
-                        MESSAGE "**** cancela 4".
+                        
                         ASSIGN pl-cancela = FALSE.
 
                         RETURN.
@@ -1403,13 +1439,12 @@ PROCEDURE pi-cancela-preco-item:
                     ELSE DO:
                         /* Cancela */
                         ASSIGN pl-cancela = TRUE.
-                        MESSAGE "**** cancela 5".
-
+                        
                         RETURN.
                     END.
                 END.
                 ELSE DO:
-                    MESSAGE "**** cancela 6".
+                    
                     /* Cancela */
                     ASSIGN pl-cancela = TRUE.
 
@@ -1417,7 +1452,6 @@ PROCEDURE pi-cancela-preco-item:
                 END.
             END.
             IF NOT AVAIL es-gp-preco-hist THEN DO:                
-                MESSAGE "**** cancela 7".
                 /****************
                 /* Cancela */
                 ASSIGN pl-cancela = TRUE.
@@ -1466,8 +1500,7 @@ PROCEDURE pi-envia-email:
                           "" FORMAT "x(12)" " | "
                           "Problema no envio de e-mail. " + tt-erros.desc-erro FORMAT "x(255)" SKIP.     
 
-        MESSAGE "**** Problema no envio de e-mail. " tt-erros.desc-erro.
-       
+        
     END.
     
 END PROCEDURE.
@@ -1514,7 +1547,9 @@ PROCEDURE pi-processa-natureza-item:
             
             RUN pi-create-erro (INPUT 90,
                                 INPUT TRUE,
-                                INPUT RETURN-VALUE + " (18)").
+                                INPUT RETURN-VALUE + " (18)",
+                                INPUT '',
+                                INPUT '').
             
             RETURN "NEXT":U.
         END.
@@ -1527,13 +1562,6 @@ PROCEDURE pi-processa-natureza-item:
                                INPUT STRING(c-tipo-pedido, "999"),
                                OUTPUT c-natureza-item,   
                                OUTPUT i-cod-mensagem).
-
-        MESSAGE "**** Busca de natureza de operacao".
-        MESSAGE "**** tt-sf-item-pedido.it-codigo " tt-sf-item-pedido.it-codigo.
-        MESSAGE "**** tt-sf-pedido.cd_org_venda " tt-sf-pedido.cd_org_venda.
-        MESSAGE "**** emitente.cod-emitente " emitente.cod-emitente.
-        MESSAGE "**** c-natureza-item " c-natureza-item.
-        MESSAGE "**** i-cod-mensagem " i-cod-mensagem.
 
         FIND FIRST tt-item-prod-nat 
             WHERE tt-item-prod-nat.cd_pedido_palm = tt-sf-item-pedido.cd_pedido_palm
@@ -1558,7 +1586,9 @@ PROCEDURE pi-processa-natureza-item:
     IF de-vl-tot-item <> tt-sf-pedido.vr_pedido THEN DO:
         RUN pi-create-erro (INPUT 14,
                             INPUT FALSE,
-                            INPUT "Valor da somat¢ria dos itens divergente do valor total do pedido." + " (19)").
+                            INPUT "Valor da somat¢ria dos itens divergente do valor total do pedido." + " (19)",
+                            INPUT "",
+                            INPUT "").
 
         RETURN "NEXT":U.        
     END.
@@ -1632,8 +1662,6 @@ PROCEDURE pi-buscar-nr-pedcli:
 
     DEFINE BUFFER bf-ext-ped-venda FOR ext-ped-venda.
 
-    MESSAGE "b-tt-sf-pedido.cd_tipo_pedido: " b-tt-sf-pedido.cd_tipo_pedido.
-                                       
     IF b-tt-sf-pedido.cd_tipo_pedido <> "2" THEN DO:
 
         FIND FIRST kpvNrPedRep EXCLUSIVE-LOCK WHERE kpvNrPedRep.cod-repres = b-tt-sf-pedido.cd_vendedor NO-ERROR.
@@ -1647,13 +1675,11 @@ PROCEDURE pi-buscar-nr-pedcli:
         
         ASSIGN pc-proximoCodigo = STRING(b-tt-sf-pedido.cd_vendedor, "9999") + "6" + STRING(kpvNrPedRep.nr-pedido, "999999").
 
-        MESSAGE "**** diferente".
-    
         /* Bonificacao */
         IF b-tt-sf-pedido.cd_tipo_pedido = "4" THEN
             ASSIGN pc-proximoCodigo = pc-proximoCodigo + "B".
 
-        MESSAGE "pc-proximoCodigo: " pc-proximoCodigo.
+        
     END.
     ELSE DO:
 
@@ -1668,19 +1694,25 @@ PROCEDURE pi-buscar-nr-pedcli:
                 IF pc-proximoCodigo = "" OR pc-proximoCodigo = ? THEN DO:
                     RUN pi-create-erro (INPUT 15,
                                         INPUT FALSE,
-                                        INPUT SUBSTITUTE("Pedido &1 de acerto de preáo n∆o integrado devido o pedido principal &2 n∆o ter integrado" ,b-tt-sf-pedido.cd_pedido_palm, b-tt-sf-pedido.nr-pedcli-orig)).
+                                        INPUT SUBSTITUTE("Pedido &1 de acerto de preáo n∆o integrado devido o pedido principal &2 n∆o ter integrado" ,b-tt-sf-pedido.cd_pedido_palm, b-tt-sf-pedido.nr-pedcli-orig),
+                                        INPUT "",
+                                        INPUT "").
                 END.
             END.
             ELSE DO:
                 RUN pi-create-erro (INPUT 15,
-                                        INPUT FALSE,
-                                        INPUT SUBSTITUTE("Pedido &1 de acerto de preáo n∆o integrado devido o pedido principal &2 n∆o ter integrado" ,b-tt-sf-pedido.cd_pedido_palm, b-tt-sf-pedido.nr-pedcli-orig)).
+                                    INPUT FALSE,
+                                    INPUT SUBSTITUTE("Pedido &1 de acerto de preáo n∆o integrado devido o pedido principal &2 n∆o ter integrado" ,b-tt-sf-pedido.cd_pedido_palm, b-tt-sf-pedido.nr-pedcli-orig),
+                                    INPUT "",
+                                    INPUT "").
             END.
         END.
         ELSE DO:
             RUN pi-create-erro (INPUT 15,
                                         INPUT FALSE,
-                                        INPUT SUBSTITUTE("Pedido &1 de acerto de preáo n∆o integrado devido o pedido principal &2 n∆o ter integrado" ,b-tt-sf-pedido.cd_pedido_palm, b-tt-sf-pedido.nr-pedcli-orig)).
+                                        INPUT SUBSTITUTE("Pedido &1 de acerto de preáo n∆o integrado devido o pedido principal &2 n∆o ter integrado" ,b-tt-sf-pedido.cd_pedido_palm, b-tt-sf-pedido.nr-pedcli-orig),
+                                INPUT "",
+                                INPUT "").
         END.
     END.
 
@@ -1759,18 +1791,13 @@ PROCEDURE pi-completa-pedido:
     DEFINE INPUT PARAMETER rw-ped-venda AS ROWID   NO-UNDO.
     
 
-    MESSAGE "**** pi-completa-pedido 1 ".
-
+    
     FIND FIRST ped-venda NO-LOCK
         WHERE ROWID(ped-venda) = rw-ped-venda NO-ERROR . /*Busca o registro do Pedido*/
-    MESSAGE "**** pi-completa-pedido 2 " AVAIL ped-venda.
     IF NOT AVAIL ped-venda THEN RETURN. /*Se n∆o encontrou o registro retorna*/
-    MESSAGE "**** pi-completa-pedido 3 ".    
     IF ped-venda.cod-sit-ped <> 1 THEN RETURN. /*Caso a situaá∆o do pedido seja diferente de aberto retorna o aviso*/
-    MESSAGE "**** pi-completa-pedido 4 ".   
     RUN completeOrder IN h-bodi159com (INPUT rw-ped-venda,
                                        OUTPUT TABLE RowErrors).
-    MESSAGE "**** pi-completa-pedido 5 ".
     FIND FIRST RowErrors NO-LOCK NO-ERROR.    
     IF AVAIL RowErrors THEN DO:
        /**************************************************************
@@ -1778,13 +1805,7 @@ PROCEDURE pi-completa-pedido:
        * como o crÇdito foi aprovado pelo portal n∆o Ç necess†rio um *
        * retorno desse tipo                                          *
        **************************************************************/
-       MESSAGE "**** pi-completa-pedido 6 " RowErrors.ErrorNumber
-           " - " RowErrors.ErrorDescription.
-
-
-       MESSAGE "**** nr-pedcli " ped-venda.nr-pedcli.
-       MESSAGE "**** nr-pedido " ped-venda.nr-pedido.
-       MESSAGE "**** nr-pedrep " ped-venda.nr-pedrep.
+       
        
        IF RowErrors.ErrorNumber = 8259 THEN DO:
            /**ASSIGN ttKpvProcesso.com_cod_mensagem = "message.0059".*/
@@ -1795,15 +1816,15 @@ PROCEDURE pi-completa-pedido:
 
        RUN pi-create-erro ( INPUT RowErrors.ErrorNumber,
                             INPUT TRUE,
-                            INPUT RowErrors.ErrorDescription + " (20)").
+                            INPUT RowErrors.ErrorDescription + " (20)",
+                            INPUT "",
+                            INPUT "").
 
        RETURN "NOK".
     END.
 
     ASSIGN
        c-nr-pedcli-ret = ped-venda.nr-pedcli.
-
-    MESSAGE "**** pi-completa-pedido 7 " c-nr-pedcli-ret.
 
     RETURN "OK":U.
 
@@ -1814,6 +1835,8 @@ PROCEDURE pi-create-erro:
     DEFINE INPUT PARAMETER pi-cod-mensagem AS INT                  NO-UNDO.
     DEFINE INPUT PARAMETER pl-msg-padrao   AS LOG                  NO-UNDO.
     DEFINE INPUT PARAMETER pc-mensagem     AS CHAR FORMAT 'x(255)' NO-UNDO.
+    DEFINE INPUT PARAMETER p-nome-abrev    AS CHAR                 NO-UNDO.
+    DEFINE INPUT PARAMETER p-nr-pedcli     AS CHAR                 NO-UNDO.
 
     PUT STREAM str-rp b-tt-sf-pedido.cd_pedido_palm                                         " | "
                       STRING(b-tt-sf-pedido.cd_cliente)                     FORMAT "x(11)"  " | "
@@ -1844,7 +1867,9 @@ PROCEDURE pi-create-erro:
                    tt-pedido-erro.cd-cliente     = b-tt-sf-pedido.cd_cliente
                    tt-pedido-erro.msg-erro       = pc-mensagem
                    tt-pedido-erro.cod-msg        = pi-cod-mensagem
-                   tt-pedido-erro.msg-padrao     = pl-msg-padrao.        
+                   tt-pedido-erro.msg-padrao     = pl-msg-padrao 
+                   tt-pedido-erro.nome-abrev     = p-nome-abrev
+                   tt-pedido-erro.nr-pedcli      = p-nr-pedcli.
         END.
     END.
                    
@@ -1876,7 +1901,9 @@ PROCEDURE pi-cancela-pedido:
 
         RUN pi-create-erro (INPUT RowErrors.ErrorNumber,
                             INPUT TRUE,
-                            INPUT RowErrors.ErrorDescription + " (1)").
+                            INPUT RowErrors.ErrorDescription + " (1)",
+                            INPUT "",
+                            INPUT "").
 
         RETURN "ADM-ERROR":U.
     
@@ -1921,7 +1948,9 @@ PROCEDURE pi-cancela-item:
         
         RUN pi-create-erro (INPUT RowErrors.ErrorNumber, 
                             INPUT TRUE,
-                            INPUT RowErrors.ErrorDescription + " (2)").
+                            INPUT RowErrors.ErrorDescription + " (2)",
+                            INPUT "",
+                            INPUT "").
 
         RETURN "ADM-ERROR":U.
         

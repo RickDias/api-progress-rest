@@ -66,13 +66,13 @@ IF ERROR-STATUS:ERROR THEN DO:
     RETURN "NOK".
 END.
 
-FIND FIRST sfa-export 
-     WHERE ROWID(sfa-export) = r-table 
+FIND FIRST es-api-export 
+     WHERE ROWID(es-api-export) = r-table 
      NO-ERROR.
-IF AVAIL sfa-export THEN DO:
+IF AVAIL es-api-export THEN DO:
 
-    FIND FIRST sfa-export-nf OF sfa-export NO-ERROR.
-    IF AVAIL sfa-export-nf THEN DO:
+    FIND FIRST es-api-export-nf OF es-api-export NO-ERROR.
+    IF AVAIL es-api-export-nf THEN DO:
 
         /*------------------------------------------ Nota Fiscal -------------------------------------------*/
         RUN piGravaTTNf (OUTPUT h-temp,
@@ -119,8 +119,8 @@ IF AVAIL sfa-export THEN DO:
         oJsonObjMain = NEW JsonObject().
         oJsonObjMain:ADD("req",oJsonArrayMain).
                
-        FIND FIRST es-api-param WHERE es-api-param.ind-tipo-trans = sfa-export.ind-tipo-trans
-                                  AND es-api-param.cd-tipo-integr = sfa-export.cd-tipo-integr NO-LOCK NO-ERROR.                            
+        FIND FIRST es-api-param WHERE es-api-param.ind-tipo-trans = es-api-export.ind-tipo-trans
+                                  AND es-api-param.cd-tipo-integr = es-api-export.cd-tipo-integr NO-LOCK NO-ERROR.                            
 
         /* ------ Grava conteudo do Json em variavel -----*/
         RUN piGeraVarJson IN h-esint002 (INPUT oJsonObjMain,
@@ -133,7 +133,7 @@ IF AVAIL sfa-export THEN DO:
         END.
         CLIPBOARD:VALUE = STRING(c-Json).
 
-        ASSIGN sfa-export-nf.c-json = c-Json.
+        ASSIGN es-api-export-nf.c-json = c-Json.
 
         /* ------------ Envia Objeto Json --------- */
         RUN piPostJsonObj IN h-esint002 (INPUT oJsonObjMain,
@@ -141,7 +141,7 @@ IF AVAIL sfa-export THEN DO:
                                          OUTPUT lResp,
                                          OUTPUT TABLE RowErrors,
                                          OUTPUT c-retorno).
-        ASSIGN sfa-export.text-retorno = c-retorno.
+        ASSIGN es-api-export.text-retorno = c-retorno.
 
         IF TEMP-TABLE rowErrors:HAS-RECORDS THEN DO:
             FOR EACH rowErrors:
@@ -173,24 +173,31 @@ PROCEDURE piGravaTTNf:
 
     DEF VAR cTipoFrete AS CHARACTER NO-UNDO INITIAL "CIF,FOB".
 
-    FIND FIRST nota-fiscal NO-LOCK WHERE nota-fiscal.cod-estabel = sfa-export-nf.cod-estabel
-                                     AND nota-fiscal.serie       = sfa-export-nf.serie
-                                     AND nota-fiscal.nr-nota-fis = sfa-export-nf.nr-nota-fis NO-ERROR.
+    FIND FIRST nota-fiscal NO-LOCK WHERE nota-fiscal.cod-estabel = es-api-export-nf.cod-estabel
+                                     AND nota-fiscal.serie       = es-api-export-nf.serie
+                                     AND nota-fiscal.nr-nota-fis = es-api-export-nf.nr-nota-fis NO-ERROR.
     IF AVAIL nota-fiscal THEN DO:
+
         CREATE tt_nota_fiscal.
         BUFFER-COPY nota-fiscal TO tt_nota_fiscal. 
-        ASSIGN tt_nota_fiscal.nr-nota-fis2 = tt_nota_fiscal.nr-nota-fis.
+        ASSIGN tt_nota_fiscal.nr-nota-fis2 = tt_nota_fiscal.nr-nota-fis
+               tt_nota_fiscal.cgc = TRIM(nota-fiscal.cgc).
 
         FIND FIRST pais WHERE pais.nome-pais = nota-fiscal.pais NO-LOCK NO-ERROR.
         IF AVAIL pais THEN
             ASSIGN  tt_nota_fiscal.Pais = substring(pais.char-1,23,02).
 
         ASSIGN tt_nota_fiscal.modalidadeFrete = entry(nota-fiscal.ind-tp-frete,cTipoFrete)
-               tt_nota_fiscal.c-cod-cond-pag  = trim(STRING(nota-fiscal.cod-cond-pag,">99")).
+               tt_nota_fiscal.c-cod-cond-pag  = trim(STRING(nota-fiscal.cod-cond-pag,">99"))
+               tt_nota_fiscal.endereco = STRING(nota-fiscal.cod-entrega).
+
+        IF tt_nota_fiscal.endereco = 'PADRAO' THEN
+            tt_nota_fiscal.endereco = "Padr∆o".
+        ASSIGN tt_nota_fiscal.obs-gerada = "Obs Gerada: " + nota-fiscal.obs-gerada + chr(10) + " Obs Nota:" + nota-fiscal.observ-nota.
 
     END.
     ELSE DO:
-        pErro = "Registro Nota Fiscal n∆o localizado " + sfa-export-nf.cod-estabel + " | " + sfa-export-nf.serie + " | " + sfa-export-nf.nr-nota-fis.
+        pErro = "Registro Nota Fiscal n∆o localizado " + es-api-export-nf.cod-estabel + " | " + es-api-export-nf.serie + " | " + es-api-export-nf.nr-nota-fis.
         RETURN "NOK".
     END.
 
@@ -204,9 +211,9 @@ PROCEDURE piGravaTTItemNf:
 
     DEFINE OUTPUT PARAMETER pTemp AS HANDLE NO-UNDO.
 
-    FOR EACH it-nota-fisc  WHERE it-nota-fisc.cod-estabel = sfa-export-nf.cod-estabel
-                             AND it-nota-fisc.serie       = sfa-export-nf.serie
-                             AND it-nota-fisc.nr-nota-fis = sfa-export-nf.nr-nota-fis NO-LOCK:
+    FOR EACH it-nota-fisc  WHERE it-nota-fisc.cod-estabel = es-api-export-nf.cod-estabel
+                             AND it-nota-fisc.serie       = es-api-export-nf.serie
+                             AND it-nota-fisc.nr-nota-fis = es-api-export-nf.nr-nota-fis NO-LOCK:
         CREATE tt_item_nota_fisc.
         BUFFER-COPY it-nota-fisc TO tt_item_nota_fisc.   
         ASSIGN

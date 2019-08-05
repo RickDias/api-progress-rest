@@ -17,7 +17,7 @@
 /* <programa>:  Informar qual o nome do programa.                                 */
 /* <m¢dulo>:  Informar qual o m¢dulo a qual o programa pertence.                  */
 
-&IF "{&EMSFND_VERSION}" >= "1.00" &THEN
+&IF "{&EMSFND-VERSION}" >= "1.00" &THEN
     {include/i-license-manager.i esint001 <m¢dulo>}
 &ENDIF
 
@@ -35,9 +35,29 @@ CREATE WIDGET-POOL.
 
 /* Local Variable Definitions ---                                       */
 
-    DEFINE VARIABLE hnd_apps_server    AS HANDLE    NO-UNDO. /* handle do server */
-    DEFINE VARIABLE hnd_apps_prog      AS HANDLE    NO-UNDO. /* handle para programa persistent */
+    DEFINE VARIABLE hnd-apps-server-1-1       AS HANDLE  EXTENT 20  NO-UNDO. /* handle do server */
+    DEFINE VARIABLE hnd-apps-server-async-1-1 AS HANDLE  EXTENT 20  NO-UNDO. /* handle do server */
+                                                                
+    DEFINE VARIABLE hnd-apps-server-1-2       AS HANDLE  EXTENT 20  NO-UNDO. /* handle do server */
+    DEFINE VARIABLE hnd-apps-server-async-1-2 AS HANDLE  EXTENT 20  NO-UNDO. /* handle do server */
+                                                                
+    DEFINE VARIABLE hnd-apps-server-2-1       AS HANDLE  EXTENT 20  NO-UNDO. /* handle do server */
+    DEFINE VARIABLE hnd-apps-server-async-2-1 AS HANDLE  EXTENT 20  NO-UNDO. /* handle do server */
+                                                                
+    DEFINE VARIABLE hnd-apps-server-2-2       AS HANDLE  EXTENT 20  NO-UNDO. /* handle do server */
+    DEFINE VARIABLE hnd-apps-server-async-2-2 AS HANDLE  EXTENT 20  NO-UNDO. /* handle do server */
+    
+    DEFINE VARIABLE hnd-apps-prog      AS HANDLE    NO-UNDO. /* handle para programa persistent */
     DEFINE VARIABLE p-string-conexao   AS CHARACTER NO-UNDO.
+    DEFINE VARIABLE i-tot-serv         AS INTEGER   NO-UNDO.
+
+    DEFINE TEMP-TABLE tt-apps NO-UNDO
+        LIKE es-api-appserver
+        FIELD i-agent-conect AS INTEGER
+        FIELD l-padrao       AS LOGICAL
+        INDEX i1 IS PRIMARY ind-tipo-trans 
+                            cd-sistema
+                            host-appserver.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
@@ -56,10 +76,13 @@ CREATE WIDGET-POOL.
 &Scoped-define FRAME-NAME f-cad
 
 /* Standard List Definitions                                            */
-&Scoped-Define ENABLED-OBJECTS rt-button RECT-1 RECT-2 RECT-3 rs-tipo-trans ~
-bt-pesq fi-cd-sistema 
-&Scoped-Define DISPLAYED-OBJECTS rs-tipo-trans fi-cd-sistema ~
-fi-desc-sistema 
+&Scoped-Define ENABLED-OBJECTS fi-sfa-entrada fi-direcao-1 fi-sfa-2 ~
+fi--direcao-2 fi-ariba-1 fi-direcao-3 fi-ariba-2 fi-direcao-4 RECT-2 ~
+rt-button RECT-3 RECT-4 RECT-5 
+&Scoped-Define DISPLAYED-OBJECTS fi-sfa-entrada fi-direcao-1 fi-sfa-2 ~
+fi--direcao-2 fi-ariba-1 fi-direcao-3 fi-ariba-2 fi-direcao-4 ~
+fi-dt-ativa-sfa1 fi-dt-ativa-sfa2 fi-dt-ativa-ariba1 fi-dt-ativa-ariba2 ~
+fi-agentes-sfa1 fi-agentes-sfa2 fi-agentes-ariba1 fi-agentes-ariba2 
 
 /* Custom List Definitions                                              */
 /* List-1,List-2,List-3,List-4,List-5,List-6                            */
@@ -74,86 +97,177 @@ fi-desc-sistema
 /* Define the widget handle for the window                              */
 DEFINE VAR w-livre AS WIDGET-HANDLE NO-UNDO.
 
-/* Menu Definitions                                                     */
-DEFINE SUB-MENU mi-programa 
-       MENU-ITEM mi-consultas   LABEL "Co&nsultas"     ACCELERATOR "CTRL-L"
-       MENU-ITEM mi-imprimir    LABEL "&Relat¢rios"    ACCELERATOR "CTRL-P"
-       RULE
-       MENU-ITEM mi-sair        LABEL "&Sair"          ACCELERATOR "CTRL-X".
-
-DEFINE SUB-MENU m_Ajuda 
-       MENU-ITEM mi-conteudo    LABEL "&Conteudo"     
-       MENU-ITEM mi-sobre       LABEL "&Sobre..."     .
-
-DEFINE MENU m-livre MENUBAR
-       SUB-MENU  mi-programa    LABEL "&Nome-do-Programa"
-       SUB-MENU  m_Ajuda        LABEL "&Ajuda"        .
-
-
-/* Definitions of handles for SmartObjects                              */
-DEFINE VARIABLE h_p-exihel AS HANDLE NO-UNDO.
-
 /* Definitions of the field level widgets                               */
-DEFINE BUTTON bt-ativa 
+DEFINE BUTTON bt-ativaAriba1 
+     IMAGE-UP FILE "image/im-play1.bmp":U NO-FOCUS
      LABEL "Ativar" 
-     SIZE 18 BY 1.5.
+     SIZE 7 BY 1 TOOLTIP "Ativar Integraá∆o".
 
-DEFINE BUTTON bt-desativa 
+DEFINE BUTTON bt-ativaAriba2 
+     IMAGE-UP FILE "image/im-play1.bmp":U NO-FOCUS
+     LABEL "Ativar" 
+     SIZE 7 BY 1 TOOLTIP "Ativar Integraá∆o".
+
+DEFINE BUTTON bt-ativaSFA1 
+     IMAGE-UP FILE "image/im-play1.bmp":U NO-FOCUS
+     LABEL "Ativar" 
+     SIZE 7 BY 1 TOOLTIP "Ativar Integraá∆o".
+
+DEFINE BUTTON bt-ativaSFA2 
+     IMAGE-UP FILE "image/im-play1.bmp":U NO-FOCUS
+     LABEL "Ativar" 
+     SIZE 7 BY 1 TOOLTIP "Ativar Integraá∆o".
+
+DEFINE BUTTON bt-desativaAriba1 
+     IMAGE-UP FILE "image/im-stop.bmp":U NO-FOCUS
      LABEL "Desativar" 
-     SIZE 18 BY 1.5.
+     SIZE 7 BY 1 TOOLTIP "Desativar Integraá∆o".
 
-DEFINE BUTTON bt-pesq 
-     IMAGE-UP FILE "image/im-sea1.bmp":U
-     LABEL "Pesquisar" 
-     SIZE 5.29 BY 1.13.
+DEFINE BUTTON bt-desativaAriba2 
+     IMAGE-UP FILE "image/im-stop.bmp":U NO-FOCUS
+     LABEL "Desativar" 
+     SIZE 7 BY 1 TOOLTIP "Desativar Integraá∆o".
 
-DEFINE VARIABLE fi-cd-sistema AS INTEGER FORMAT "->,>>>,>>9":U INITIAL 0 
-     LABEL "Sistema" 
-     VIEW-AS FILL-IN 
-     SIZE 10 BY .88 NO-UNDO.
+DEFINE BUTTON bt-desativaSFA1 
+     IMAGE-UP FILE "image/im-stop.bmp":U NO-FOCUS
+     LABEL "Desativar" 
+     SIZE 7 BY 1 TOOLTIP "Desativar Integraá∆o".
 
-DEFINE VARIABLE fi-desc-sistema AS CHARACTER FORMAT "X(50)":U 
+DEFINE BUTTON bt-desativaSFA2 
+     IMAGE-UP FILE "image/im-stop.bmp":U NO-FOCUS
+     LABEL "Desativar" 
+     SIZE 7 BY 1 TOOLTIP "Desativar Integraá∆o".
+
+DEFINE BUTTON bt-sair 
+     IMAGE-UP FILE "image/toolbar/im-exi.bmp":U
+     LABEL "Sair" 
+     SIZE 5 BY 1.21.
+
+DEFINE VARIABLE fi--direcao-2 AS CHARACTER FORMAT "X(50)":U INITIAL "RESPONSE" 
      VIEW-AS FILL-IN NATIVE 
-     SIZE 49 BY .88 NO-UNDO.
+     SIZE 12 BY .88 NO-UNDO.
 
-DEFINE VARIABLE rs-tipo-trans AS INTEGER 
-     VIEW-AS RADIO-SET HORIZONTAL
-     RADIO-BUTTONS 
-          "Importaá∆o", 1,
-"Exportaá∆o", 2
-     SIZE 44 BY .75 NO-UNDO.
+DEFINE VARIABLE fi-agentes-ariba1 AS INTEGER FORMAT "->,>>>,>>9":U INITIAL 0 
+     VIEW-AS FILL-IN NATIVE 
+     SIZE 5 BY .88 NO-UNDO.
 
-DEFINE RECTANGLE RECT-1
-     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL   
-     SIZE 90 BY 2.75.
+DEFINE VARIABLE fi-agentes-ariba2 AS INTEGER FORMAT "->,>>>,>>9":U INITIAL 0 
+     VIEW-AS FILL-IN NATIVE 
+     SIZE 5 BY .88 NO-UNDO.
+
+DEFINE VARIABLE fi-agentes-sfa1 AS INTEGER FORMAT "->,>>>,>>9":U INITIAL 0 
+     VIEW-AS FILL-IN NATIVE 
+     SIZE 5 BY .88 NO-UNDO.
+
+DEFINE VARIABLE fi-agentes-sfa2 AS INTEGER FORMAT "->,>>>,>>9":U INITIAL 0 
+     VIEW-AS FILL-IN NATIVE 
+     SIZE 5 BY .88 NO-UNDO.
+
+DEFINE VARIABLE fi-ariba-1 AS CHARACTER FORMAT "X(50)":U INITIAL "ARIBA" 
+     VIEW-AS FILL-IN NATIVE 
+     SIZE 12 BY .88 NO-UNDO.
+
+DEFINE VARIABLE fi-ariba-2 AS CHARACTER FORMAT "X(50)":U INITIAL "ARIBA" 
+     VIEW-AS FILL-IN NATIVE 
+     SIZE 12 BY .88 NO-UNDO.
+
+DEFINE VARIABLE fi-direcao-1 AS CHARACTER FORMAT "X(50)":U INITIAL "REQUEST" 
+     VIEW-AS FILL-IN NATIVE 
+     SIZE 12 BY .88 NO-UNDO.
+
+DEFINE VARIABLE fi-direcao-3 AS CHARACTER FORMAT "X(50)":U INITIAL "REQUEST" 
+     VIEW-AS FILL-IN NATIVE 
+     SIZE 12 BY .88 NO-UNDO.
+
+DEFINE VARIABLE fi-direcao-4 AS CHARACTER FORMAT "X(50)":U INITIAL "RESPONSE" 
+     VIEW-AS FILL-IN NATIVE 
+     SIZE 12 BY .88 NO-UNDO.
+
+DEFINE VARIABLE fi-dt-ativa-ariba1 AS DATETIME FORMAT "99/99/99 HH:MM:SS":U 
+     VIEW-AS FILL-IN NATIVE 
+     SIZE 15 BY .88 NO-UNDO.
+
+DEFINE VARIABLE fi-dt-ativa-ariba2 AS DATETIME FORMAT "99/99/99 HH:MM:SS":U 
+     VIEW-AS FILL-IN NATIVE 
+     SIZE 15 BY .88 NO-UNDO.
+
+DEFINE VARIABLE fi-dt-ativa-sfa1 AS DATETIME FORMAT "99/99/99 HH:MM:SS":U 
+     VIEW-AS FILL-IN NATIVE 
+     SIZE 15 BY .88 NO-UNDO.
+
+DEFINE VARIABLE fi-dt-ativa-sfa2 AS DATETIME FORMAT "99/99/99 HH:MM:SS":U 
+     VIEW-AS FILL-IN NATIVE 
+     SIZE 15 BY .88 NO-UNDO.
+
+DEFINE VARIABLE fi-sfa-2 AS CHARACTER FORMAT "X(50)":U INITIAL "SALESFORCE" 
+     VIEW-AS FILL-IN NATIVE 
+     SIZE 12 BY .88 NO-UNDO.
+
+DEFINE VARIABLE fi-sfa-entrada AS CHARACTER FORMAT "X(50)":U INITIAL "SALESFORCE" 
+     VIEW-AS FILL-IN NATIVE 
+     SIZE 12 BY .88 NO-UNDO.
 
 DEFINE RECTANGLE RECT-2
      EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL   
-     SIZE 90 BY 9.5.
+     SIZE 83 BY 10.96.
 
 DEFINE RECTANGLE RECT-3
      EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL   
-     SIZE 48 BY 6.
+     SIZE 44 BY 5.25.
+
+DEFINE RECTANGLE RECT-4
+     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL   
+     SIZE 17 BY 5.25.
+
+DEFINE RECTANGLE RECT-5
+     EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL   
+     SIZE 17 BY 5.25.
 
 DEFINE RECTANGLE rt-button
      EDGE-PIXELS 2 GRAPHIC-EDGE    
-     SIZE 89.72 BY 1.46
+     SIZE 83 BY 1.46
      BGCOLOR 7 .
 
 
 /* ************************  Frame Definitions  *********************** */
 
 DEFINE FRAME f-cad
-     rs-tipo-trans AT ROW 3 COL 24 NO-LABEL WIDGET-ID 16
-     bt-pesq AT ROW 3.88 COL 76.72 WIDGET-ID 20
-     fi-cd-sistema AT ROW 3.96 COL 15 COLON-ALIGNED WIDGET-ID 12
-     fi-desc-sistema AT ROW 3.96 COL 25 COLON-ALIGNED NO-LABEL WIDGET-ID 14
-     bt-ativa AT ROW 8.67 COL 36 WIDGET-ID 2
-     bt-desativa AT ROW 10.42 COL 36 WIDGET-ID 4
-     rt-button AT ROW 1 COL 1
-     RECT-1 AT ROW 2.5 COL 1 WIDGET-ID 6
-     RECT-2 AT ROW 5.46 COL 1 WIDGET-ID 8
-     RECT-3 AT ROW 6.92 COL 21 WIDGET-ID 10
+     bt-ativaAriba1 AT ROW 7.63 COL 31.57 WIDGET-ID 60
+     bt-ativaAriba2 AT ROW 8.67 COL 31.57 WIDGET-ID 64
+     bt-ativaSFA1 AT ROW 5.5 COL 31.57 WIDGET-ID 2
+     bt-ativaSFA2 AT ROW 6.58 COL 31.57 WIDGET-ID 56
+     bt-desativaAriba1 AT ROW 7.63 COL 39.29 WIDGET-ID 62
+     bt-desativaAriba2 AT ROW 8.67 COL 39.29 WIDGET-ID 66
+     bt-desativaSFA1 AT ROW 5.5 COL 39.29 WIDGET-ID 4
+     bt-desativaSFA2 AT ROW 6.58 COL 39.29 WIDGET-ID 58
+     bt-sair AT ROW 1.13 COL 78.43 WIDGET-ID 78
+     fi-sfa-entrada AT ROW 5.5 COL 5 COLON-ALIGNED NO-LABEL WIDGET-ID 52 NO-TAB-STOP 
+     fi-direcao-1 AT ROW 5.5 COL 17.29 COLON-ALIGNED NO-LABEL WIDGET-ID 40 NO-TAB-STOP 
+     fi-sfa-2 AT ROW 6.58 COL 5 COLON-ALIGNED NO-LABEL WIDGET-ID 48 NO-TAB-STOP 
+     fi--direcao-2 AT ROW 6.58 COL 17.29 COLON-ALIGNED NO-LABEL WIDGET-ID 14 NO-TAB-STOP 
+     fi-ariba-1 AT ROW 7.67 COL 5 COLON-ALIGNED NO-LABEL WIDGET-ID 50 NO-TAB-STOP 
+     fi-direcao-3 AT ROW 7.67 COL 17.29 COLON-ALIGNED NO-LABEL WIDGET-ID 34 NO-TAB-STOP 
+     fi-ariba-2 AT ROW 8.71 COL 5 COLON-ALIGNED NO-LABEL WIDGET-ID 54 NO-TAB-STOP 
+     fi-direcao-4 AT ROW 8.71 COL 17.29 COLON-ALIGNED NO-LABEL WIDGET-ID 46 NO-TAB-STOP 
+     fi-dt-ativa-sfa1 AT ROW 5.54 COL 46.43 COLON-ALIGNED NO-LABEL WIDGET-ID 68 NO-TAB-STOP 
+     fi-dt-ativa-sfa2 AT ROW 6.58 COL 46.43 COLON-ALIGNED NO-LABEL WIDGET-ID 70 NO-TAB-STOP 
+     fi-dt-ativa-ariba1 AT ROW 7.63 COL 46.43 COLON-ALIGNED NO-LABEL WIDGET-ID 72 NO-TAB-STOP 
+     fi-dt-ativa-ariba2 AT ROW 8.71 COL 46.43 COLON-ALIGNED NO-LABEL WIDGET-ID 74 NO-TAB-STOP 
+     fi-agentes-sfa1 AT ROW 5.54 COL 64 COLON-ALIGNED NO-LABEL WIDGET-ID 104 NO-TAB-STOP 
+     fi-agentes-sfa2 AT ROW 6.58 COL 64 COLON-ALIGNED NO-LABEL WIDGET-ID 106 NO-TAB-STOP 
+     fi-agentes-ariba1 AT ROW 7.63 COL 64 COLON-ALIGNED NO-LABEL WIDGET-ID 100 NO-TAB-STOP 
+     fi-agentes-ariba2 AT ROW 8.71 COL 64 COLON-ALIGNED NO-LABEL WIDGET-ID 102 NO-TAB-STOP 
+     " Integraá‰es" VIEW-AS TEXT
+          SIZE 10 BY .67 AT ROW 4.75 COL 3.86 WIDGET-ID 82
+     " Data/Hora In°cio" VIEW-AS TEXT
+          SIZE 13 BY .67 AT ROW 4.63 COL 48 WIDGET-ID 86
+     " Agentes Conectados" VIEW-AS TEXT
+          SIZE 14 BY .67 AT ROW 4.63 COL 66 WIDGET-ID 90
+     RECT-2 AT ROW 2.63 COL 1 WIDGET-ID 8
+     rt-button AT ROW 1 COL 1 WIDGET-ID 76
+     RECT-3 AT ROW 5 COL 3 WIDGET-ID 80
+     RECT-4 AT ROW 5 COL 47.57 WIDGET-ID 84
+     RECT-5 AT ROW 5 COL 65 WIDGET-ID 88
     WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY 
          SIDE-LABELS NO-UNDERLINE THREE-D 
          AT COL 1 ROW 1
@@ -179,12 +293,12 @@ IF SESSION:DISPLAY-TYPE = "GUI":U THEN
   CREATE WINDOW w-livre ASSIGN
          HIDDEN             = YES
          TITLE              = "Processo de Integraá∆o SFA"
-         HEIGHT             = 14.13
-         WIDTH              = 90.14
+         HEIGHT             = 12.83
+         WIDTH              = 83.14
          MAX-HEIGHT         = 17
-         MAX-WIDTH          = 105.14
+         MAX-WIDTH          = 109.86
          VIRTUAL-HEIGHT     = 17
-         VIRTUAL-WIDTH      = 105.14
+         VIRTUAL-WIDTH      = 109.86
          RESIZE             = yes
          SCROLL-BARS        = no
          STATUS-AREA        = yes
@@ -194,8 +308,6 @@ IF SESSION:DISPLAY-TYPE = "GUI":U THEN
          MESSAGE-AREA       = no
          SENSITIVE          = yes.
 ELSE {&WINDOW-NAME} = CURRENT-WINDOW.
-
-ASSIGN {&WINDOW-NAME}:MENUBAR    = MENU m-livre:HANDLE.
 /* END WINDOW DEFINITION                                                */
 &ANALYZE-RESUME
 
@@ -218,13 +330,105 @@ ASSIGN {&WINDOW-NAME}:MENUBAR    = MENU m-livre:HANDLE.
 /* SETTINGS FOR WINDOW w-livre
   VISIBLE,,RUN-PERSISTENT                                               */
 /* SETTINGS FOR FRAME f-cad
-   FRAME-NAME L-To-R                                                    */
-/* SETTINGS FOR BUTTON bt-ativa IN FRAME f-cad
+   FRAME-NAME Custom                                                    */
+/* SETTINGS FOR BUTTON bt-ativaAriba1 IN FRAME f-cad
    NO-ENABLE                                                            */
-/* SETTINGS FOR BUTTON bt-desativa IN FRAME f-cad
+ASSIGN 
+       bt-ativaAriba1:PRIVATE-DATA IN FRAME f-cad     = 
+                "2;1".
+
+/* SETTINGS FOR BUTTON bt-ativaAriba2 IN FRAME f-cad
    NO-ENABLE                                                            */
-/* SETTINGS FOR FILL-IN fi-desc-sistema IN FRAME f-cad
+ASSIGN 
+       bt-ativaAriba2:PRIVATE-DATA IN FRAME f-cad     = 
+                "2;2".
+
+/* SETTINGS FOR BUTTON bt-ativaSFA1 IN FRAME f-cad
    NO-ENABLE                                                            */
+ASSIGN 
+       bt-ativaSFA1:PRIVATE-DATA IN FRAME f-cad     = 
+                "1;1".
+
+/* SETTINGS FOR BUTTON bt-ativaSFA2 IN FRAME f-cad
+   NO-ENABLE                                                            */
+ASSIGN 
+       bt-ativaSFA2:PRIVATE-DATA IN FRAME f-cad     = 
+                "1;2".
+
+/* SETTINGS FOR BUTTON bt-desativaAriba1 IN FRAME f-cad
+   NO-ENABLE                                                            */
+/* SETTINGS FOR BUTTON bt-desativaAriba2 IN FRAME f-cad
+   NO-ENABLE                                                            */
+/* SETTINGS FOR BUTTON bt-desativaSFA1 IN FRAME f-cad
+   NO-ENABLE                                                            */
+/* SETTINGS FOR BUTTON bt-desativaSFA2 IN FRAME f-cad
+   NO-ENABLE                                                            */
+/* SETTINGS FOR BUTTON bt-sair IN FRAME f-cad
+   NO-ENABLE                                                            */
+ASSIGN 
+       fi--direcao-2:READ-ONLY IN FRAME f-cad        = TRUE.
+
+/* SETTINGS FOR FILL-IN fi-agentes-ariba1 IN FRAME f-cad
+   NO-ENABLE                                                            */
+ASSIGN 
+       fi-agentes-ariba1:READ-ONLY IN FRAME f-cad        = TRUE.
+
+/* SETTINGS FOR FILL-IN fi-agentes-ariba2 IN FRAME f-cad
+   NO-ENABLE                                                            */
+ASSIGN 
+       fi-agentes-ariba2:READ-ONLY IN FRAME f-cad        = TRUE.
+
+/* SETTINGS FOR FILL-IN fi-agentes-sfa1 IN FRAME f-cad
+   NO-ENABLE                                                            */
+ASSIGN 
+       fi-agentes-sfa1:READ-ONLY IN FRAME f-cad        = TRUE.
+
+/* SETTINGS FOR FILL-IN fi-agentes-sfa2 IN FRAME f-cad
+   NO-ENABLE                                                            */
+ASSIGN 
+       fi-agentes-sfa2:READ-ONLY IN FRAME f-cad        = TRUE.
+
+ASSIGN 
+       fi-ariba-1:READ-ONLY IN FRAME f-cad        = TRUE.
+
+ASSIGN 
+       fi-ariba-2:READ-ONLY IN FRAME f-cad        = TRUE.
+
+ASSIGN 
+       fi-direcao-1:READ-ONLY IN FRAME f-cad        = TRUE.
+
+ASSIGN 
+       fi-direcao-3:READ-ONLY IN FRAME f-cad        = TRUE.
+
+ASSIGN 
+       fi-direcao-4:READ-ONLY IN FRAME f-cad        = TRUE.
+
+/* SETTINGS FOR FILL-IN fi-dt-ativa-ariba1 IN FRAME f-cad
+   NO-ENABLE                                                            */
+ASSIGN 
+       fi-dt-ativa-ariba1:READ-ONLY IN FRAME f-cad        = TRUE.
+
+/* SETTINGS FOR FILL-IN fi-dt-ativa-ariba2 IN FRAME f-cad
+   NO-ENABLE                                                            */
+ASSIGN 
+       fi-dt-ativa-ariba2:READ-ONLY IN FRAME f-cad        = TRUE.
+
+/* SETTINGS FOR FILL-IN fi-dt-ativa-sfa1 IN FRAME f-cad
+   NO-ENABLE                                                            */
+ASSIGN 
+       fi-dt-ativa-sfa1:READ-ONLY IN FRAME f-cad        = TRUE.
+
+/* SETTINGS FOR FILL-IN fi-dt-ativa-sfa2 IN FRAME f-cad
+   NO-ENABLE                                                            */
+ASSIGN 
+       fi-dt-ativa-sfa2:READ-ONLY IN FRAME f-cad        = TRUE.
+
+ASSIGN 
+       fi-sfa-2:READ-ONLY IN FRAME f-cad        = TRUE.
+
+ASSIGN 
+       fi-sfa-entrada:READ-ONLY IN FRAME f-cad        = TRUE.
+
 IF SESSION:DISPLAY-TYPE = "GUI":U AND VALID-HANDLE(w-livre)
 THEN w-livre:HIDDEN = yes.
 
@@ -264,55 +468,186 @@ END.
 &ANALYZE-RESUME
 
 
-&Scoped-define SELF-NAME bt-ativa
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL bt-ativa w-livre
-ON CHOOSE OF bt-ativa IN FRAME f-cad /* Ativar */
+&Scoped-define SELF-NAME bt-ativaAriba1
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL bt-ativaAriba1 w-livre
+ON CHOOSE OF bt-ativaAriba1 IN FRAME f-cad /* Ativar */
 DO:
-    DEF VAR i-seq AS INTEGER NO-UNDO.
-    
-    DEF BUFFER bf-es-api-exec FOR es-api-exec.
 
-    ASSIGN p-string-conexao = "-DirectConnect -H 192.168.51.141 -S 39090".
+    DEF VAR l-ativa      AS LOGICAL NO-UNDO.
+    DEF VAR i-ind-trans  AS INTEGER NO-UNDO INITIAL 1.
+    DEF VAR i-cd-sistema AS INTEGER NO-UNDO INITIAL 2.
+    DEF VAR i-count      AS INTEGER NO-UNDO.
+    DEF VAR da-data      AS DATETIME NO-UNDO.
 
-    ASSIGN FRAME {&FRAME-NAME} rs-tipo-trans fi-cd-sistema.
+    RUN pi-cria-tt-apps (INPUT i-ind-trans,
+                         INPUT i-cd-sistema).
 
-    RUN pi-verifica-conexao.
-    
-    FIND LAST bf-es-api-exec NO-LOCK NO-ERROR.
-    IF AVAIL bf-es-api-exec THEN
-        ASSIGN i-seq = bf-es-api-exec.id-exec + 1.
+    RUN pi-ativa (INPUT-OUTPUT hnd-apps-server-1-2,       
+                  INPUT-OUTPUT hnd-apps-server-async-1-2,
+                  INPUT i-ind-trans,
+                  input i-cd-sistema).
+
+    RUN pi-verif-exec (input i-ind-trans, 
+                       input i-cd-sistema,
+                       OUTPUT l-ativa,
+                       OUTPUT da-data).
+    IF l-ativa THEN
+        ASSIGN SELF:SENSITIVE IN FRAME {&FRAME-NAME}    = TRUE
+               bt-desativaAriba1:SENSITIVE IN FRAME {&FRAME-NAME} = FALSE.
     ELSE
-        ASSIGN i-seq = 1.
+        ASSIGN self:SENSITIVE IN FRAME {&FRAME-NAME}    = FALSE
+               bt-desativaAriba1:SENSITIVE IN FRAME {&FRAME-NAME} = TRUE.
+                  
     
-    CREATE es-api-exec.
-    ASSIGN es-api-exec.id-exec = i-seq
-           es-api-exec.data-inicio = NOW
-           es-api-exec.data-fim    = ?
-           es-api-exec.ind-tipo-trans = rs-tipo-trans
-           es-api-exec.cd-sistema     = fi-cd-sistema.
-
-    RUN pi-ativa.
-
-    RUN pi-executa-apps.
-
 END.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
 
-&Scoped-define SELF-NAME bt-desativa
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL bt-desativa w-livre
-ON CHOOSE OF bt-desativa IN FRAME f-cad /* Desativar */
+&Scoped-define SELF-NAME bt-ativaAriba2
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL bt-ativaAriba2 w-livre
+ON CHOOSE OF bt-ativaAriba2 IN FRAME f-cad /* Ativar */
+DO:
+
+    DEF VAR l-ativa AS LOGICAL NO-UNDO.
+    DEF VAR i-ind-trans  AS INTEGER NO-UNDO INITIAL 2.
+    DEF VAR i-cd-sistema AS INTEGER NO-UNDO INITIAL 2.
+    DEF VAR da-data AS DATETIME NO-UNDO.
+
+    RUN pi-cria-tt-apps (INPUT i-ind-trans,
+                         INPUT i-cd-sistema).
+
+    RUN pi-ativa (INPUT-OUTPUT hnd-apps-server-2-2,       
+                  INPUT-OUTPUT hnd-apps-server-async-2-2,
+                  INPUT i-ind-trans,
+                  input i-cd-sistema).
+
+    RUN pi-verif-exec (input i-ind-trans, 
+                       input i-cd-sistema,
+                       OUTPUT l-ativa,
+                       OUTPUT da-data).
+
+    IF l-ativa THEN
+        ASSIGN SELF:SENSITIVE IN FRAME {&FRAME-NAME}    = TRUE
+               bt-desativaAriba2:SENSITIVE IN FRAME {&FRAME-NAME} = FALSE.
+    ELSE
+        ASSIGN self:SENSITIVE IN FRAME {&FRAME-NAME}    = FALSE
+               bt-desativaAriba2:SENSITIVE IN FRAME {&FRAME-NAME} = TRUE.
+                  
+
+    
+END.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&Scoped-define SELF-NAME bt-ativaSFA1
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL bt-ativaSFA1 w-livre
+ON CHOOSE OF bt-ativaSFA1 IN FRAME f-cad /* Ativar */
+DO:
+
+    DEF VAR l-ativa      AS LOGICAL NO-UNDO.
+    DEF VAR i-ind-trans  AS INTEGER NO-UNDO INITIAL 1.
+    DEF VAR i-cd-sistema AS INTEGER NO-UNDO INITIAL 1.
+    DEF VAR i-count      AS INTEGER NO-UNDO.
+    DEF VAR da-data      AS DATETIME NO-UNDO.
+    DEF VAR i-agent      AS INTEGER  NO-UNDO.
+
+    RUN pi-cria-tt-apps (INPUT i-ind-trans,
+                         INPUT i-cd-sistema).
+
+    RUN pi-ativa (input-OUTPUT hnd-apps-server-1-1,       
+                  input-OUTPUT hnd-apps-server-async-1-1,
+                  INPUT i-ind-trans,
+                  input i-cd-sistema).
+
+    RUN pi-verif-exec (input i-ind-trans, 
+                       input i-cd-sistema,
+                       OUTPUT l-ativa,
+                       OUTPUT da-data,
+                       OUTPUT i-agent).
+    IF l-ativa THEN
+        ASSIGN SELF:SENSITIVE IN FRAME {&FRAME-NAME}    = TRUE
+               bt-desativaSFA1:SENSITIVE IN FRAME {&FRAME-NAME} = FALSE
+               fi-dt-ativa-sfa1:SCREEN-VALUE IN FRAME {&FRAME-NAME} = ""
+               fi-agentes-sfa1:SCREEN-VALUE = "".
+               
+    ELSE
+        ASSIGN self:SENSITIVE IN FRAME {&FRAME-NAME}    = FALSE
+               bt-desativaSFA1:SENSITIVE IN FRAME {&FRAME-NAME} = TRUE
+               fi-agentes-sfa1:SCREEN-VALUE = string(i-agent)
+               fi-dt-ativa-sfa1:SCREEN-VALUE IN FRAME {&FRAME-NAME} = STRING(da-data).
+    
+END.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&Scoped-define SELF-NAME bt-ativaSFA2
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL bt-ativaSFA2 w-livre
+ON CHOOSE OF bt-ativaSFA2 IN FRAME f-cad /* Ativar */
+DO:
+
+    DEF VAR l-ativa      AS LOGICAL  NO-UNDO.
+    DEF VAR i-ind-trans  AS INTEGER  NO-UNDO INITIAL 2.
+    DEF VAR i-cd-sistema AS INTEGER  NO-UNDO INITIAL 1.
+    DEF VAR i-count      AS INTEGER  NO-UNDO.
+    DEF VAR da-data      AS DATETIME NO-UNDO.
+    DEF VAR i-agent      AS INTEGER  NO-UNDO.
+
+    RUN pi-cria-tt-apps (INPUT i-ind-trans,
+                         INPUT i-cd-sistema).
+
+    RUN pi-ativa (input-OUTPUT hnd-apps-server-2-1,       
+                  input-OUTPUT hnd-apps-server-async-2-1,
+                  INPUT i-ind-trans,
+                  input i-cd-sistema).
+
+    RUN pi-verif-exec (input i-ind-trans, 
+                       input i-cd-sistema,
+                       OUTPUT l-ativa,
+                       OUTPUT da-data,
+                       OUTPUT i-agent).
+    IF l-ativa THEN
+        ASSIGN SELF:SENSITIVE IN FRAME {&FRAME-NAME}    = TRUE
+               bt-desativaSFA2:SENSITIVE IN FRAME {&FRAME-NAME} = FALSE
+               fi-agentes-sfa2:SCREEN-VALUE = ""
+               fi-dt-ativa-sfa2:SCREEN-VALUE IN FRAME {&FRAME-NAME} = "".
+    ELSE
+        ASSIGN self:SENSITIVE IN FRAME {&FRAME-NAME}    = FALSE
+               bt-desativaSFA2:SENSITIVE IN FRAME {&FRAME-NAME} = TRUE
+               fi-agentes-sfa2:SCREEN-VALUE = STRING(i-agent)
+               fi-dt-ativa-sfa2:SCREEN-VALUE IN FRAME {&FRAME-NAME} = STRING(da-data).
+
+                  
+    
+END.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&Scoped-define SELF-NAME bt-desativaAriba1
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL bt-desativaAriba1 w-livre
+ON CHOOSE OF bt-desativaAriba1 IN FRAME f-cad /* Desativar */
 DO:
  
-    STATUS INPUT "Status Integraá∆o: Finalizando...".
+    FOR EACH es-api-exec WHERE es-api-exec.ind-tipo-trans = 1
+                           AND es-api-exec.cd-sistema     = 2
+                           AND es-api-exec.data-fim       = ? NO-LOCK:
+        FIND CURRENT es-api-exec EXCLUSIVE-LOCK NO-ERROR.
+        ASSIGN es-api-exec.data-fim    = NOW.
+    END.
 
-    FIND LAST es-api-exec WHERE es-api-exec.data-fim = ? EXCLUSIVE-LOCK no-error.
-    ASSIGN es-api-exec.data-fim    = NOW.
+    FOR EACH tt-apps WHERE tt-apps.ind-tipo-trans = 1
+                       AND tt-apps.cd-sistema     = 2:
+        DELETE tt-apps.
+    END.
 
-    RUN pi-finaliza.
-
+    ASSIGN bt-desativaAriba1:SENSITIVE IN FRAME {&FRAME-NAME} = NO.
     
 END.
 
@@ -320,120 +655,87 @@ END.
 &ANALYZE-RESUME
 
 
-&Scoped-define SELF-NAME bt-pesq
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL bt-pesq w-livre
-ON CHOOSE OF bt-pesq IN FRAME f-cad /* Pesquisar */
+&Scoped-define SELF-NAME bt-desativaAriba2
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL bt-desativaAriba2 w-livre
+ON CHOOSE OF bt-desativaAriba2 IN FRAME f-cad /* Desativar */
 DO:
-    ASSIGN FRAME {&FRAME-NAME} rs-tipo-trans.
-
-
-    FIND FIRST es-api-param WHERE es-api-param.ind-tipo-trans =  rs-tipo-trans
-                              AND es-api-param.cd-sistema = INT(fi-cd-sistema:SCREEN-VALUE IN FRAME {&FRAME-NAME}) NO-LOCK NO-ERROR.
-    IF AVAIL es-api-param THEN DO:
-
-        FIND FIRST es-api-exec WHERE es-api-exec.cd-sistema     = es-api-param.cd-sistema
-                                 AND es-api-exec.ind-tipo-trans = es-api-param.ind-tipo-trans
-                                 AND es-api-exec.data-fim = ? NO-LOCK NO-ERROR.
-        IF AVAIL es-api-exec THEN
-            RUN pi-ativa.
-        ELSE RUN pi-desativa.
+ 
+    FOR EACH es-api-exec WHERE es-api-exec.ind-tipo-trans = 2
+                           AND es-api-exec.cd-sistema     = 2
+                           AND es-api-exec.data-fim       = ? NO-LOCK:
+        FIND CURRENT es-api-exec EXCLUSIVE-LOCK NO-ERROR.
+        ASSIGN es-api-exec.data-fim    = NOW.
     END.
-    ELSE DO:
-        MESSAGE "ParÉmetro de integraá∆o n∆o localizado!" SKIP
-                "Favor realizar a parametrizaá∆o no esint004"  VIEW-AS ALERT-BOX ERROR BUTTONS OK.
-
-        APPLY "entry" TO rs-tipo-trans.
-        RETURN NO-APPLY.
+    FOR EACH tt-apps WHERE tt-apps.ind-tipo-trans = 2
+                       AND tt-apps.cd-sistema     = 2:
+        DELETE tt-apps.
     END.
 
+    ASSIGN bt-desativaAriba2:SENSITIVE IN FRAME {&FRAME-NAME} = NO.
+
+END.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
 
 
+&Scoped-define SELF-NAME bt-desativaSFA1
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL bt-desativaSFA1 w-livre
+ON CHOOSE OF bt-desativaSFA1 IN FRAME f-cad /* Desativar */
+DO:
+ 
+    FOR EACH es-api-exec WHERE es-api-exec.ind-tipo-trans = 1
+                           AND es-api-exec.cd-sistema     = 1
+                           AND es-api-exec.data-fim       = ? NO-LOCK:
+        FIND CURRENT es-api-exec EXCLUSIVE-LOCK NO-ERROR.
+        ASSIGN es-api-exec.data-fim    = NOW.        
+    END.
 
+    FOR EACH tt-apps WHERE tt-apps.ind-tipo-trans = 1
+                       AND tt-apps.cd-sistema     = 1:
+        DELETE tt-apps.
+    END.
+
+    ASSIGN bt-desativasfa1:SENSITIVE IN FRAME {&FRAME-NAME} = NO.
+       
+END.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+
+&Scoped-define SELF-NAME bt-desativaSFA2
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL bt-desativaSFA2 w-livre
+ON CHOOSE OF bt-desativaSFA2 IN FRAME f-cad /* Desativar */
+DO:
     
+    FOR EACH es-api-exec WHERE es-api-exec.ind-tipo-trans = 2
+                           AND es-api-exec.cd-sistema     = 1
+                           AND es-api-exec.data-fim       = ? NO-LOCK:
+        FIND CURRENT es-api-exec EXCLUSIVE-LOCK NO-ERROR.
+        ASSIGN es-api-exec.data-fim    = NOW.
+    END.
+
+    FOR EACH tt-apps WHERE tt-apps.ind-tipo-trans = 2
+                       AND tt-apps.cd-sistema     = 1:
+        DELETE tt-apps.
+    END.
+
+    ASSIGN bt-desativasfa2:SENSITIVE IN FRAME {&FRAME-NAME} = NO.
+
 END.
 
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
 
-&Scoped-define SELF-NAME fi-cd-sistema
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL fi-cd-sistema w-livre
-ON LEAVE OF fi-cd-sistema IN FRAME f-cad /* Sistema */
+&Scoped-define SELF-NAME bt-sair
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL bt-sair w-livre
+ON CHOOSE OF bt-sair IN FRAME f-cad /* Sair */
 DO:
-    FIND FIRST es-api-app WHERE es-api-app.cd-sistema = INT(fi-cd-sistema:SCREEN-VALUE IN FRAME {&FRAME-NAME}) NO-LOCK NO-ERROR.
-    IF AVAIL es-api-app THEN
-        ASSIGN fi-desc-sistema:SCREEN-VALUE = es-api-app.des-sistema .
-    ELSE
-        ASSIGN fi-desc-sistema:SCREEN-VALUE = "".
+  
+    APPLY 'close' TO THIS-PROCEDURE.
 
-        
-END.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-
-&Scoped-define SELF-NAME mi-consultas
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL mi-consultas w-livre
-ON CHOOSE OF MENU-ITEM mi-consultas /* Consultas */
-DO:
-  RUN pi-consulta IN h_p-exihel.
-END.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-
-&Scoped-define SELF-NAME mi-conteudo
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL mi-conteudo w-livre
-ON CHOOSE OF MENU-ITEM mi-conteudo /* Conteudo */
-OR HELP OF FRAME {&FRAME-NAME}
-DO:
-  RUN pi-ajuda IN h_p-exihel.
-END.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-
-&Scoped-define SELF-NAME mi-imprimir
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL mi-imprimir w-livre
-ON CHOOSE OF MENU-ITEM mi-imprimir /* Relat¢rios */
-DO:
-  RUN pi-imprimir IN h_p-exihel.
-END.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-
-&Scoped-define SELF-NAME mi-programa
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL mi-programa w-livre
-ON MENU-DROP OF MENU mi-programa /* Nome-do-Programa */
-DO:
-  run pi-disable-menu.
-END.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-
-&Scoped-define SELF-NAME mi-sair
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL mi-sair w-livre
-ON CHOOSE OF MENU-ITEM mi-sair /* Sair */
-DO:
-  RUN pi-sair IN h_p-exihel.
-END.
-
-/* _UIB-CODE-BLOCK-END */
-&ANALYZE-RESUME
-
-
-&Scoped-define SELF-NAME mi-sobre
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _CONTROL mi-sobre w-livre
-ON CHOOSE OF MENU-ITEM mi-sobre /* Sobre... */
-DO:
-  {include/sobre.i}
 END.
 
 /* _UIB-CODE-BLOCK-END */
@@ -463,33 +765,6 @@ PROCEDURE adm-create-objects :
                After SmartObjects are initialized, then SmartLinks are added.
   Parameters:  <none>
 ------------------------------------------------------------------------------*/
-  DEFINE VARIABLE adm-current-page  AS INTEGER NO-UNDO.
-
-  RUN get-attribute IN THIS-PROCEDURE ('Current-Page':U).
-  ASSIGN adm-current-page = INTEGER(RETURN-VALUE).
-
-  CASE adm-current-page: 
-
-    WHEN 0 THEN DO:
-       RUN init-object IN THIS-PROCEDURE (
-             INPUT  'panel/p-exihel.w':U ,
-             INPUT  FRAME f-cad:HANDLE ,
-             INPUT  'Edge-Pixels = 2,
-                     SmartPanelType = NAV-ICON,
-                     Right-to-Left = First-On-Left':U ,
-             OUTPUT h_p-exihel ).
-       RUN set-position IN h_p-exihel ( 1.17 , 74.14 ) NO-ERROR.
-       /* Size in UIB:  ( 1.25 , 16.00 ) */
-
-       /* Links to SmartPanel h_p-exihel. */
-       RUN add-link IN adm-broker-hdl ( h_p-exihel , 'State':U , THIS-PROCEDURE ).
-
-       /* Adjust the tab order of the smart objects. */
-       RUN adjust-tab-order IN adm-broker-hdl ( h_p-exihel ,
-             rs-tipo-trans:HANDLE IN FRAME f-cad , 'BEFORE':U ).
-    END. /* Page 0 */
-
-  END CASE.
 
 END PROCEDURE.
 
@@ -548,9 +823,14 @@ PROCEDURE enable_UI :
                These statements here are based on the "Other 
                Settings" section of the widget Property Sheets.
 ------------------------------------------------------------------------------*/
-  DISPLAY rs-tipo-trans fi-cd-sistema fi-desc-sistema 
+  DISPLAY fi-sfa-entrada fi-direcao-1 fi-sfa-2 fi--direcao-2 fi-ariba-1 
+          fi-direcao-3 fi-ariba-2 fi-direcao-4 fi-dt-ativa-sfa1 fi-dt-ativa-sfa2 
+          fi-dt-ativa-ariba1 fi-dt-ativa-ariba2 fi-agentes-sfa1 fi-agentes-sfa2 
+          fi-agentes-ariba1 fi-agentes-ariba2 
       WITH FRAME f-cad IN WINDOW w-livre.
-  ENABLE rt-button RECT-1 RECT-2 RECT-3 rs-tipo-trans bt-pesq fi-cd-sistema 
+  ENABLE fi-sfa-entrada fi-direcao-1 fi-sfa-2 fi--direcao-2 fi-ariba-1 
+         fi-direcao-3 fi-ariba-2 fi-direcao-4 RECT-2 rt-button RECT-3 RECT-4 
+         RECT-5 
       WITH FRAME f-cad IN WINDOW w-livre.
   {&OPEN-BROWSERS-IN-QUERY-f-cad}
   VIEW w-livre.
@@ -613,6 +893,14 @@ PROCEDURE local-initialize :
 
   /* Code placed here will execute AFTER standard behavior.    */
 
+  RUN pi-ativa-botoes.
+
+
+  FOR EACH es-api-exec WHERE es-api-exec.cd-sistema = 1 
+                         AND es-api-exec.data-fim = ?:
+      ASSIGN es-api-exec.data-fim = NOW.
+  END.
+
   run pi-after-initialize.
 END PROCEDURE.
 
@@ -626,11 +914,167 @@ PROCEDURE pi-ativa :
   Parameters:  <none>
   Notes:       
 ------------------------------------------------------------------------------*/
+DEFINE INPUT-OUTPUT PARAMETER p-hdl-server      AS HANDLE EXTENT 20 NO-UNDO.
+DEFINE INPUT-OUTPUT PARAMETER p-hdl-server-sync AS HANDLE EXTENT 20 NO-UNDO.
+DEFINE INPUT        PARAMETER p-ind-trans       AS INTEGER          NO-UNDO.
+DEFINE INPUT        PARAMETER p-cod-sistema     AS INTEGER          NO-UNDO.
 
-ASSIGN bt-ativa:SENSITIVE IN FRAME {&FRAME-NAME} = FALSE.
-ASSIGN bt-desativa:SENSITIVE IN FRAME {&FRAME-NAME} = TRUE.
+DEFINE VARIABLE i-seq        AS INTEGER   NO-UNDO.   
+DEFINE VARIABLE i-seq-app    AS INTEGER   NO-UNDO.
+DEFINE VARIABLE c-erro       AS CHARACTER NO-UNDO.
+DEFINE VARIABLE i-nr-agentes AS INTEGER   NO-UNDO.
+DEFINE VARIABLE c-host-app   AS CHARACTER NO-UNDO.
+DEFINE VARIABLE c-porta-app  AS INTEGER   NO-UNDO.
+DEFINE VARIABLE r-table      AS ROWID     NO-UNDO.
+DEFINE VARIABLE p-string-aux AS CHARACTER NO-UNDO.
+DEFINE VARIABLE c-program     AS CHARACTER NO-UNDO INITIAL "esp/esint001irp.p,esp/esint001erp.p".
+DEFINE VARIABLE c-nm-appserv  AS CHARACTER NO-UNDO.
 
-STATUS INPUT "Status Integraá∆o: Processando...".
+DEFINE BUFFER bf-es-api-exec FOR es-api-exec.
+
+FIND FIRST es-api-app NO-LOCK WHERE es-api-app.cd-sistema = p-cod-sistema NO-ERROR.
+IF NOT AVAIL es-api-app THEN RETURN "NOK".
+
+FIND LAST bf-es-api-exec NO-LOCK NO-ERROR.
+IF AVAIL bf-es-api-exec THEN
+    ASSIGN i-seq = bf-es-api-exec.id-exec + 1.
+ELSE ASSIGN i-seq = 1.
+
+CREATE es-api-exec.
+ASSIGN es-api-exec.id-exec        = i-seq
+       es-api-exec.data-inicio    = NOW
+       es-api-exec.data-fim       = ?
+       es-api-exec.ind-tipo-trans = p-ind-trans
+       es-api-exec.cd-sistema     = p-cod-sistema.   
+
+ASSIGN i-seq     = 0
+       i-seq-app = 1.
+
+/*----------- cria temp para fazer o load-balance (caso exista mais de um appserver) -----------*/
+FOR EACH tt-apps WHERE tt-apps.ind-tipo-trans = p-ind-trans
+                   AND tt-apps.cd-sistema     = p-cod-sistema NO-LOCK BREAK BY tt-apps.nome-appserver:
+
+    IF LAST-OF(tt-apps.nome-appserver) THEN DO:
+
+        ASSIGN p-string-conexao = "-DirectConnect -H " + tt-apps.host-appserver +  " -S " + string(tt-apps.porta-appserver)
+               p-string-aux     = p-string-conexao
+               r-table          = ROWID(tt-apps)
+               i-nr-agentes     = tt-apps.agentes-appserver
+               c-nm-appserv     = tt-apps.nome-appserver.
+        
+        DO i-seq = i-seq-app TO (i-nr-agentes + i-seq-app - 1):
+
+            MESSAGE 'i-seq: ' i-seq SKIP
+                    'i-seq-app: ' i-seq-app 
+                    'c-nm-app: ' c-nm-appserv VIEW-AS ALERT-BOX INFO BUTTONS OK.
+
+            ASSIGN p-string-conexao = p-string-aux.
+
+            CREATE SERVER p-hdl-server[i-seq].
+            RUN pi-conectar-apps (INPUT-OUTPUT p-hdl-server,
+                                  INPUT-OUTPUT p-hdl-server-sync,
+                                  INPUT i-seq,
+                                  INPUT p-ind-trans,   
+                                  INPUT p-cod-sistema, 
+                                  INPUT r-table,
+                                  OUTPUT c-erro) NO-ERROR.
+            IF ERROR-STATUS:ERROR THEN ASSIGN c-erro = ERROR-STATUS:GET-MESSAGE(1).
+
+            IF (p-hdl-server[i-seq]:CONNECTED()) THEN DO:
+
+                RUN pi-executa-apps (INPUT-output p-hdl-server,
+                                     INPUT-output p-hdl-server-sync,
+                                     INPUT i-seq,
+                                     INPUT c-nm-appserv,
+                                     INPUT p-ind-trans,
+                                     INPUT p-cod-sistema,
+                                     OUTPUT c-erro) NO-ERROR.
+                IF ERROR-STATUS:ERROR THEN ASSIGN c-erro = c-erro + ERROR-STATUS:GET-MESSAGE(1).
+            END.
+        END.
+
+        i-seq-app        = i-seq-app + i-nr-agentes.
+
+    END.
+END.
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE pi-ativa-botoes w-livre 
+PROCEDURE pi-ativa-botoes :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+
+DEFINE VARIABLE l-ativa AS LOGICAL  NO-UNDO.
+DEFINE VARIABLE da-data AS DATETIME NO-UNDO.
+DEFINE VARIABLE i-agent AS INTEGER  NO-UNDO.
+
+
+RUN pi-verif-exec (INPUT 1,
+                   INPUT 1,
+                   OUTPUT l-ativa,
+                   OUTPUT da-data,
+                   OUTPUT i-agent).
+IF l-ativa THEN
+    ASSIGN bt-ativasfa1:SENSITIVE IN FRAME {&FRAME-NAME}    = TRUE
+           bt-desativaSFA1:SENSITIVE IN FRAME {&FRAME-NAME} = FALSE
+           fi-dt-ativa-sfa1:SCREEN-VALUE IN FRAME {&FRAME-NAME} = ""
+           fi-agentes-sfa1:SCREEN-VALUE IN FRAME {&FRAME-NAME} = ""
+           bt-sair:SENSITIVE = YES.
+ELSE
+    ASSIGN bt-ativasfa1:SENSITIVE IN FRAME {&FRAME-NAME}    = FALSE
+           bt-desativaSFA1:SENSITIVE IN FRAME {&FRAME-NAME} = TRUE
+           fi-dt-ativa-sfa1:SCREEN-VALUE IN FRAME {&FRAME-NAME} = STRING(da-data)
+           fi-agentes-sfa1:SCREEN-VALUE IN FRAME {&FRAME-NAME} = STRING(i-agent)
+           bt-sair:SENSITIVE = NO.
+
+
+RUN pi-verif-exec (INPUT 2,
+                   INPUT 1,
+                   OUTPUT l-ativa,
+                   OUTPUT da-data,
+                   OUTPUT i-agent).
+IF l-ativa THEN
+    ASSIGN bt-ativasfa2:SENSITIVE IN FRAME {&FRAME-NAME}    = TRUE
+           bt-desativaSFA2:SENSITIVE IN FRAME {&FRAME-NAME} = FALSE
+           fi-dt-ativa-sfa2:SCREEN-VALUE IN FRAME {&FRAME-NAME} = ""
+           fi-agentes-sfa2:SCREEN-VALUE IN FRAME {&FRAME-NAME} = ""
+           bt-sair:SENSITIVE = YES.
+ELSE
+    ASSIGN bt-ativasfa2:SENSITIVE IN FRAME {&FRAME-NAME}    = FALSE
+           bt-desativaSFA2:SENSITIVE IN FRAME {&FRAME-NAME} = TRUE
+           fi-dt-ativa-sfa2:SCREEN-VALUE IN FRAME {&FRAME-NAME} = STRING(da-data)
+           fi-agentes-sfa2:SCREEN-VALUE IN FRAME {&FRAME-NAME} = STRING(i-agent)
+           bt-sair:SENSITIVE = NO.
+
+/*
+RUN pi-verif-exec (INPUT 1,
+                   INPUT 2,
+                   OUTPUT l-ativa).
+IF l-ativa THEN
+    ASSIGN bt-ativaAriba1:SENSITIVE IN FRAME {&FRAME-NAME}    = TRUE
+           bt-desativaAriba1:SENSITIVE IN FRAME {&FRAME-NAME} = FALSE.
+ELSE 
+    ASSIGN bt-ativaAriba1:SENSITIVE IN FRAME {&FRAME-NAME}    = FALSE
+           bt-desativaAriba1:SENSITIVE IN FRAME {&FRAME-NAME} = TRUE.
+
+RUN pi-verif-exec (INPUT 2,
+                   INPUT 2,
+                   OUTPUT l-ativa).
+IF l-ativa THEN
+    ASSIGN bt-ativaAriba2:SENSITIVE IN FRAME {&FRAME-NAME}    = TRUE
+           bt-desativaAriba2:SENSITIVE IN FRAME {&FRAME-NAME} = FALSE.
+ELSE
+    ASSIGN bt-ativaAriba2:SENSITIVE IN FRAME {&FRAME-NAME}    = FALSE
+           bt-desativaAriba2:SENSITIVE IN FRAME {&FRAME-NAME} = TRUE.
+
+  */
 
 END PROCEDURE.
 
@@ -644,28 +1088,33 @@ PROCEDURE pi-conectar-apps :
   Parameters:  <none>
   Notes:       
 ------------------------------------------------------------------------------*/
+
+DEFINE INPUT-OUTPUT PARAMETER p-hdl-server      AS HANDLE EXTENT 20 NO-UNDO.
+DEFINE INPUT-OUTPUT PARAMETER p-hdl-server-sync AS HANDLE EXTENT 20 NO-UNDO.
+DEFINE INPUT        PARAMETER p-agente          AS INTEGER          NO-UNDO.
+DEFINE INPUT        PARAMETER p-ind-trans       AS INTEGER          NO-UNDO.
+DEFINE INPUT        PARAMETER p-cd-sistema      AS INTEGER          NO-UNDO.
+DEFINE INPUT        PARAMETER p-rowid           AS ROWID            NO-UNDO.
+DEFINE OUTPUT       PARAMETER p-erro            AS CHARACTER        NO-UNDO.
+    
+DEFINE BUFFER bf-tt-apps FOR tt-apps.
+
 DEFINE VARIABLE ierro  AS INTEGER     NO-UNDO.
-DEFINE VARIABLE c-erro AS CHARACTER   NO-UNDO.
+DEFINE VARIABLE i-serv AS INTEGER     NO-UNDO.
 
-CREATE SERVER hnd_apps_server.
+FIND bf-tt-apps WHERE rowid(bf-tt-apps) = p-rowid EXCLUSIVE-LOCK NO-ERROR.
 
-hnd_apps_server:CONNECT( p-string-conexao, "", "" ) NO-ERROR.
-
+p-hdl-server[p-agente]:CONNECT( p-string-conexao, "", "" ) NO-ERROR.
 IF ERROR-STATUS:ERROR OR ERROR-STATUS:NUM-MESSAGES > 0 THEN DO:      
-    MESSAGE ERROR-STATUS:NUM-MESSAGES " erros ocorridos na conexao." SKIP         
-        "Visualizar os erros ?" VIEW-AS ALERT-BOX QUESTION BUTTONS YES-NO    
-        UPDATE view-errs AS LOGICAL.      
-
-    IF view-errs THEN DO:     
-        DO ierro = 1 TO ERROR-STATUS:NUM-MESSAGES:        
-            ASSIGN c-erro = c-erro + STRING(ERROR-STATUS:GET-NUMBER(ierro)) + " - " + ERROR-STATUS:GET-MESSAGE(ierro) + CHR(10).
-        END.
-
-        MESSAGE c-erro VIEW-AS ALERT-BOX ERROR.
-
-        RETURN "NOK":U.
-    END.
+    DO ierro = 1 TO ERROR-STATUS:NUM-MESSAGES:        
+        ASSIGN p-erro = p-erro + STRING(ERROR-STATUS:GET-NUMBER(ierro)) + " - " + ERROR-STATUS:GET-MESSAGE(ierro) + CHR(10).
+    END.    
 END.
+
+IF p-hdl-server[p-agente]:CONNECTED() THEN DO:
+    ASSIGN bf-tt-apps.i-agent-conect = bf-tt-apps.i-agent-conect + 1.
+END.
+
 RETURN "OK":U.
 
 END PROCEDURE.
@@ -673,18 +1122,41 @@ END PROCEDURE.
 /* _UIB-CODE-BLOCK-END */
 &ANALYZE-RESUME
 
-&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE pi-desativa w-livre 
-PROCEDURE pi-desativa :
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE pi-cria-tt-apps w-livre 
+PROCEDURE pi-cria-tt-apps :
 /*------------------------------------------------------------------------------
   Purpose:     
   Parameters:  <none>
   Notes:       
 ------------------------------------------------------------------------------*/
+DEFINE INPUT PARAMETER p-ind-trans  AS INTEGER NO-UNDO.
+DEFINE INPUT PARAMETER p-cd-sistema AS INTEGER NO-UNDO.
 
-ASSIGN bt-ativa:SENSITIVE IN FRAME {&FRAME-NAME} = TRUE.
-ASSIGN bt-desativa:SENSITIVE IN FRAME {&FRAME-NAME} = FALSE.
+DEF VAR i-count AS INTEGER NO-UNDO.
 
-STATUS INPUT "Status Integraá∆o: Desativada".
+FIND FIRST es-api-appserver NO-LOCK WHERE es-api-appserver.ind-tipo-trans = p-ind-trans
+                                      AND es-api-appserver.cd-sistema = p-cd-sistema NO-ERROR.
+IF NOT AVAIL es-api-appserver THEN DO:
+    MESSAGE "ParÉmetro de AppServer n∆o informado no cadastro de Sistemas (esint003)" VIEW-AS ALERT-BOX ERROR BUTTONS OK.
+    RETURN NO-APPLY.
+END.
+
+IF NOT CAN-FIND(FIRST tt-apps WHERE tt-apps.ind-tipo-trans = p-ind-trans
+                                AND tt-apps.cd-sistema     = p-cd-sistema ) THEN DO:
+    ASSIGN i-count = 0.
+
+    FOR EACH es-api-appserver WHERE es-api-appserver.ind-tipo-trans = p-ind-trans
+                                AND es-api-appserver.cd-sistema     = p-cd-sistema NO-LOCK:       
+        ASSIGN i-count = i-count + 1.
+
+        CREATE tt-apps.
+        BUFFER-COPY es-api-appserver TO tt-apps.
+        ASSIGN tt-apps.i-agent-conect = 0.
+
+        IF i-count = 1 THEN
+            ASSIGN tt-apps.l-padrao = YES.
+    END.
+END.
 
 
 END PROCEDURE.
@@ -699,10 +1171,14 @@ PROCEDURE pi-desconectar-apps :
   Parameters:  <none>
   Notes:       
 ------------------------------------------------------------------------------*/
-IF VALID-HANDLE(hnd_apps_server) THEN DO:
-    hnd_apps_server:DISCONNECT() NO-ERROR.
-    DELETE OBJECT hnd_apps_server.
-    ASSIGN hnd_apps_server = ?.
+DEFINE INPUT PARAM p-hnd-apps-server AS HANDLE  NO-UNDO.
+DEFINE INPUT PARAM p-agente          AS INTEGER NO-UNDO.
+
+IF VALID-HANDLE(p-hnd-apps-server) THEN DO:
+    p-hnd-apps-server:CANCEL-REQUESTS().
+    p-hnd-apps-server:DISCONNECT() .
+    DELETE OBJECT p-hnd-apps-server.
+    ASSIGN p-hnd-apps-server = ?.
 END.
 
 END PROCEDURE.
@@ -717,34 +1193,31 @@ PROCEDURE pi-executa-apps :
   Parameters:  <none>
   Notes:       
 ------------------------------------------------------------------------------*/
-DEFINE VARIABLE c-path-config AS CHARACTER NO-UNDO.
-DEFINE VARIABLE c-result      AS CHARACTER NO-UNDO.
-DEFINE VARIABLE c-arquivo     AS CHARACTER NO-UNDO.
-DEFINE VARIABLE i-seq         AS INTEGER   NO-UNDO.
-DEFINE VARIABLE c_dir         AS CHARACTER NO-UNDO.
 
-ASSIGN FRAME {&FRAME-NAME}  rs-tipo-trans fi-cd-sistema.
+DEFINE INPUT-OUTPUT PARAMETER p-hdl-server      AS HANDLE EXTENT 20 NO-UNDO.
+DEFINE INPUT-OUTPUT PARAMETER p-hdl-server-sync AS HANDLE EXTENT 20 NO-UNDO.
+DEFINE INPUT        PARAMETER p-agente          AS INTEGER          NO-UNDO.
+DEFINE INPUT        PARAMETER p-nm-appserv      AS CHARACTER        NO-UNDO.
+DEFINE INPUT        PARAMETER p-ind-trans       AS INTEGER          NO-UNDO.
+DEFINE INPUT        PARAMETER p-cod-sist        AS INTEGER          NO-UNDO.     
+DEFINE OUTPUT       PARAMETER p-erro            AS CHARACTER        NO-UNDO.
 
-RUN pi-conectar-apps.
+DEFINE VARIABLE i-ind-trans   AS INTEGER   NO-UNDO.
+DEFINE VARIABLE i-cod-sist    AS INTEGER   NO-UNDO.
+DEFINE VARIABLE i-agente      AS INTEGER   NO-UNDO.
+DEFINE VARIABLE c-program     AS CHARACTER NO-UNDO INITIAL "esp/esint001irp.p,esp/esint001erp.p".
+DEFINE VARIABLE c-nm-appserv  AS CHARACTER NO-UNDO.
 
-IF NOT (hnd_apps_server:CONNECTED()) THEN DO:
-    MESSAGE "AppServer n∆o conectado" VIEW-AS ALERT-BOX.
-    RETURN .
+ASSIGN i-ind-trans  = p-ind-trans
+       i-cod-sist   = p-cod-sist
+       i-agente     = p-agente
+       c-nm-appserv = p-nm-appserv.
+
+IF (p-hdl-server[p-agente]:CONNECTED()) THEN DO:
+    RUN VALUE(entry(p-ind-trans,c-program)) ON p-hdl-server[p-agente] ASYNCHRONOUS SET p-hdl-server-sync[p-agente]
+    EVENT-PROCEDURE "pi-finaliza" (INPUT-OUTPUT i-ind-trans, INPUT-OUTPUT i-cod-sist, INPUT-OUTPUT i-agente, INPUT-OUTPUT c-nm-appserv).     
 END.
 
-IF (hnd_apps_server:CONNECTED()) THEN DO:
-    IF rs-tipo-trans = 1 THEN
-        RUN esp/esint001irp.p ON hnd_apps_server ASYNCHRONOUS SET hnd_apps_server
-    /*EVENT-PROCEDURE "pi-finaliza" */ (INPUT rs-tipo-trans, INPUT fi-cd-sistema).
-
-    ELSE
-        RUN esp/esint001erp.p ON hnd_apps_server ASYNCHRONOUS SET hnd_apps_server
-    /*EVENT-PROCEDURE "pi-finaliza" */ (INPUT rs-tipo-trans, INPUT fi-cd-sistema).
-END.
-
-/*
-RUN esp/esint001rp.p (INPUT rs-tipo-trans, INPUT fi-cd-sistema).
-*/
 
 END PROCEDURE.
 
@@ -759,8 +1232,67 @@ PROCEDURE pi-finaliza :
   Notes:       
 ------------------------------------------------------------------------------*/
 
-RUN pi-desativa.
-RUN pi-desconectar-apps .
+DEFINE INPUT PARAMETER p-ind-trans  AS INTEGER NO-UNDO.
+DEFINE INPUT PARAMETER p-cd-sist    AS INTEGER NO-UNDO.
+DEFINE INPUT PARAMETER p-seq        AS INTEGER NO-UNDO.
+DEFINE INPUT PARAMETER p-nm-appserv AS CHARACTER NO-UNDO.
+
+CASE p-ind-trans:
+
+    WHEN 1 THEN DO:
+        IF p-cd-sist = 1 THEN RUN pi-desconectar-apps (INPUT hnd-apps-server-1-1[p-seq], INPUT p-seq) .
+        ELSE IF p-cd-sist = 2 THEN RUN pi-desconectar-apps (INPUT hnd-apps-server-1-2[p-seq], INPUT p-seq) .
+    END.
+    WHEN 2 THEN DO:
+        IF p-cd-sist = 1 THEN RUN pi-desconectar-apps (INPUT hnd-apps-server-2-1[p-seq], INPUT p-seq) .
+        ELSE IF p-cd-sist = 2 THEN RUN pi-desconectar-apps (INPUT hnd-apps-server-2-2[p-seq], INPUT p-seq) .
+    END.
+
+END CASE.
+
+RUN pi-ativa-botoes.
+
+
+END PROCEDURE.
+
+/* _UIB-CODE-BLOCK-END */
+&ANALYZE-RESUME
+
+&ANALYZE-SUSPEND _UIB-CODE-BLOCK _PROCEDURE pi-verif-exec w-livre 
+PROCEDURE pi-verif-exec :
+/*------------------------------------------------------------------------------
+  Purpose:     
+  Parameters:  <none>
+  Notes:       
+------------------------------------------------------------------------------*/
+
+DEFINE INPUT  PARAMETER i-ind-trans  AS INTEGER NO-UNDO.
+DEFINE INPUT  PARAMETER i-cd-sistema AS INTEGER NO-UNDO.
+DEFINE OUTPUT PARAMETER p-ativa      AS LOGICAL NO-UNDO.
+DEFINE OUTPUT PARAMETER p-data       AS DATETIME NO-UNDO.
+DEFINE OUTPUT PARAMETER p-agentes    AS INTEGER  NO-UNDO.
+
+FIND FIRST es-api-param WHERE es-api-param.ind-tipo-trans = i-ind-trans
+                          AND es-api-param.cd-sistema     = i-cd-sistema NO-LOCK NO-ERROR.
+IF AVAIL es-api-param THEN DO:
+
+    FIND FIRST es-api-exec WHERE es-api-exec.cd-sistema     = es-api-param.cd-sistema
+                             AND es-api-exec.ind-tipo-trans = es-api-param.ind-tipo-trans
+                             AND es-api-exec.data-fim = ? NO-LOCK NO-ERROR.
+    IF AVAIL es-api-exec THEN DO:
+        ASSIGN p-ativa = NO
+               p-data  = es-api-exec.data-inicio.
+        FOR EACH tt-apps WHERE tt-apps.ind-tipo-trans = es-api-param.ind-tipo-trans
+                           AND tt-apps.cd-sistema     = es-api-param.cd-sistema:
+            ASSIGN p-agentes = p-agentes  + tt-apps.i-agent-conect.
+        END.
+    END.
+    ELSE
+        ASSIGN p-ativa = YES
+               p-data  = ?
+               p-agentes = 0.
+END.
+
 
 END PROCEDURE.
 
@@ -774,11 +1306,14 @@ PROCEDURE pi-verifica-conexao :
   Parameters:  <none>
   Notes:       
 ------------------------------------------------------------------------------*/
+
+/*
 RUN pi-conectar-apps.
 
- IF (hnd_apps_server:CONNECTED()) THEN DO:
+ IF (hnd_apps_server[1]:CONNECTED()) THEN DO:
      RUN  pi-desconectar-apps.
  END.
+ */
 
 END PROCEDURE.
 

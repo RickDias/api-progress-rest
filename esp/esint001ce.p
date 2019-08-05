@@ -64,14 +64,14 @@ IF ERROR-STATUS:ERROR THEN DO:
 END.
 
 
-FIND FIRST sfa-export NO-LOCK WHERE ROWID(sfa-export) = r-table NO-ERROR.
-IF AVAIL sfa-export THEN DO:
+FIND FIRST es-api-export NO-LOCK WHERE ROWID(es-api-export) = r-table NO-ERROR.
+IF AVAIL es-api-export THEN DO:
 
-    FIND FIRST es-api-param WHERE es-api-param.ind-tipo-trans = sfa-export.ind-tipo-trans
-                              AND es-api-param.cd-tipo-integr = sfa-export.cd-tipo-integr NO-LOCK NO-ERROR. 
+    FIND FIRST es-api-param WHERE es-api-param.ind-tipo-trans = es-api-export.ind-tipo-trans
+                              AND es-api-param.cd-tipo-integr = es-api-export.cd-tipo-integr NO-LOCK NO-ERROR. 
 
-    FIND FIRST sfa-export-item OF sfa-export NO-ERROR.
-    IF AVAIL sfa-export-item THEN DO:
+    FIND FIRST es-api-export-item OF es-api-export NO-ERROR.
+    IF AVAIL es-api-export-item THEN DO:
 
         /*------------------------------------------ Item -------------------------------------------*/
         RUN piGravaTTItem (OUTPUT h-temp,
@@ -97,8 +97,8 @@ IF AVAIL sfa-export THEN DO:
         oJsonObjMain = NEW JsonObject().
         oJsonObjMain:ADD("req",oJsonArrayMain).
 
-        FIND FIRST es-api-param WHERE es-api-param.ind-tipo-trans = sfa-export.ind-tipo-trans
-                                  AND es-api-param.cd-tipo-integr = sfa-export.cd-tipo-integr NO-LOCK NO-ERROR.                            
+        FIND FIRST es-api-param WHERE es-api-param.ind-tipo-trans = es-api-export.ind-tipo-trans
+                                  AND es-api-param.cd-tipo-integr = es-api-export.cd-tipo-integr NO-LOCK NO-ERROR.                            
 
         /* ------ Grava conteudo do Json em variavel -----*/
         RUN piGeraVarJson IN h-esint002 (INPUT oJsonObjMain,
@@ -109,7 +109,7 @@ IF AVAIL sfa-export THEN DO:
             RETURN "NOK".
         END.
 
-        ASSIGN sfa-export-item.c-json = c-Json.
+        ASSIGN es-api-export-item.c-json = c-Json.
     
         /* ------------ Envia Objeto Json --------- */
          RUN piPostJsonObj IN h-esint002 (INPUT oJsonObjMain,
@@ -146,7 +146,7 @@ PROCEDURE piGravaTTItem:
     DEFINE OUTPUT PARAMETER pTemp AS HANDLE    NO-UNDO.
     DEFINE OUTPUT PARAMETER pErro AS CHARACTER NO-UNDO.
 
-    FIND FIRST ITEM NO-LOCK WHERE ITEM.it-codigo = sfa-export-item.it-codigo NO-ERROR.
+    FIND FIRST ITEM NO-LOCK WHERE ITEM.it-codigo = es-api-export-item.it-codigo NO-ERROR.
     IF AVAIL ITEM THEN DO:
         CREATE tt_item.
         BUFFER-COPY ITEM TO tt_item.
@@ -157,7 +157,7 @@ PROCEDURE piGravaTTItem:
             ASSIGN tt_item.cod-ean = item-mat.cod-ean.
     END.
     ELSE DO:
-        pErro = "Registro Item n∆o localizado com o campo it-codigo: " + sfa-export-item.it-codigo.
+        pErro = "Registro Item n∆o localizado com o campo it-codigo: " + es-api-export-item.it-codigo.
         RETURN "NOK".
     END.
 

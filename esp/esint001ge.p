@@ -49,7 +49,7 @@ DEFINE TEMP-TABLE RowErrors NO-UNDO
 ASSIGN c-erro = "".
 
 /* ---- Chama o programa persistent ----- */
-RUN esp\esint002.p PERSISTENT SET h-esint002 NO-ERROR.
+RUN esp/esint002.p PERSISTENT SET h-esint002 NO-ERROR.
 IF ERROR-STATUS:ERROR THEN DO:
     ASSIGN c-erro = ERROR-STATUS:GET-MESSAGE(1).
     RETURN "NOK".
@@ -63,14 +63,14 @@ IF ERROR-STATUS:ERROR THEN DO:
 END.
 
 
-FIND FIRST sfa-export NO-LOCK WHERE ROWID(sfa-export) = r-table NO-ERROR.
-IF AVAIL sfa-export THEN DO:
+FIND FIRST es-api-export NO-LOCK WHERE ROWID(es-api-export) = r-table NO-ERROR.
+IF AVAIL es-api-export THEN DO:
 
-    FIND FIRST es-api-param WHERE es-api-param.ind-tipo-trans = sfa-export.ind-tipo-trans
-                              AND es-api-param.cd-tipo-integr = sfa-export.cd-tipo-integr NO-LOCK NO-ERROR. 
+    FIND FIRST es-api-param WHERE es-api-param.ind-tipo-trans = es-api-export.ind-tipo-trans
+                              AND es-api-param.cd-tipo-integr = es-api-export.cd-tipo-integr NO-LOCK NO-ERROR. 
 
-    FIND FIRST sfa-export-grcli OF sfa-export NO-ERROR.
-    IF AVAIL sfa-export-grcli THEN DO:
+    FIND FIRST es-api-export-grcli OF es-api-export NO-ERROR.
+    IF AVAIL es-api-export-grcli THEN DO:
 
         /*------------------------------------------ Item -------------------------------------------*/
         RUN piGravaTTGrupoCliente (OUTPUT h-temp,
@@ -96,8 +96,8 @@ IF AVAIL sfa-export THEN DO:
         oJsonObjMain = NEW JsonObject().
         oJsonObjMain:ADD("req",oJsonArrayMain).
 
-        FIND FIRST es-api-param WHERE es-api-param.ind-tipo-trans = sfa-export.ind-tipo-trans
-                                  AND es-api-param.cd-tipo-integr = sfa-export.cd-tipo-integr NO-LOCK NO-ERROR.                            
+        FIND FIRST es-api-param WHERE es-api-param.ind-tipo-trans = es-api-export.ind-tipo-trans
+                                  AND es-api-param.cd-tipo-integr = es-api-export.cd-tipo-integr NO-LOCK NO-ERROR.                            
 
         /* ------ Grava conteudo do Json em variavel -----*/
         RUN piGeraVarJson IN h-esint002 (INPUT oJsonObjMain,
@@ -108,7 +108,7 @@ IF AVAIL sfa-export THEN DO:
             RETURN "NOK".
         END.
 
-        ASSIGN sfa-export-grcli.c-json = c-Json.
+        ASSIGN es-api-export-grcli.c-json = c-Json.
     
         /* ------------ Envia Objeto Json --------- */
          RUN piPostJsonObj IN h-esint002 (INPUT oJsonObjMain,
@@ -143,13 +143,13 @@ PROCEDURE piGravaTTGrupoCliente:
     DEFINE OUTPUT PARAMETER pTemp AS HANDLE    NO-UNDO.
     DEFINE OUTPUT PARAMETER pErro AS CHARACTER NO-UNDO.
 
-    FIND FIRST gr-cli NO-LOCK WHERE gr-cli.cod-gr-cli = sfa-export-grcli.cod-gr-cli NO-ERROR.
+    FIND FIRST gr-cli NO-LOCK WHERE gr-cli.cod-gr-cli = es-api-export-grcli.cod-gr-cli NO-ERROR.
     IF AVAIL gr-cli THEN DO:
         CREATE tt_gr_cli.
         BUFFER-COPY gr-cli TO tt_gr_cli.
     END.
     ELSE DO:
-        pErro = "Registro Grupo de Clientes n∆o localizado com o campo cod-gr-cli: " + string(sfa-export-grcli.cod-gr-cli).
+        pErro = "Registro Grupo de Clientes n∆o localizado com o campo cod-gr-cli: " + string(es-api-export-grcli.cod-gr-cli).
         RETURN "NOK".
     END.
 

@@ -22,7 +22,7 @@ DEFINE TEMP-TABLE tt_nota_fiscal NO-UNDO
     field vl-frete                 LIKE nota-fiscal.vl-frete                  serialize-name "ValorFrete"		    
     field vl-mercad                LIKE nota-fiscal.vl-mercad                 serialize-name "ValorMercadoria"		
     field cgc                      LIKE nota-fiscal.cgc                       serialize-name "CNPJCliente"		    
-    field dt-emis                  LIKE nota-fiscal.dt-emis                   serialize-name "DataEmissao"		    
+    field dt-emis-nota             LIKE nota-fiscal.dt-emis-nota              serialize-name "DataEmissao"		    
     field endereco                 LIKE nota-fiscal.endereco                  serialize-name "Endereco"		        
     field nr-fatura                LIKE nota-fiscal.nr-fatura                 serialize-name "NumeroFatura"		    
     field dt-saida                 LIKE nota-fiscal.dt-saida                  serialize-name "DataSaidaMercadoria"	

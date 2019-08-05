@@ -64,14 +64,14 @@ IF ERROR-STATUS:ERROR THEN DO:
 END.
 
 
-FIND FIRST sfa-export NO-LOCK WHERE ROWID(sfa-export) = r-table NO-ERROR.
-IF AVAIL sfa-export THEN DO:
+FIND FIRST es-api-export NO-LOCK WHERE ROWID(es-api-export) = r-table NO-ERROR.
+IF AVAIL es-api-export THEN DO:
 
-    FIND FIRST es-api-param WHERE es-api-param.ind-tipo-trans = sfa-export.ind-tipo-trans
-                              AND es-api-param.cd-tipo-integr = sfa-export.cd-tipo-integr NO-LOCK NO-ERROR. 
+    FIND FIRST es-api-param WHERE es-api-param.ind-tipo-trans = es-api-export.ind-tipo-trans
+                              AND es-api-param.cd-tipo-integr = es-api-export.cd-tipo-integr NO-LOCK NO-ERROR. 
 
-    FIND FIRST sfa-export-repres OF sfa-export NO-ERROR.
-    IF AVAIL sfa-export-repres THEN DO:
+    FIND FIRST es-api-export-repres OF es-api-export NO-ERROR.
+    IF AVAIL es-api-export-repres THEN DO:
 
         /*------------------------------------------ Emitente -------------------------------------------*/
         RUN piGravaTTRepres (OUTPUT h-temp,
@@ -139,8 +139,8 @@ IF AVAIL sfa-export THEN DO:
         oJsonObjMain = NEW JsonObject().
         oJsonObjMain:ADD("req",oJsonArrayMain).
 
-        FIND FIRST es-api-param WHERE es-api-param.ind-tipo-trans = sfa-export.ind-tipo-trans
-                                  AND es-api-param.cd-tipo-integr = sfa-export.cd-tipo-integr NO-LOCK NO-ERROR.                            
+        FIND FIRST es-api-param WHERE es-api-param.ind-tipo-trans = es-api-export.ind-tipo-trans
+                                  AND es-api-param.cd-tipo-integr = es-api-export.cd-tipo-integr NO-LOCK NO-ERROR.                            
 
         /* ------ Grava conteudo do Json em variavel -----*/
         RUN piGeraVarJson IN h-esint002 (INPUT oJsonObjMain,
@@ -151,7 +151,7 @@ IF AVAIL sfa-export THEN DO:
             RETURN "NOK".
         END.
 
-        ASSIGN sfa-export-repres.c-json = c-Json.
+        ASSIGN es-api-export-repres.c-json = c-Json.
     
         /* ------------ Envia Objeto Json --------- */
          RUN piPostJsonObj IN h-esint002 (INPUT oJsonObjMain,
@@ -187,7 +187,7 @@ PROCEDURE piGravaTTRepres:
     DEFINE OUTPUT PARAMETER pTemp AS HANDLE    NO-UNDO.
     DEFINE OUTPUT PARAMETER pErro AS CHARACTER NO-UNDO.
 
-    FIND FIRST repres NO-LOCK WHERE repres.cod-rep = sfa-export-repres.cod-rep NO-ERROR.
+    FIND FIRST repres NO-LOCK WHERE repres.cod-rep = es-api-export-repres.cod-rep NO-ERROR.
     IF AVAIL repres THEN DO:
         CREATE tt_repres.
         BUFFER-COPY repres TO tt_repres.
@@ -197,7 +197,7 @@ PROCEDURE piGravaTTRepres:
             ASSIGN tt_repres.situacao = YES.
     END.
     ELSE DO:
-        pErro = "Registro Representante n∆o localizado com o campo cod-rep: " + string(sfa-export-repres.cod-rep).
+        pErro = "Registro Representante n∆o localizado com o campo cod-rep: " + string(es-api-export-repres.cod-rep).
         RETURN "NOK".
     END.
 
@@ -211,7 +211,7 @@ PROCEDURE piGravaTTRepresFamilia:
 
     DEFINE OUTPUT PARAMETER pTemp AS HANDLE    NO-UNDO.
     
-    FOR EACH es-gp-mix-produto NO-LOCK WHERE es-gp-mix-produto.cod-rep = sfa-export-repres.cod-rep:
+    FOR EACH es-gp-mix-produto NO-LOCK WHERE es-gp-mix-produto.cod-rep = es-api-export-repres.cod-rep:
         CREATE tt_repres_familia.
         BUFFER-COPY es-gp-mix-produto TO tt_repres_familia.
     END.
@@ -226,7 +226,7 @@ PROCEDURE piGravaTTRepresCliente:
 
     DEFINE OUTPUT PARAMETER pTemp AS HANDLE    NO-UNDO.
     
-    FOR EACH es-gp-mix-vendedor NO-LOCK WHERE es-gp-mix-vendedor.cod-rep = sfa-export-repres.cod-rep :
+    FOR EACH es-gp-mix-vendedor NO-LOCK WHERE es-gp-mix-vendedor.cod-rep = es-api-export-repres.cod-rep :
         CREATE tt_repres_cliente.
         
         FIND FIRST emitente WHERE emitente.cod-emitente = es-gp-mix-vendedor.cod-emitente NO-LOCK NO-ERROR.

@@ -158,9 +158,6 @@ PROCEDURE piGravaTTFaixaAprov:
 
     RUN piDeParaDocto.
 
-
-
-
     ASSIGN conteudo = "".
     FOR EACH mla-hierarquia-faixa NO-LOCK:
 
